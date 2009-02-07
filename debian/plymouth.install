@@ -1,0 +1,10 @@
+/bin
+/lib/*.so.*
+/sbin
+/usr/bin
+/usr/lib/*.so.*
+/usr/lib/plymouth/details.so
+/usr/lib/plymouth/text.so
+/usr/sbin
+/usr/share/gdm
+/usr/share/plymouth/*.png

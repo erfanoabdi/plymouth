@@ -1,0 +1,10 @@
+/lib/*.a
+/lib/*.la
+/lib/*.so
+/usr/include
+/usr/lib/*.a
+/usr/lib/*.la
+/usr/lib/*.so
+/usr/lib/pkgconfig
+/usr/lib/plymouth/*.a
+/usr/lib/plymouth/*.la

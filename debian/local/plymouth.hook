@@ -1,0 +1,33 @@
+#!/bin/sh
+
+# initramfs hook for plymouth
+
+set -e
+
+# initramfs-tools header
+
+PREREQ=""
+
+prereqs()
+{
+	echo "${PREREQ}"
+}
+
+case "${1}" in
+	prereqs)
+		prereqs
+		exit 0
+		;;
+esac
+
+. /usr/share/initramfs-tools/hook-functions
+
+# plymouth hook
+copy_exec /bin/plymouth /bin
+copy_exec /sbin/plymouthd /bin
+copy_exec /usr/lib/plymouth/details.so
+copy_exec /usr/lib/plymouth/text.so
+
+# TODO:
+# handling logos
+# handling default plugins

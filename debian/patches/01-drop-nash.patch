@@ -1,0 +1,51 @@
+Author: Ray Strode <rstrode@redhat.com>
+Description: patch from drop-nash branch for jeremy:
+ Create pseudo-terminal if one isn't passed in.
+ This may help us drop the nash depedency for pty handling.
+
+diff -Naurp plymouth.orig/src/libply/ply-terminal-session.c plymouth/src/libply/ply-terminal-session.c
+--- plymouth.orig/src/libply/ply-terminal-session.c	2008-11-10 18:04:39.000000000 +0000
++++ plymouth/src/libply/ply-terminal-session.c	2009-02-07 20:18:07.000000000 +0000
+@@ -309,12 +309,24 @@ ply_terminal_session_attach (ply_termina
+   assert (session->loop != NULL);
+   assert (!session->is_running);
+   assert (session->done_handler == NULL);
+-  assert (ptmx >= 0);
+ 
+   should_redirect_console = 
+     (flags & PLY_TERMINAL_SESSION_FLAGS_REDIRECT_CONSOLE) != 0;
+ 
+-  ply_terminal_set_fd(session->terminal, ptmx);
++  if (ptmx >= 0)
++    {
++      ply_trace ("ptmx passed in, using it");
++      ply_terminal_set_fd(session->terminal, ptmx);
++    }
++  else
++    {
++      ply_trace ("ptmx not passed in, creating one");
++      if (!ply_terminal_create_device (session->terminal))
++        {
++          ply_trace ("could not create pseudo-terminal: %m");
++          return false;
++        }
++    }
+ 
+   if (should_redirect_console)
+     ply_trace ("redirecting system console to terminal device");
+diff -Naurp plymouth.orig/src/main.c plymouth/src/main.c
+--- plymouth.orig/src/main.c	2008-11-20 02:26:38.000000000 +0000
++++ plymouth/src/main.c	2009-02-07 20:18:07.000000000 +0000
+@@ -838,12 +838,6 @@ main (int    argc,
+         }
+     }
+ 
+-  if ((attach_to_session && argc != 3) || (attach_to_session && state.ptmx == -1))
+-    {
+-      ply_error ("%s [--attach-to-session <pty_master_fd>]", argv[0]);
+-      return EX_USAGE;
+-    }
+-
+   if (geteuid () != 0)
+     {
+       ply_error ("plymouthd must be run as root user");

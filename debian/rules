@@ -1,0 +1,92 @@
+#!/usr/bin/make -f
+
+include /usr/share/quilt/quilt.make
+
+DEB_HOST_GNU_TYPE	?= $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE)
+DEB_BUILD_GNU_TYPE	?= $(shell dpkg-architecture -qDEB_BUILD_GNU_TYPE)
+
+ifneq ($(DEB_HOST_GNU_TYPE),$(DEB_BUILD_GNU_TYPE))
+	CROSS= --build $(DEB_BUILD_GNU_TYPE) --host $(DEB_HOST_GNU_TYPE)
+else
+	CROSS= --build $(DEB_BUILD_GNU_TYPE)
+endif
+
+clean: unpatch
+	dh_testdir
+	dh_testroot
+	rm -f build-stamp
+	rm -f build-tools/config.guess build-tools/config.sub
+
+	[ ! -f Makefile ] || $(MAKE) distclean
+
+	dh_clean
+
+config.status: configure patch
+	dh_testdir
+
+ifneq "$(wildcard /usr/share/misc/config.guess)" ""
+	cp -f /usr/share/misc/config.guess build-tools/config.guess
+endif
+ifneq "$(wildcard /usr/share/misc/config.sub)" ""
+	cp -f /usr/share/misc/config.sub build-tools/config.sub
+endif
+
+	./configure $(CROSS) --prefix=/usr --localstatedir=/var \
+		--enable-pango --enable-tracing --disable-tests \
+		--enable-gdm-transition --with-system-root-install \
+		--without-rhgb-compat-link --with-gdm-autostart-file \
+		--without-default-plugin \
+		CFLAGS="$(CFLAGS)" LDFLAGS="-Wl,-z,defs"
+
+	#	--with-logo=$(CURDIR)/debian/local/logo.png \
+	#	--with-background-color=0x3391cd \
+	#	--with-background-start-color-stop=0x0073B3 \
+	#	--with-background-end-color-stop=0x00457E \
+
+build: build-stamp
+build-stamp: config.status
+	dh_testdir
+
+	$(MAKE)
+
+	touch build-stamp
+
+install: build
+	dh_testdir
+	dh_testroot
+	dh_prep
+
+	$(MAKE) DESTDIR=$(CURDIR)/debian/tmp install
+
+	# Remove double files
+	rm -rf debian/tmp/usr/libexec
+	rm -f debian/tmp/usr/sbin/plymouth-set-default-plugin
+	rm -rf debian/tmp/var
+
+	install -D -m 0755 debian/local/plymouth.hook debian/plymouth/usr/share/initramfs-tools/hooks/plymouth
+	install -D -m 0755 debian/local/plymouth-set-default-plugin.sh debian/plymouth/usr/sbin/plymouth-set-default-plugin
+
+binary: binary-arch
+
+binary-arch: install
+	dh_testdir
+	dh_testroot
+	dh_installchangelogs
+	dh_installdocs
+	dh_installexamples
+	dh_install --fail-missing --sourcedir=debian/tmp
+	dh_lintian
+	dh_link
+	dh_strip
+	dh_compress
+	dh_fixperms
+	dh_makeshlibs -p plymouth
+	dh_installdeb
+	dh_shlibdeps
+	dh_gencontrol
+	dh_md5sums
+	dh_builddeb
+
+binary-indep:
+
+.PHONY: clean build install binary binary-arch binary-indep
