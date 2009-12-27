@@ -151,7 +151,7 @@ animate_at_time (ply_animation_t *animation,
   number_of_frames = ply_array_get_size (animation->frames);
 
   if (number_of_frames == 0)
-    return true;
+    return false;
 
   should_continue = true;
 

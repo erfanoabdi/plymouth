@@ -35,6 +35,7 @@ typedef struct
   script_obj_t     *script_display_normal_func;
   script_obj_t     *script_display_password_func;
   script_obj_t     *script_display_question_func;
+  script_obj_t     *script_message_func;
 } script_lib_plymouth_data_t;
 
 script_lib_plymouth_data_t *script_lib_plymouth_setup (script_state_t *state);
@@ -64,5 +65,8 @@ void script_lib_plymouth_on_display_question (script_state_t             *state,
                                               script_lib_plymouth_data_t *data,
                                               const char                 *prompt,
                                               const char                 *entry_text);
+void script_lib_plymouth_on_message (script_state_t             *state,
+                                     script_lib_plymouth_data_t *data,
+                                     const char                 *new_message);
 
 #endif /* SCRIPT_LIB_PLYMOUTH */

@@ -676,7 +676,8 @@ ply_open_module (const char *module_path)
 
   assert (module_path != NULL);
 
-  handle = (ply_module_handle_t *) dlopen (module_path, RTLD_NOW | RTLD_LOCAL);
+  handle = (ply_module_handle_t *) dlopen (module_path,
+                                           RTLD_NODELETE |RTLD_NOW | RTLD_LOCAL);
 
   if (handle == NULL)
     {

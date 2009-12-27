@@ -1144,9 +1144,6 @@ check_verbosity (state_t *state)
           debug_buffer_path = path;
         }
 
-        if (debug_buffer_path == NULL)
-          debug_buffer_path = strdup (PLYMOUTH_LOG_DIRECTORY "/plymouth-debug.log");
-
         if (debug_buffer != NULL)
           debug_buffer = ply_buffer_new ();
 
@@ -1160,6 +1157,9 @@ check_verbosity (state_t *state)
 
   if (debug_buffer != NULL)
     {
+      if (debug_buffer_path == NULL)
+        debug_buffer_path = strdup (PLYMOUTH_LOG_DIRECTORY "/plymouth-debug.log");
+
       ply_logger_add_filter (ply_logger_get_error_default (),
                              (ply_logger_filter_handler_t)
                              on_error_message,
@@ -1330,6 +1330,10 @@ dump_debug_buffer_to_file (void)
 
   fd = open (debug_buffer_path,
              O_WRONLY | O_CREAT, 0600);
+
+  if (fd < 0)
+    return;
+
   size = ply_buffer_get_size (debug_buffer);
   bytes = ply_buffer_get_bytes (debug_buffer);
   ply_write (fd, bytes, size);

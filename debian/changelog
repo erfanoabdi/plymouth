@@ -1,3 +1,9 @@
+plymouth (0.7.1-1) experimental; urgency=low
+
+  * Merging upstream version 0.7.1.
+
+ -- Daniel Baumann <daniel@debian.org>  Sun, 27 Dec 2009 17:16:38 +0100
+
 plymouth (0.7.0-1) experimental; urgency=low
 
   * Merging upstream version 0.7.0 (Closes: #541176).

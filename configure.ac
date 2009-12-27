@@ -1,4 +1,4 @@
-AC_INIT(plymouth, 0.7.0, "halfline@gmail.com")
+AC_INIT(plymouth, 0.7.1, "halfline@gmail.com")
 AC_CONFIG_SRCDIR(src/main.c)
 AC_CONFIG_HEADER(config.h)
 AC_CONFIG_AUX_DIR(build-tools)
