@@ -118,7 +118,6 @@ struct _ply_event_loop
   uint32_t should_exit : 1;
 };
 
-static void ply_event_loop_process_pending_events (ply_event_loop_t *loop);
 static void ply_event_loop_remove_source (ply_event_loop_t    *loop,
                                           ply_event_source_t *source);
 static ply_list_node_t *ply_event_loop_find_source_node (ply_event_loop_t *loop,
@@ -1209,7 +1208,7 @@ ply_event_loop_handle_timeouts (ply_event_loop_t *loop)
 
 }
 
-static void
+void
 ply_event_loop_process_pending_events (ply_event_loop_t *loop)
 {
   int number_of_received_events, i;

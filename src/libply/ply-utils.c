@@ -42,6 +42,7 @@
 #include <sys/un.h>
 #include <time.h>
 #include <linux/fs.h>
+#include <linux/vt.h>
 
 #include <dlfcn.h>
 
@@ -892,5 +893,26 @@ ply_utf8_string_get_length (const char   *string,
     }
   return count;
 }
+
+void
+ply_switch_to_vt (int vt_number)
+{
+    int fd;
+
+    fd = open ("/dev/tty0", O_RDWR | O_NOCTTY);
+
+    if (fd < 0)
+      return;
+
+  if (ioctl (fd, VT_ACTIVATE, vt_number) < 0)
+    {
+      close (fd);
+      return;
+    }
+
+  ioctl (fd, VT_WAITACTIVE, vt_number);
+  close (fd);
+}
+
 
 /* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

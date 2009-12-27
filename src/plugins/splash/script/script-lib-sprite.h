@@ -19,8 +19,8 @@
  *
  * Written by: Charlie Brej <cbrej@cs.man.ac.uk>
  */
-#ifndef SCRIPT_LIB_SPRITE
-#define SCRIPT_LIB_SPRITE
+#ifndef SCRIPT_LIB_SPRITE_H
+#define SCRIPT_LIB_SPRITE_H
 
 #include "script.h"
 
@@ -40,13 +40,13 @@ typedef struct
   int           x;
   int           y;
   int           z;
-  float         opacity;
+  double        opacity;
   int           old_x;
   int           old_y;
   int           old_z;
   int           old_width;
   int           old_height;
-  float         old_opacity;
+  double        old_opacity;
   bool          refresh_me;
   bool          remove_me;
   ply_image_t  *image;
@@ -58,4 +58,4 @@ script_lib_sprite_data_t *script_lib_sprite_setup (script_state_t *state,
 void script_lib_sprite_refresh (script_lib_sprite_data_t *data);
 void script_lib_sprite_destroy (script_lib_sprite_data_t *data);
 
-#endif /* SCRIPT_LIB_SPRITE */
+#endif /* SCRIPT_LIB_SPRITE_H */

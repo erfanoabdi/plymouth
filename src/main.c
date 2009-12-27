@@ -102,7 +102,7 @@ typedef struct
   uint32_t should_be_attached : 1;
   uint32_t should_retain_splash : 1;
 
-  char *console;
+  char *kernel_console_tty;
   char *override_splash_path;
 
   int number_of_errors;
@@ -123,27 +123,7 @@ static void on_error_message (ply_buffer_t *debug_buffer,
                               const void   *bytes,
                               size_t        number_of_bytes);
 static ply_buffer_t *debug_buffer;
-static char *debug_buffer_path;
-
-static void
-switch_to_vt (int vt_number)
-{
-    int fd;
-
-    fd = open ("/dev/tty0", O_RDWR | O_NOCTTY);
-
-    if (fd < 0)
-      return;
-
-  if (ioctl (fd, VT_ACTIVATE, vt_number) < 0)
-    {
-      close (fd);
-      return;
-    }
-
-  ioctl (fd, VT_WAITACTIVE, vt_number);
-  close (fd);
-}
+static char *debug_buffer_path = NULL;
 
 static void
 on_session_output (state_t    *state,
@@ -534,13 +514,16 @@ plymouth_should_show_default_splash (state_t *state)
   ply_trace ("checking if plymouth should show default splash");
 
   const char const *strings[] = {
-      " single ", " single", "^single ",
-      " 1 ", " 1", "^1 ",
+      " single ", " single\n", "^single ",
+      " 1 ", " 1\n", "^1 ",
+      " s ", " s\n", "^s ",
+      " S ", " S\n", "^S ",
+      " -s ", " -s\n", "^-s ",
       NULL
   };
   int i;
 
-  if (state->console != NULL)
+  if (state->kernel_console_tty != NULL)
     return false;
 
   if (!has_open_window (state))
@@ -562,7 +545,7 @@ plymouth_should_show_default_splash (state_t *state)
         }
     }
 
-  return strstr (state->kernel_command_line, "rhgb") != NULL || strstr (state->kernel_command_line, "splash") != NULL;
+  return strstr (state->kernel_command_line, "rhgb") != NULL || (strstr (state->kernel_command_line, "splash") != NULL && strstr(state->kernel_command_line, "splash=verbose") == NULL);
 }
 
 static void
@@ -900,7 +883,7 @@ on_keyboard_input (state_t                  *state,
     }
 }
 
-void
+static void
 on_backspace (state_t                  *state)
 {
   ssize_t bytes_to_remove;
@@ -926,7 +909,7 @@ on_backspace (state_t                  *state)
   update_display (state);
 }
 
-void
+static void
 on_enter (state_t                  *state,
           const char               *line)
 {
@@ -1130,7 +1113,7 @@ check_verbosity (state_t *state)
       if (!ply_is_tracing ())
         ply_toggle_tracing ();
 
-      if (path != NULL)
+      if (path != NULL && debug_buffer_path == NULL)
         {
           char *end;
 
@@ -1144,7 +1127,7 @@ check_verbosity (state_t *state)
           debug_buffer_path = path;
         }
 
-        if (debug_buffer != NULL)
+        if (debug_buffer == NULL)
           debug_buffer = ply_buffer_new ();
 
 #ifdef LOG_TO_DEBUG_FILE
@@ -1202,26 +1185,26 @@ check_for_consoles (state_t    *state,
       char *end;
       ply_trace ("serial console found!");
 
-      free (state->console);
-      state->console = strdup (console_key + strlen (" console="));
+      free (state->kernel_console_tty);
+      state->kernel_console_tty = strdup (console_key + strlen (" console="));
 
       remaining_command_line = console_key + strlen (" console=");
 
-      end = strpbrk (state->console, " \n\t\v,");
+      end = strpbrk (state->kernel_console_tty, " \n\t\v,");
 
       if (end != NULL)
         {
           *end = '\0';
-          remaining_command_line += end - state->console;
+          remaining_command_line += end - state->kernel_console_tty;
         }
 
-      if (strcmp (state->console, "tty0") == 0 || strcmp (state->console, "/dev/tty0") == 0)
+      if (strcmp (state->kernel_console_tty, "tty0") == 0 || strcmp (state->kernel_console_tty, "/dev/tty0") == 0)
         {
-          free (state->console);
-          state->console = strdup (default_tty);
+          free (state->kernel_console_tty);
+          state->kernel_console_tty = strdup (default_tty);
         }
 
-      ply_list_append_data (state->windows, create_window (state, state->console));
+      ply_list_append_data (state->windows, create_window (state, state->kernel_console_tty));
     }
 
     if (ply_list_get_length (state->windows) == 0)
@@ -1277,15 +1260,15 @@ initialize_environment (state_t *state)
   if (state->mode == PLY_MODE_SHUTDOWN)
     {
       default_tty = "tty63";
-      switch_to_vt (63);
+      ply_switch_to_vt (63);
     }
   else
     default_tty = "tty1";
 
   check_for_consoles (state, default_tty);
 
-  if (state->console != NULL)
-    redirect_standard_io_to_device (state->console);
+  if (state->kernel_console_tty != NULL)
+    redirect_standard_io_to_device (state->kernel_console_tty);
   else
     redirect_standard_io_to_device (default_tty);
 
@@ -1383,6 +1366,7 @@ main (int    argc,
                                   "attach-to-session", "Redirect console messages from screen to log", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   "no-daemon", "Do not daemonize", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   "debug", "Output debugging information", PLY_COMMAND_OPTION_TYPE_FLAG,
+                                  "debug-file", "File to output debugging information to", PLY_COMMAND_OPTION_TYPE_STRING,
                                   "mode", "Mode is one of: boot, shutdown", PLY_COMMAND_OPTION_TYPE_STRING,
                                   NULL);
 
@@ -1404,6 +1388,7 @@ main (int    argc,
                                   "mode", &mode_string,
                                   "no-daemon", &no_daemon,
                                   "debug", &debug,
+                                  "debug-file", &debug_buffer_path,
                                   NULL);
 
   if (should_help)

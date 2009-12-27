@@ -19,13 +19,14 @@
  *
  * Written by: Charlie Brej <cbrej@cs.man.ac.uk>
  */
-#ifndef SCRIPT_PARSE
-#define SCRIPT_PARSE
+#ifndef SCRIPT_PARSE_H
+#define SCRIPT_PARSE_H
 
 #include "script.h"
 
 script_op_t *script_parse_file (const char *filename);
-script_op_t *script_parse_string (const char *string);
+script_op_t *script_parse_string (const char *string,
+                                  const char *name);
 void script_parse_op_free (script_op_t *op);
 
-#endif /* SCRIPT_PARSE */
+#endif /* SCRIPT_PARSE_H */

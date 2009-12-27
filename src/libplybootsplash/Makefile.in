@@ -84,8 +84,8 @@ am_libplybootsplash_la_OBJECTS = $(am__objects_1) \
 	libplybootsplash_la-ply-animation.lo \
 	libplybootsplash_la-ply-progress-animation.lo \
 	libplybootsplash_la-ply-text-progress-bar.lo \
-	libplybootsplash_la-ply-text-pulser.lo \
-	libplybootsplash_la-ply-window.lo
+	libplybootsplash_la-ply-window.lo \
+	libplybootsplash_la-ply-boot-splash.lo
 libplybootsplash_la_OBJECTS = $(am_libplybootsplash_la_OBJECTS)
 AM_V_lt = $(am__v_lt_$(V))
 am__v_lt_ = $(am__v_lt_$(AM_DEFAULT_VERBOSITY))
@@ -267,7 +267,20 @@ INCLUDES = -I$(top_srcdir)                                                    \
 
 lib_LTLIBRARIES = libplybootsplash.la
 libplybootsplashdir = $(includedir)/plymouth-1/plybootsplash
-libplybootsplash_HEADERS = ply-entry.h ply-image.h ply-progress-bar.h ply-text-progress-bar.h ply-text-pulser.h ply-throbber.h ply-animation.h ply-progress-animation.h ply-window.h ply-label.h ply-boot-splash-plugin.h ply-label-plugin.h
+libplybootsplash_HEADERS = \
+		    ply-animation.h                                           \
+		    ply-boot-splash.h                                         \
+		    ply-boot-splash-plugin.h                                  \
+		    ply-entry.h                                               \
+		    ply-image.h                                               \
+		    ply-label.h                                               \
+		    ply-label-plugin.h                                        \
+		    ply-progress-animation.h                                  \
+		    ply-progress-bar.h                                        \
+		    ply-text-progress-bar.h                                   \
+		    ply-throbber.h                                            \
+		    ply-window.h
+
 libplybootsplash_la_CFLAGS = $(PLYMOUTH_CFLAGS)                               \
 			     $(IMAGE_CFLAGS)                                  \
                              -DPLYMOUTH_BACKGROUND_COLOR=$(background_color)   \
@@ -290,8 +303,8 @@ libplybootsplash_la_SOURCES = \
 		    ply-animation.c                                          \
 		    ply-progress-animation.c                                 \
 		    ply-text-progress-bar.c                                  \
-		    ply-text-pulser.c                                        \
-		    ply-window.c
+		    ply-window.c                                             \
+		    ply-boot-splash.c
 
 MAINTAINERCLEANFILES = Makefile.in
 all: all-am
@@ -369,13 +382,13 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libplybootsplash_la-ply-animation.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libplybootsplash_la-ply-boot-splash.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libplybootsplash_la-ply-entry.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libplybootsplash_la-ply-image.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libplybootsplash_la-ply-label.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libplybootsplash_la-ply-progress-animation.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libplybootsplash_la-ply-progress-bar.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libplybootsplash_la-ply-text-progress-bar.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libplybootsplash_la-ply-text-pulser.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libplybootsplash_la-ply-throbber.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libplybootsplash_la-ply-window.Plo@am__quote@
 
@@ -467,14 +480,6 @@ libplybootsplash_la-ply-text-progress-bar.lo: ply-text-progress-bar.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libplybootsplash_la_CFLAGS) $(CFLAGS) -c -o libplybootsplash_la-ply-text-progress-bar.lo `test -f 'ply-text-progress-bar.c' || echo '$(srcdir)/'`ply-text-progress-bar.c
 
-libplybootsplash_la-ply-text-pulser.lo: ply-text-pulser.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libplybootsplash_la_CFLAGS) $(CFLAGS) -MT libplybootsplash_la-ply-text-pulser.lo -MD -MP -MF $(DEPDIR)/libplybootsplash_la-ply-text-pulser.Tpo -c -o libplybootsplash_la-ply-text-pulser.lo `test -f 'ply-text-pulser.c' || echo '$(srcdir)/'`ply-text-pulser.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libplybootsplash_la-ply-text-pulser.Tpo $(DEPDIR)/libplybootsplash_la-ply-text-pulser.Plo
-@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='ply-text-pulser.c' object='libplybootsplash_la-ply-text-pulser.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libplybootsplash_la_CFLAGS) $(CFLAGS) -c -o libplybootsplash_la-ply-text-pulser.lo `test -f 'ply-text-pulser.c' || echo '$(srcdir)/'`ply-text-pulser.c
-
 libplybootsplash_la-ply-window.lo: ply-window.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libplybootsplash_la_CFLAGS) $(CFLAGS) -MT libplybootsplash_la-ply-window.lo -MD -MP -MF $(DEPDIR)/libplybootsplash_la-ply-window.Tpo -c -o libplybootsplash_la-ply-window.lo `test -f 'ply-window.c' || echo '$(srcdir)/'`ply-window.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libplybootsplash_la-ply-window.Tpo $(DEPDIR)/libplybootsplash_la-ply-window.Plo
@@ -482,6 +487,14 @@ libplybootsplash_la-ply-window.lo: ply-window.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='ply-window.c' object='libplybootsplash_la-ply-window.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libplybootsplash_la_CFLAGS) $(CFLAGS) -c -o libplybootsplash_la-ply-window.lo `test -f 'ply-window.c' || echo '$(srcdir)/'`ply-window.c
+
+libplybootsplash_la-ply-boot-splash.lo: ply-boot-splash.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libplybootsplash_la_CFLAGS) $(CFLAGS) -MT libplybootsplash_la-ply-boot-splash.lo -MD -MP -MF $(DEPDIR)/libplybootsplash_la-ply-boot-splash.Tpo -c -o libplybootsplash_la-ply-boot-splash.lo `test -f 'ply-boot-splash.c' || echo '$(srcdir)/'`ply-boot-splash.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libplybootsplash_la-ply-boot-splash.Tpo $(DEPDIR)/libplybootsplash_la-ply-boot-splash.Plo
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='ply-boot-splash.c' object='libplybootsplash_la-ply-boot-splash.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libplybootsplash_la_CFLAGS) $(CFLAGS) -c -o libplybootsplash_la-ply-boot-splash.lo `test -f 'ply-boot-splash.c' || echo '$(srcdir)/'`ply-boot-splash.c
 
 mostlyclean-libtool:
 	-rm -f *.lo

@@ -52,7 +52,7 @@ am__installdirs = "$(DESTDIR)$(plymouthdbindir)" \
 	"$(DESTDIR)$(pkgconfigdir)"
 PROGRAMS = $(plymouthdbin_PROGRAMS)
 am_plymouthd_OBJECTS = plymouthd-ply-boot-server.$(OBJEXT) \
-	plymouthd-ply-boot-splash.$(OBJEXT) plymouthd-main.$(OBJEXT)
+	plymouthd-main.$(OBJEXT)
 plymouthd_OBJECTS = $(am_plymouthd_OBJECTS)
 am__DEPENDENCIES_1 =
 plymouthd_DEPENDENCIES = $(am__DEPENDENCIES_1) libply/libply.la \
@@ -308,8 +308,6 @@ plymouthd_SOURCES = \
                    ply-boot-protocol.h                                        \
                    ply-boot-server.h                                          \
                    ply-boot-server.c                                          \
-                   ply-boot-splash.h                                          \
-                   ply-boot-splash.c                                          \
                    main.c
 
 plymouthdrundir = $(localstatedir)/run/plymouth
@@ -410,7 +408,6 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/plymouthd-main.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/plymouthd-ply-boot-server.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/plymouthd-ply-boot-splash.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -451,22 +448,6 @@ plymouthd-ply-boot-server.obj: ply-boot-server.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='ply-boot-server.c' object='plymouthd-ply-boot-server.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(plymouthd_CFLAGS) $(CFLAGS) -c -o plymouthd-ply-boot-server.obj `if test -f 'ply-boot-server.c'; then $(CYGPATH_W) 'ply-boot-server.c'; else $(CYGPATH_W) '$(srcdir)/ply-boot-server.c'; fi`
-
-plymouthd-ply-boot-splash.o: ply-boot-splash.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(plymouthd_CFLAGS) $(CFLAGS) -MT plymouthd-ply-boot-splash.o -MD -MP -MF $(DEPDIR)/plymouthd-ply-boot-splash.Tpo -c -o plymouthd-ply-boot-splash.o `test -f 'ply-boot-splash.c' || echo '$(srcdir)/'`ply-boot-splash.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/plymouthd-ply-boot-splash.Tpo $(DEPDIR)/plymouthd-ply-boot-splash.Po
-@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='ply-boot-splash.c' object='plymouthd-ply-boot-splash.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(plymouthd_CFLAGS) $(CFLAGS) -c -o plymouthd-ply-boot-splash.o `test -f 'ply-boot-splash.c' || echo '$(srcdir)/'`ply-boot-splash.c
-
-plymouthd-ply-boot-splash.obj: ply-boot-splash.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(plymouthd_CFLAGS) $(CFLAGS) -MT plymouthd-ply-boot-splash.obj -MD -MP -MF $(DEPDIR)/plymouthd-ply-boot-splash.Tpo -c -o plymouthd-ply-boot-splash.obj `if test -f 'ply-boot-splash.c'; then $(CYGPATH_W) 'ply-boot-splash.c'; else $(CYGPATH_W) '$(srcdir)/ply-boot-splash.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/plymouthd-ply-boot-splash.Tpo $(DEPDIR)/plymouthd-ply-boot-splash.Po
-@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='ply-boot-splash.c' object='plymouthd-ply-boot-splash.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(plymouthd_CFLAGS) $(CFLAGS) -c -o plymouthd-ply-boot-splash.obj `if test -f 'ply-boot-splash.c'; then $(CYGPATH_W) 'ply-boot-splash.c'; else $(CYGPATH_W) '$(srcdir)/ply-boot-splash.c'; fi`
 
 plymouthd-main.o: main.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(plymouthd_CFLAGS) $(CFLAGS) -MT plymouthd-main.o -MD -MP -MF $(DEPDIR)/plymouthd-main.Tpo -c -o plymouthd-main.o `test -f 'main.c' || echo '$(srcdir)/'`main.c

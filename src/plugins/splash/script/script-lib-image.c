@@ -85,11 +85,9 @@ static script_return_t image_get_width (script_state_t *state,
                                         void           *user_data)
 {
   script_lib_image_data_t *data = user_data;
-  ply_image_t *image = script_obj_hash_get_native_of_class (state->local,
-                                                            "image",
-                                                            data->class);
+  ply_image_t *image = script_obj_as_native_of_class (state->this, data->class);
   if (image)
-    return script_return_obj (script_obj_new_int (ply_image_get_width (image)));
+    return script_return_obj (script_obj_new_number (ply_image_get_width (image)));
   return script_return_obj_null ();
 }
 
@@ -97,11 +95,9 @@ static script_return_t image_get_height (script_state_t *state,
                                          void           *user_data)
 {
   script_lib_image_data_t *data = user_data;
-  ply_image_t *image = script_obj_hash_get_native_of_class (state->local,
-                                                            "image",
-                                                            data->class);
+  ply_image_t *image = script_obj_as_native_of_class (state->this, data->class);
   if (image)
-    return script_return_obj (script_obj_new_int (ply_image_get_height (image)));
+    return script_return_obj (script_obj_new_number (ply_image_get_height (image)));
   return script_return_obj_null ();
 }
 
@@ -109,10 +105,8 @@ static script_return_t image_rotate (script_state_t *state,
                                      void           *user_data)
 {
   script_lib_image_data_t *data = user_data;
-  ply_image_t *image = script_obj_hash_get_native_of_class (state->local,
-                                                            "image",
-                                                            data->class);
-  float angle = script_obj_hash_get_float (state->local, "angle");
+  ply_image_t *image = script_obj_as_native_of_class (state->this, data->class);
+  float angle = script_obj_hash_get_number (state->local, "angle");
 
   if (image)
     {
@@ -129,11 +123,9 @@ static script_return_t image_scale (script_state_t *state,
                                     void           *user_data)
 {
   script_lib_image_data_t *data = user_data;
-  ply_image_t *image = script_obj_hash_get_native_of_class (state->local,
-                                                            "image",
-                                                            data->class);
-  int width = script_obj_hash_get_int (state->local, "width");
-  int height = script_obj_hash_get_int (state->local, "height");
+  ply_image_t *image = script_obj_as_native_of_class (state->this, data->class);
+  int width = script_obj_hash_get_number (state->local, "width");
+  int height = script_obj_hash_get_number (state->local, "height");
 
   if (image)
     {
@@ -151,44 +143,42 @@ script_lib_image_data_t *script_lib_image_setup (script_state_t *state,
   data->class = script_obj_native_class_new (image_free, "image", data);
   data->image_dir = strdup (image_dir);
 
-  script_add_native_function (state->global,
-                              "ImageNew",
+  script_obj_t *image_hash = script_obj_hash_get_element (state->global, "Image");
+  
+  script_add_native_function (image_hash,
+                              "_New",
                               image_new,
                               data,
                               "filename",
                               NULL);
-  script_add_native_function (state->global,
-                              "ImageRotate",
+  script_add_native_function (image_hash,
+                              "_Rotate",
                               image_rotate,
                               data,
-                              "image",
                               "angle",
                               NULL);
-  script_add_native_function (state->global,
-                              "ImageScale",
+  script_add_native_function (image_hash,
+                              "_Scale",
                               image_scale,
                               data,
-                              "image",
                               "width",
                               "height",
                               NULL);
-  script_add_native_function (state->global,
-                              "ImageGetWidth",
+  script_add_native_function (image_hash,
+                              "GetWidth",
                               image_get_width,
                               data,
-                              "image",
                               NULL);
-  script_add_native_function (state->global,
-                              "ImageGetHeight",
+  script_add_native_function (image_hash,
+                              "GetHeight",
                               image_get_height,
                               data,
-                              "image",
                               NULL);
 
-  data->script_main_op = script_parse_string (script_lib_image_string);
+  script_obj_unref (image_hash);
+  data->script_main_op = script_parse_string (script_lib_image_string, "script-lib-image.script");
   script_return_t ret = script_execute (state, data->script_main_op);
   script_obj_unref (ret.object);
-
   return data;
 }
 

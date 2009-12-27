@@ -1,7 +1,7 @@
 noinst_SCRIPTS = new-object.sh 
 
 initrdscriptdir = $(libexecdir)/plymouth
-initrdscript_SCRIPTS = plymouth-update-initrd plymouth-populate-initrd
+initrdscript_SCRIPTS = plymouth-update-initrd plymouth-generate-initrd plymouth-populate-initrd
 
 sbinscriptsdir = $(sbindir)
 sbinscripts_SCRIPTS = plymouth-set-default-theme
@@ -20,6 +20,7 @@ plymouth-set-default-theme: $(srcdir)/plymouth-set-default-theme.in
 	    $(srcdir)/plymouth-set-default-theme.in > plymouth-set-default-theme
 
 EXTRA_DIST= plymouth-update-initrd                                             \
+	    plymouth-generate-initrd                                           \
 	    plymouth-populate-initrd.in                                        \
 	    plymouth-set-default-theme.in                                     \
 	    $(noinst_SCRIPTS)                                                  \

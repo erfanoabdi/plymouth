@@ -20,7 +20,6 @@
  * Written by: Charlie Brej <cbrej@cs.man.ac.uk>
  */
 #define _GNU_SOURCE
-#include "ply-utils.h"
 #include "script.h"
 #include "script-parse.h"
 #include "script-execute.h"
@@ -36,83 +35,76 @@
 
 #include "script-lib-math.script.h"
 
-static script_return_t script_lib_math_float_from_float_function (script_state_t *state,
-                                                                  void           *user_data)
+static script_return_t script_lib_math_double_from_double_function (script_state_t *state,
+                                                                    void           *user_data)
 {
-  float (*function)(float) = user_data;
-  float value = script_obj_hash_get_float (state->local, "value");
-  float reply_float = function (value);
-  return script_return_obj (script_obj_new_float (reply_float));
+  double (*function)(double) = user_data;
+  double value = script_obj_hash_get_number (state->local, "value");
+  double reply_double = function (value);
+  return script_return_obj (script_obj_new_number (reply_double));
 }
 
 
-static script_return_t script_lib_math_float_from_float_float_function (script_state_t *state,
-                                                                  void           *user_data)
+static script_return_t script_lib_math_double_from_double_double_function (script_state_t *state,
+                                                                           void           *user_data)
 {
-  float (*function)(float, float) = user_data;
-  float value1 = script_obj_hash_get_float (state->local, "value_a");
-  float value2 = script_obj_hash_get_float (state->local, "value_b");
-  float reply_float = function (value1, value2);
-  return script_return_obj (script_obj_new_float (reply_float));
+  double (*function)(double, double) = user_data;
+  double value1 = script_obj_hash_get_number (state->local, "value_a");
+  double value2 = script_obj_hash_get_number (state->local, "value_b");
+  double reply_double = function (value1, value2);
+  return script_return_obj (script_obj_new_number (reply_double));
 }
 
-static script_return_t script_lib_math_int_from_float_function (script_state_t *state,
-                                                                void           *user_data)
+static double double_to_int (double value)
 {
-  int (*function)(float) = user_data;
-  float value = script_obj_hash_get_float (state->local, "value");
-  int reply_int = function (value);
-  return script_return_obj (script_obj_new_int (reply_int));
-}
-
-static int float_to_int (float value)
-{
-  return (int) value;
+  return (double) (int) value;
 }
 
 script_lib_math_data_t *script_lib_math_setup (script_state_t *state)
 {
   script_lib_math_data_t *data = malloc (sizeof (script_lib_math_data_t));
 
-  script_add_native_function (state->global,
-                              "MathCos",
-                              script_lib_math_float_from_float_function,
-                              cosf,
+  script_obj_t *math_hash = script_obj_hash_get_element (state->global, "Math");
+  script_add_native_function (math_hash,
+                              "Cos",
+                              script_lib_math_double_from_double_function,
+                              cos,
                               "value",
                               NULL);
-  script_add_native_function (state->global,
-                              "MathSin",
-                              script_lib_math_float_from_float_function,
-                              sinf,
+  script_add_native_function (math_hash,
+                              "Sin",
+                              script_lib_math_double_from_double_function,
+                              sin,
                               "value",
                               NULL);
-  script_add_native_function (state->global,
-                              "MathTan",
-                              script_lib_math_float_from_float_function,
-                              tanf,
+  script_add_native_function (math_hash,
+                              "Tan",
+                              script_lib_math_double_from_double_function,
+                              tan,
                               "value",
                               NULL);
-  script_add_native_function (state->global,
-                              "MathATan2",
-                              script_lib_math_float_from_float_float_function,
-                              atan2f,
+  script_add_native_function (math_hash,
+                              "ATan2",
+                              script_lib_math_double_from_double_double_function,
+                              atan2,
                               "value_a",
                               "value_b",
                               NULL);
-  script_add_native_function (state->global,
-                              "MathSqrt",
-                              script_lib_math_float_from_float_function,
-                              sqrtf,
+  script_add_native_function (math_hash,
+                              "Sqrt",
+                              script_lib_math_double_from_double_function,
+                              sqrt,
                               "value",
                               NULL);
-  script_add_native_function (state->global,
-                              "MathInt",
-                              script_lib_math_int_from_float_function,
-                              float_to_int,
+  script_add_native_function (math_hash,
+                              "Int",
+                              script_lib_math_double_from_double_function,
+                              double_to_int,
                               "value",
                               NULL);
+  script_obj_unref (math_hash);
 
-  data->script_main_op = script_parse_string (script_lib_math_string);
+  data->script_main_op = script_parse_string (script_lib_math_string, "script-lib-math.script");
   script_return_t ret = script_execute (state, data->script_main_op);
   script_obj_unref (ret.object);
 
