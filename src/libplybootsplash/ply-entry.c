@@ -43,6 +43,7 @@
 #include "ply-entry.h"
 #include "ply-event-loop.h"
 #include "ply-array.h"
+#include "ply-label.h"
 #include "ply-logger.h"
 #include "ply-frame-buffer.h"
 #include "ply-image.h"
@@ -64,11 +65,14 @@ struct _ply_entry
   ply_frame_buffer_area_t  area;
   ply_image_t             *text_field_image;
   ply_image_t             *bullet_image;
+  ply_label_t             *label;
 
+  char* text;
   int number_of_bullets;
   int max_number_of_visible_bullets;
 
   uint32_t is_hidden : 1;
+  uint32_t is_password : 1;
 };
 
 ply_entry_t *
@@ -90,8 +94,13 @@ ply_entry_new (const char *image_dir)
   asprintf (&image_path, "%s/bullet.png", image_dir);
   entry->bullet_image = ply_image_new (image_path);
   free (image_path);
+  entry->label = ply_label_new ();
 
+  entry->number_of_bullets = 0;
+  entry->text = strdup("");
+  
   entry->is_hidden = true;
+  entry->is_password = true;
 
   return entry;
 }
@@ -103,6 +112,9 @@ ply_entry_free (ply_entry_t *entry)
     return;
   ply_image_free (entry->text_field_image);
   ply_image_free (entry->bullet_image);
+  ply_label_free (entry->label);
+  free (entry->text);
+
   free (entry);
 }
 
@@ -162,59 +174,95 @@ ply_entry_draw (ply_entry_t *entry)
   ply_frame_buffer_fill_with_argb32_data (entry->frame_buffer,
                                           &entry->area, 0, 0,
                                           text_field_data);
+  
+  if (entry->is_password)
+    {
+      bullet_data = ply_image_get_data (entry->bullet_image);
+      bullet_area.width = ply_image_get_width (entry->bullet_image);
+      bullet_area.height = ply_image_get_height (entry->bullet_image);
 
-  bullet_data = ply_image_get_data (entry->bullet_image);
-  bullet_area.width = ply_image_get_width (entry->bullet_image);
-  bullet_area.height = ply_image_get_height (entry->bullet_image);
+      if (entry->number_of_bullets < entry->max_number_of_visible_bullets)
+        number_of_visible_bullets = entry->number_of_bullets;
+      else
+        {
+          number_of_visible_bullets = entry->max_number_of_visible_bullets;
 
-  if (entry->number_of_bullets < entry->max_number_of_visible_bullets)
-    number_of_visible_bullets = entry->number_of_bullets;
+          /* We've got more bullets than we can show in the available space, so
+           * draw a little half bullet to indicate some bullets are offscreen
+           */
+          bullet_area.x = entry->area.x;
+          bullet_area.y = entry->area.y + entry->area.height / 2.0 - bullet_area.height / 2.0;
+
+          ply_frame_buffer_fill_with_argb32_data (entry->frame_buffer,
+                                                  &bullet_area, bullet_area.width / 2.0, 0,
+                                                  bullet_data);
+        }
+
+      for (i = 0; i < number_of_visible_bullets; i++)
+        {
+          bullet_area.x = entry->area.x + i * bullet_area.width + bullet_area.width / 2.0;
+          bullet_area.y = entry->area.y + entry->area.height / 2.0 - bullet_area.height / 2.0;
+
+          ply_frame_buffer_fill_with_argb32_data (entry->frame_buffer,
+                                                  &bullet_area, 0, 0,
+                                                  bullet_data);
+        }
+    }
   else
     {
-      number_of_visible_bullets = entry->max_number_of_visible_bullets;
-
-      /* We've got more bullets than we can show in the available space, so
-       * draw a little half bullet to indicate some bullets are offscreen
-       */
-      bullet_area.x = entry->area.x;
-      bullet_area.y = entry->area.y + entry->area.height / 2.0 - bullet_area.height / 2.0;
-
-      ply_frame_buffer_fill_with_argb32_data (entry->frame_buffer,
-                                              &bullet_area, bullet_area.width / 2.0, 0,
-                                              bullet_data);
-    }
-
-  for (i = 0; i < number_of_visible_bullets; i++)
-    {
-      bullet_area.x = entry->area.x + i * bullet_area.width + bullet_area.width / 2.0;
-      bullet_area.y = entry->area.y + entry->area.height / 2.0 - bullet_area.height / 2.0;
-
-      ply_frame_buffer_fill_with_argb32_data (entry->frame_buffer,
-                                              &bullet_area, 0, 0,
-                                              bullet_data);
+      ply_label_set_text (entry->label, entry->text);
+      ply_label_show (entry->label, entry->window, entry->area.x, entry->area.y);
+      
     }
   ply_frame_buffer_unpause_updates (entry->frame_buffer);
 }
 
 void
+ply_entry_set_bullet_count (ply_entry_t *entry, int count)
+{
+  count = MAX(0, count);
+  if (!entry->is_password || entry->number_of_bullets != count)
+    {
+      entry->is_password = true;
+      entry->number_of_bullets = count;
+      ply_entry_draw (entry);
+    }
+}
+
+int
+ply_entry_get_bullet_count (ply_entry_t *entry)
+{
+  return entry->number_of_bullets;
+}
+
+void
 ply_entry_add_bullet (ply_entry_t *entry)
 {
-  entry->number_of_bullets++;
-  ply_entry_draw (entry);
+  ply_entry_set_bullet_count (entry, ply_entry_get_bullet_count (entry)+1);
 }
 
 void
 ply_entry_remove_bullet (ply_entry_t *entry)
 {
-  entry->number_of_bullets--;
-  ply_entry_draw (entry);
+  ply_entry_set_bullet_count (entry, ply_entry_get_bullet_count (entry)-1);
 }
 
 void
 ply_entry_remove_all_bullets (ply_entry_t *entry)
 {
-  entry->number_of_bullets = 0;
-  ply_entry_draw (entry);
+  ply_entry_set_bullet_count (entry, 0);
+}
+
+void
+ply_entry_set_text (ply_entry_t *entry, const char* text)
+{
+  if (entry->is_password || strcmp(entry->text, text) != 0)
+    {
+      entry->is_password = false;
+      free(entry->text);
+      entry->text = strdup(text);
+      ply_entry_draw (entry);
+    }
 }
 
 void

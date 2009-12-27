@@ -38,6 +38,8 @@
 #define CLAMP(a,b,c) (MIN (MAX ((a), (b)), (c)))
 #endif
 
+#define PLY_UTF8_CHARACTER_SIZE_MAX 4
+
 typedef intptr_t ply_module_handle_t;
 typedef void (* ply_module_function_t) (void);
 
@@ -58,9 +60,13 @@ bool ply_get_credentials_from_fd (int    fd,
 bool ply_write (int         fd,
                 const void *buffer,
                 size_t      number_of_bytes); 
+bool ply_write_uint32 (int      fd,
+                       uint32_t value);
 bool ply_read (int     fd,
                void   *buffer,
                size_t  number_of_bytes); 
+bool ply_read_uint32 (int       fd,
+                      uint32_t *value);
 
 bool ply_fd_has_data (int fd);
 bool ply_fd_can_take_data (int fd);
@@ -92,6 +98,11 @@ void ply_show_new_kernel_messages (bool should_show);
 ply_daemon_handle_t *ply_create_daemon (void);
 bool ply_detach_daemon (ply_daemon_handle_t *handle,
                         int                  exit_code);
+
+int ply_utf8_character_get_size (const char   *string,
+                                 size_t        n);
+int ply_utf8_string_get_length (const char   *string,
+                                size_t        n);
 
 #endif
 

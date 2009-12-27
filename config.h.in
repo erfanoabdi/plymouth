@@ -30,6 +30,10 @@
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
 
+/* Define to the sub-directory in which libtool stores uninstalled libraries.
+   */
+#undef LT_OBJDIR
+
 /* Define to 1 if your C compiler doesn't accept -c and -o together. */
 #undef NO_MINUS_C_MINUS_O
 
@@ -56,6 +60,9 @@
 
 /* Build in verbose debug tracing spew */
 #undef PLY_ENABLE_TRACING
+
+/* Release file path */
+#undef RELEASE_FILE
 
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS

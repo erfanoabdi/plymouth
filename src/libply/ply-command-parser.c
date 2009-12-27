@@ -45,7 +45,7 @@ typedef struct
   char *name;
   char *description;
   ply_command_option_type_t type;
-
+  uint32_t was_set : 1;
   ply_command_option_result_t result;
 } ply_command_option_t;
 
@@ -55,7 +55,7 @@ typedef struct
   char *description;
   ply_list_t *options;
 
-  int longest_option_length;
+  size_t longest_option_length;
 
   ply_command_handler_t handler;
   void       *handler_data;
@@ -70,12 +70,12 @@ struct _ply_command_parser
   ply_list_t *read_subcommands;
 
   ply_list_t *arguments;
-  int longest_command_length;
+  size_t longest_command_length;
 
   uint32_t dispatch_is_queued : 1;
 };
 
-ply_command_option_t *
+static ply_command_option_t *
 ply_command_option_new (const char                *name,
                         const char                *description,
                         ply_command_option_type_t  type)
@@ -91,7 +91,7 @@ ply_command_option_new (const char                *name,
   return option;
 }
 
-void
+static void
 ply_command_option_free (ply_command_option_t *option)
 {
   if (option == NULL)
@@ -102,7 +102,7 @@ ply_command_option_free (ply_command_option_t *option)
   free (option);
 }
 
-ply_command_t *
+static ply_command_t *
 ply_command_new (const char *name,
                  const char *description,
                  ply_command_handler_t handler,
@@ -121,12 +121,24 @@ ply_command_new (const char *name,
   return command;
 }
 
-void
+static void
 ply_command_free (ply_command_t *command)
 {
+  ply_list_node_t *option_node;
+
   if (command == NULL)
     return;
 
+  option_node = ply_list_get_first_node (command->options);
+  while (option_node != NULL)
+    {
+      ply_command_option_t *option;
+
+      option = (ply_command_option_t *) ply_list_node_get_data (option_node);
+      ply_command_option_free (option);
+
+      option_node = ply_list_get_next_node (command->options, option_node);
+    }
   ply_list_free (command->options);
   free (command);
 }
@@ -135,30 +147,39 @@ static void
 append_usage_line_to_buffer (ply_command_parser_t *parser,
                              ply_buffer_t *buffer)
 {
-  ply_list_node_t *option_node;
-
   ply_buffer_append (buffer, "%s\n",
                      parser->main_command->description);
-  ply_buffer_append (buffer, "USAGE: %s", parser->main_command->name);
-
-  option_node = ply_list_get_first_node (parser->main_command->options);
-  while (option_node != NULL)
-    {
-      ply_command_option_t *option;
-
-      option = (ply_command_option_t *) ply_list_node_get_data (option_node);
-      ply_buffer_append (buffer, " [--%s%s] ", option->name,
-                         option->type == PLY_COMMAND_OPTION_TYPE_BOOLEAN?
-                         "={true|false}":
-                         option->type == PLY_COMMAND_OPTION_TYPE_STRING?
-                         "=<string>":
-                         option->type == PLY_COMMAND_OPTION_TYPE_INTEGER?
-                         "=<integer>": "");
-      option_node = ply_list_get_next_node (parser->main_command->options, option_node);
-    }
+  ply_buffer_append (buffer, "USAGE: %s [OPTION...]", parser->main_command->name);
 
   if (ply_list_get_length (parser->available_subcommands) > 0)
-    ply_buffer_append (buffer, "[subcommand [options]...]\n");
+    ply_buffer_append (buffer, " [COMMAND [OPTION...]...]\n");
+}
+
+static const char *
+get_type_string (int type)
+{
+  const char *option_type_string;
+
+  switch (type)
+    {
+    case PLY_COMMAND_OPTION_TYPE_FLAG:
+      option_type_string = "";
+      break;
+    case PLY_COMMAND_OPTION_TYPE_BOOLEAN:
+      option_type_string = "={true|false}";
+      break;
+    case PLY_COMMAND_OPTION_TYPE_STRING:
+      option_type_string = "=<string>";
+      break;
+    case PLY_COMMAND_OPTION_TYPE_INTEGER:
+      option_type_string = "=<integer>";
+      break;
+    default:
+      option_type_string = "";
+      break;
+    }
+
+  return option_type_string;
 }
 
 static void
@@ -174,40 +195,25 @@ append_command_options_to_buffer (ply_command_parser_t *parser,
     {
       ply_command_option_t *option;
       int option_width;
-      int description_width;
       const char *option_type_string;
 
       option = (ply_command_option_t *) ply_list_node_get_data (option_node);
 
-      switch (option->type)
-        {
-          case PLY_COMMAND_OPTION_TYPE_FLAG:
-              option_type_string = "";
-              break;
-          case PLY_COMMAND_OPTION_TYPE_BOOLEAN:
-              option_type_string = "={true|false}";
-              break;
-          case PLY_COMMAND_OPTION_TYPE_STRING:
-              option_type_string = "=<string>";
-              break;
-          case PLY_COMMAND_OPTION_TYPE_INTEGER:
-              option_type_string = "=<integer>";
-              break;
-          default:
-              option_type_string = "";
-              break;
-        }
+      option_type_string = get_type_string (option->type);
 
-      option_width = command->longest_option_length - strlen (option->name) +
-                     strlen ("={true|false}");
-      description_width = MAX (80 - 10 - command->longest_option_length -
-                               strlen ("--") - strlen ("={true|false}"), 0);
+      option_width = command->longest_option_length + 2 -
+        (strlen(option->name) + strlen(option_type_string));
+
       ply_buffer_append (buffer,
-                         "%-10.10s--%s%-*.*s%*s\n",
-                         "", option->name, option_width, option_width,
-                         option_type_string,
-                         description_width,
-                         option->description);
+                         "  --%s%s",
+                         option->name,
+                         option_type_string);
+
+      ply_buffer_append (buffer, "%*s %s\n",
+                         option_width,
+                         "",
+                         option->description ? option->description : "");
+
       option_node = ply_list_get_next_node (command->options, option_node);
     }
 }
@@ -218,16 +224,30 @@ ply_command_parser_get_help_string (ply_command_parser_t *parser)
   ply_buffer_t *buffer;
   ply_list_node_t *command_node;
   char *help_string;
+  int longest_subcommand;
 
   buffer = ply_buffer_new ();
 
   append_usage_line_to_buffer (parser, buffer);
   ply_buffer_append (buffer, "\n");
+  ply_buffer_append (buffer, "Options:\n");
   append_command_options_to_buffer (parser, parser->main_command, buffer);
   ply_buffer_append (buffer, "\n");
 
   if (ply_list_get_length (parser->available_subcommands) > 0)
-    ply_buffer_append (buffer, "Available subcommands:\n");
+    ply_buffer_append (buffer, "Available commands:\n");
+
+  /* get longest subcommand */
+  longest_subcommand = -1;
+  command_node = ply_list_get_first_node (parser->available_subcommands);
+  while (command_node != NULL)
+    {
+      ply_command_t *command;
+      command = (ply_command_t *) ply_list_node_get_data (command_node);
+      longest_subcommand = MAX (longest_subcommand, (int)strlen (command->name));
+      command_node = ply_list_get_next_node (parser->available_subcommands,
+                                             command_node);
+    }
   command_node = ply_list_get_first_node (parser->available_subcommands);
   while (command_node != NULL)
     {
@@ -235,14 +255,29 @@ ply_command_parser_get_help_string (ply_command_parser_t *parser)
 
       command = (ply_command_t *) ply_list_node_get_data (command_node);
 
-      ply_buffer_append (buffer, "\n%s%*s%-*s\n\n",
+      ply_buffer_append (buffer, "  %s%*s %s\n",
                          command->name,
-                         (int)(80 - strlen (command->name) - strlen (command->description)),
+                         (int) (longest_subcommand + 2 - strlen (command->name)),
                          "",
-                         (int) strlen (command->name),
                          command->description);
 
-      append_command_options_to_buffer (parser, command, buffer);
+      command_node = ply_list_get_next_node (parser->available_subcommands,
+                                             command_node);
+    }
+
+  command_node = ply_list_get_first_node (parser->available_subcommands);
+  while (command_node != NULL)
+    {
+      ply_command_t *command;
+
+      command = (ply_command_t *) ply_list_node_get_data (command_node);
+
+      if (ply_list_get_first_node (command->options) != NULL)
+        {
+          ply_buffer_append (buffer, "\nOptions for %s command:\n", command->name);
+
+          append_command_options_to_buffer (parser, command, buffer);
+        }
 
       command_node = ply_list_get_next_node (parser->available_subcommands,
                                              command_node);
@@ -267,7 +302,9 @@ ply_command_add_option (ply_command_t *command,
   ply_list_append_data (command->options, option);
 
   command->longest_option_length = MAX (command->longest_option_length,
-                                        strlen (name));
+                                        strlen (name)
+                                        + 1
+                                        + strlen (get_type_string (type)));
 }
 
 static ply_command_option_t *
@@ -316,11 +353,25 @@ ply_command_parser_new (const char *name,
 void
 ply_command_parser_free (ply_command_parser_t *command_parser)
 {
+  ply_list_node_t *command_node;
+
   if (command_parser == NULL)
     return;
 
+  command_node = ply_list_get_first_node (command_parser->available_subcommands);
+  while (command_node != NULL)
+    {
+      ply_command_t *command;
+
+      command = (ply_command_t *) ply_list_node_get_data (command_node);
+      ply_command_free (command);
+
+      command_node = ply_list_get_next_node (command_parser->available_subcommands, command_node);
+    }
   ply_list_free (command_parser->available_subcommands);
   ply_list_free (command_parser->read_subcommands);
+
+  ply_command_free (command_parser->main_command);
 
   free (command_parser);
 }
@@ -436,6 +487,52 @@ ply_command_parser_get_command (ply_command_parser_t *parser,
 }
 
 static void
+ply_command_parser_get_option_for_command (ply_command_parser_t *parser,
+                                           ply_command_t        *command,
+                                           const char           *option_name,
+                                           void                 *option_result,
+                                           bool                 *option_is_set)
+{
+  ply_command_option_t *option;
+
+  option = ply_command_get_option (command, option_name);
+
+  if (option == NULL)
+    return;
+
+  if (option_result != NULL)
+    {
+      switch (option->type)
+        {
+        case PLY_COMMAND_OPTION_TYPE_FLAG:
+        case PLY_COMMAND_OPTION_TYPE_BOOLEAN:
+          {
+            *(bool *)option_result = option->result.as_boolean;
+          }
+          break;
+
+        case PLY_COMMAND_OPTION_TYPE_STRING:
+          {
+            if (option->result.as_string != NULL)
+              *(char **)option_result = strdup (option->result.as_string);
+            else
+              *(char **)option_result = NULL;
+          }
+          break;
+
+        case PLY_COMMAND_OPTION_TYPE_INTEGER:
+          {
+            *(int *)option_result = option->result.as_integer;
+          }
+          break;
+        }
+    }
+
+  if (option_is_set != NULL)
+    *option_is_set = option->was_set;
+}
+
+static void
 ply_command_parser_get_options_for_command (ply_command_parser_t *parser,
                                             ply_command_t *command,
                                             const char *option_name,
@@ -448,57 +545,41 @@ ply_command_parser_get_options_for_command (ply_command_parser_t *parser,
 
   while (option_name != NULL)
     {
-      ply_command_option_t *option;
+      void *option_result;
 
-      option = ply_command_get_option (command, option_name);
+      option_result = va_arg (args, void *);
 
-      if (option != NULL)
-        {
-          switch (option->type)
-            {
-              case PLY_COMMAND_OPTION_TYPE_FLAG:
-              case PLY_COMMAND_OPTION_TYPE_BOOLEAN:
-                {
-                  bool *option_result;
-
-                  option_result = va_arg (args, bool *);
-
-                  *option_result = option->result.as_boolean;
-                }
-              break;
-
-              case PLY_COMMAND_OPTION_TYPE_STRING:
-                {
-                  char **option_result;
-
-                  option_result = va_arg (args, char **);
-                  if (option->result.as_string != NULL)
-                    *option_result = strdup (option->result.as_string);
-                  else
-                    *option_result = NULL;
-                }
-              break;
-
-              case PLY_COMMAND_OPTION_TYPE_INTEGER:
-                {
-                  int *option_result;
-
-                  option_result = va_arg (args, int *);
-
-                  *option_result = option->result.as_integer;
-                }
-              break;
-            }
-        }
+      ply_command_parser_get_option_for_command (parser,
+                                                 command,
+                                                 option_name,
+                                                 option_result,
+                                                 NULL);
 
       option_name = va_arg (args, const char *);
     }
 }
 
 void
+ply_command_parser_get_option (ply_command_parser_t *parser,
+                               const char           *option_name,
+                               void                 *option_result,
+                               bool                 *option_is_set)
+{
+  assert (parser != NULL);
+  assert (option_name != NULL);
+
+  ply_command_parser_get_option_for_command (parser,
+                                             parser->main_command,
+                                             option_name,
+                                             option_result,
+                                             option_is_set);
+}
+
+void
 ply_command_parser_get_options (ply_command_parser_t *parser,
                                 const char *option_name, /*
-                                void *      option_result */
+                                void *      option_result,
+                                bool *      option_was_set */
                                 ...)
 {
   va_list args;
@@ -512,10 +593,37 @@ ply_command_parser_get_options (ply_command_parser_t *parser,
 }
 
 void
+ply_command_parser_get_command_option (ply_command_parser_t *parser,
+                                       const char           *command_name,
+                                       const char           *option_name,
+                                       void                 *option_result,
+                                       bool                 *option_is_set)
+{
+  ply_command_t *command;
+
+  assert (parser != NULL);
+  assert (command_name != NULL);
+  assert (option_name != NULL);
+
+  command = ply_command_parser_get_command (parser, command_name);
+
+  if (command == NULL)
+    return;
+
+  ply_command_parser_get_option_for_command (parser,
+                                             parser->main_command,
+                                             option_name,
+                                             option_result,
+                                             option_is_set);
+}
+
+
+void
 ply_command_parser_get_command_options (ply_command_parser_t *parser,
                                         const char *command_name,
                                         const char *option_name, /*
-                                        void *      option_result */
+                                        void *      option_result,
+                                        bool *      option_was_set */
                                         ...)
 {
   ply_command_t *command;
@@ -698,7 +806,8 @@ ply_command_read_option (ply_command_t *command,
 
   ply_list_remove_node (arguments, node);
 
-  ply_command_option_read_arguments (option, arguments);
+  if (ply_command_option_read_arguments (option, arguments))
+    option->was_set = true;
 
   return option;
 }

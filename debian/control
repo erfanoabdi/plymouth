@@ -1,16 +1,21 @@
 Source: plymouth
 Section: misc
 Priority: optional
-Maintainer: Daniel Baumann <daniel@debian.org>
-Build-Depends: debhelper (>= 7), quilt, autotools-dev, libgtk2.0-dev, libpango1.0-dev (>= 1.21), libpng-dev, pkg-config
-Standards-Version: 3.8.0
+Maintainer: Daniel Baumann <daniel@lists.debian-maintainers.org>
+Uploaders: Daniel Baumann <daniel@debian.org>
+Build-Depends:
+ debhelper (>= 7.0.50~), autotools-dev, libgtk2.0-dev,
+ libpango1.0-dev (>= 1.21), libpng-dev, pkg-config
+Standards-Version: 3.8.3
 Homepage: http://www.freedesktop.org/wiki/Software/Plymouth
-Vcs-Browser: http://git.debian.net/?p=debian/plymouth.git
-Vcs-Git: git://git.debian.net/git/debian/plymouth.git
+Vcs-Browser: http://git.debian-maintainers.org/?p=daniel/plymouth.git
+Vcs-Git: git://git.debian-maintainers.org/git/daniel/plymouth.git
 
 Package: plymouth
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, plymouth-plugins-all | plymouth-plugin, initramfs-tools
+Depends:
+ ${misc:Depends}, ${shlibs:Depends}, plymouth-plugins-all | plymouth-plugin,
+ initramfs-tools
 Suggests: gdm
 Description: Graphical Boot Animation and Logger
  Plymouth provides an attractive graphical boot animation in place of the text
@@ -19,7 +24,7 @@ Description: Graphical Boot Animation and Logger
 
 Package: plymouth-dev
 Architecture: any
-Depends: plymouth (= ${binary:Version})
+Depends: ${misc:Depends}, plymouth (= ${binary:Version})
 Description: Graphical Boot Animation and Logger (development)
  Plymouth provides an attractive graphical boot animation in place of the text
  messages that normally get shown. Text messages are instead redirected to a log
@@ -29,7 +34,9 @@ Description: Graphical Boot Animation and Logger (development)
 
 Package: plymouth-plugins-all
 Architecture: all
-Depends: plymouth-plugins-fade-in, plymouth-plugins-label, plymouth-plugins-pulser, plymouth-plugins-solar, plymouth-plugins-spinfinity
+Depends:
+ ${misc:Depends}, plymouth-plugins-fade-in, plymouth-plugins-label,
+ plymouth-plugins-solar, plymouth-plugins-spinfinity
 Description: Graphical Boot Animation and Logger (plugin metapackage)
  Plymouth provides an attractive graphical boot animation in place of the text
  messages that normally get shown. Text messages are instead redirected to a log
@@ -39,7 +46,7 @@ Description: Graphical Boot Animation and Logger (plugin metapackage)
 
 Package: plymouth-plugins-fade-in
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, plymouth (= ${binary:Version})
+Depends: ${misc:Depends}, ${shlibs:Depends}, plymouth (= ${binary:Version})
 Provides: plymouth-plugin
 Description: Graphical Boot Animation and Logger (fad-in plugin)
  Plymouth provides an attractive graphical boot animation in place of the text
@@ -51,7 +58,7 @@ Description: Graphical Boot Animation and Logger (fad-in plugin)
 
 Package: plymouth-plugins-label
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, plymouth (= ${binary:Version})
+Depends: ${misc:Depends}, ${shlibs:Depends}, plymouth (= ${binary:Version})
 Provides: plymouth-plugin
 Description: Graphical Boot Animation and Logger (label plugin)
  Plymouth provides an attractive graphical boot animation in place of the text
@@ -61,21 +68,9 @@ Description: Graphical Boot Animation and Logger (label plugin)
  This package contains the label plugin. It provides the ability to render text
  on graphical boot splashes using pango and cairo.
 
-Package: plymouth-plugins-pulser
-Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, plymouth (= ${binary:Version})
-Provides: plymouth-plugin
-Description: Graphical Boot Animation and Logger (pulser plugin)
- Plymouth provides an attractive graphical boot animation in place of the text
- messages that normally get shown. Text messages are instead redirected to a log
- file for viewing after boot.
- .
- This package contains the pulser plugin. It features a pulsing text progress
- indicator centered in the screen during system boot up.
-
 Package: plymouth-plugins-solar
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, plymouth (= ${binary:Version})
+Depends: ${misc:Depends}, ${shlibs:Depends}, plymouth (= ${binary:Version})
 Provides: plymouth-plugin
 Description: Graphical Boot Animation and Logger (solar plugin)
  Plymouth provides an attractive graphical boot animation in place of the text
@@ -87,7 +82,7 @@ Description: Graphical Boot Animation and Logger (solar plugin)
 
 Package: plymouth-plugins-spinfinity
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, plymouth (= ${binary:Version})
+Depends: ${misc:Depends}, ${shlibs:Depends}, plymouth (= ${binary:Version})
 Provides: plymouth-plugin
 Description: Graphical Boot Animation and Logger (spinfinity plugin)
  Plymouth provides an attractive graphical boot animation in place of the text

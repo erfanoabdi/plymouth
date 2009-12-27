@@ -29,7 +29,7 @@
 typedef struct _ply_terminal ply_terminal_t;
 
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
-ply_terminal_t *ply_terminal_new ();
+ply_terminal_t *ply_terminal_new (void);
 void ply_terminal_free (ply_terminal_t *terminal);
 bool ply_terminal_create_device (ply_terminal_t *terminal);
 bool ply_terminal_has_device (ply_terminal_t *terminal);

@@ -17,8 +17,11 @@ libply_HEADERS = \
 		    ply-frame-buffer.h                                        \
 		    ply-buffer.h                                              \
 		    ply-array.h                                               \
+		    ply-bitarray.h                                            \
 		    ply-list.h                                                \
+		    ply-hashtable.h                                           \
 		    ply-logger.h                                              \
+		    ply-key-file.h                                            \
 		    ply-progress.h                                            \
 		    ply-terminal.h                                            \
 		    ply-terminal-session.h                                    \
@@ -36,8 +39,11 @@ libply_la_SOURCES = ply-event-loop.c                                          \
 		    ply-frame-buffer.c                                        \
 		    ply-buffer.c                                              \
 		    ply-array.c                                               \
+		    ply-bitarray.c                                            \
 		    ply-list.c                                                \
+		    ply-hashtable.c                                           \
 		    ply-logger.c                                              \
+		    ply-key-file.c                                            \
 		    ply-progress.c                                            \
 		    ply-terminal.c                                            \
 		    ply-terminal-session.c                                    \

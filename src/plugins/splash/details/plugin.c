@@ -43,6 +43,7 @@
 #include "ply-boot-splash-plugin.h"
 #include "ply-buffer.h"
 #include "ply-event-loop.h"
+#include "ply-key-file.h"
 #include "ply-list.h"
 #include "ply-logger.h"
 #include "ply-frame-buffer.h"
@@ -53,24 +54,37 @@
 
 #include <linux/kd.h>
 
-void ask_for_password (ply_boot_splash_plugin_t *plugin,
-                       const char               *prompt,
-                       ply_trigger_t            *answer);
+#define CLEAR_LINE_SEQUENCE "\033[2K\r"
+
+typedef enum {
+   PLY_BOOT_SPLASH_DISPLAY_NORMAL,
+   PLY_BOOT_SPLASH_DISPLAY_QUESTION_ENTRY,
+   PLY_BOOT_SPLASH_DISPLAY_PASSWORD_ENTRY
+} ply_boot_splash_display_type_t;
+
+
 typedef void (* ply_boot_splash_plugin_window_handler_t) (ply_window_t *window, ply_boot_splash_plugin_t *, void *user_data, void *other_user_data);
+
+static void uninitialize_window (ply_window_t             *window,
+                                 ply_boot_splash_plugin_t *plugin);
+
+static void for_each_window (ply_boot_splash_plugin_t *plugin,
+                             ply_boot_splash_plugin_window_handler_t handler,
+                             void *user_data,
+                             void *other_user_data);
 
 ply_boot_splash_plugin_interface_t *ply_boot_splash_plugin_get_interface (void);
 struct _ply_boot_splash_plugin
 {
   ply_event_loop_t *loop;
-
-  ply_trigger_t *pending_password_answer;
+  ply_boot_splash_mode_t mode;
   ply_list_t *windows;
+  ply_boot_splash_display_type_t state;
 
-  uint32_t keyboard_input_is_hidden : 1;
 };
 
-ply_boot_splash_plugin_t *
-create_plugin (void)
+static ply_boot_splash_plugin_t *
+create_plugin (ply_key_file_t *key_file)
 {
   ply_boot_splash_plugin_t *plugin;
 
@@ -78,17 +92,21 @@ create_plugin (void)
 
   plugin = calloc (1, sizeof (ply_boot_splash_plugin_t));
   plugin->windows = ply_list_new ();
-
+  plugin->state = PLY_BOOT_SPLASH_DISPLAY_NORMAL;
   return plugin;
 }
 
-void
+static void
 destroy_plugin (ply_boot_splash_plugin_t *plugin)
 {
   ply_trace ("destroying plugin");
 
   if (plugin == NULL)
     return;
+
+  for_each_window (plugin,
+                   (ply_boot_splash_plugin_window_handler_t)
+                   uninitialize_window, NULL, NULL);
 
   ply_list_free (plugin->windows);
 
@@ -103,12 +121,6 @@ detach_from_event_loop (ply_boot_splash_plugin_t *plugin)
   ply_trace ("detaching from event loop");
 }
 
-
-static void
-write_text_on_window (ply_window_t             *window,
-                      ply_boot_splash_plugin_t *plugin,
-                      const char               *text,
-                      void                     *user_data);
 static void
 for_each_window (ply_boot_splash_plugin_t *plugin,
                  ply_boot_splash_plugin_window_handler_t handler,
@@ -142,6 +154,8 @@ write_text_on_window (ply_window_t             *window,
   int fd;
   size_t size;
 
+  ply_window_set_mode (window, PLY_WINDOW_MODE_TEXT);
+
   size = (size_t) user_data;
 
   fd = ply_window_get_tty_fd (window);
@@ -154,50 +168,27 @@ on_keyboard_input (ply_boot_splash_plugin_t *plugin,
                    const char               *keyboard_input,
                    size_t                    character_size)
 {
-  if (plugin->keyboard_input_is_hidden)
-      for_each_window (plugin,
-                       (ply_boot_splash_plugin_window_handler_t)
-                       write_text_on_window, (void *) "*",
-                       (void *) strlen ("*"));
-  else
-      for_each_window (plugin,
-                       (ply_boot_splash_plugin_window_handler_t)
-                       write_text_on_window, (void *) keyboard_input,
-                       (void *) character_size);
 }
 
 void
 on_backspace (ply_boot_splash_plugin_t *plugin)
 {
-  for_each_window (plugin,
-                   (ply_boot_splash_plugin_window_handler_t)
-                   ply_window_clear_text_character, NULL, NULL);
 }
 
 void
 on_enter (ply_boot_splash_plugin_t *plugin,
           const char               *line)
 {
-  if (plugin->pending_password_answer != NULL)
-    {
-      ply_trigger_pull (plugin->pending_password_answer, line);
-      plugin->keyboard_input_is_hidden = false;
-      plugin->pending_password_answer = NULL;
-
-      for_each_window (plugin,
-                       (ply_boot_splash_plugin_window_handler_t)
-                       ply_window_clear_text_line, NULL, NULL);
-    }
 }
 
-void
+static void
 add_window (ply_boot_splash_plugin_t *plugin,
             ply_window_t             *window)
 {
   ply_list_append_data (plugin->windows, window);
 }
 
-void
+static void
 remove_window (ply_boot_splash_plugin_t *plugin,
                ply_window_t             *window)
 {
@@ -208,38 +199,33 @@ static void
 initialize_window (ply_window_t             *window,
                    ply_boot_splash_plugin_t *plugin)
 {
-  ply_boot_splash_plugin_interface_t *interface;
-
   ply_window_set_mode (window, PLY_WINDOW_MODE_TEXT);
 
-  ply_window_set_keyboard_input_handler (window,
+  ply_window_add_keyboard_input_handler (window,
                                          (ply_window_keyboard_input_handler_t)
                                          on_keyboard_input, plugin);
-  ply_window_set_backspace_handler (window,
+  ply_window_add_backspace_handler (window,
                                     (ply_window_backspace_handler_t)
                                     on_backspace, plugin);
-  ply_window_set_enter_handler (window,
+  ply_window_add_enter_handler (window,
                                 (ply_window_enter_handler_t)
                                 on_enter, plugin);
-
-  interface = ply_boot_splash_plugin_get_interface ();
-
-  interface->ask_for_password = ask_for_password;
 }
 
 static void
 uninitialize_window (ply_window_t             *window,
                      ply_boot_splash_plugin_t *plugin)
 {
-  ply_window_set_keyboard_input_handler (window, NULL, NULL);
-  ply_window_set_backspace_handler (window, NULL, NULL);
-  ply_window_set_enter_handler (window, NULL, NULL);
+  ply_window_remove_keyboard_input_handler (window, (ply_window_keyboard_input_handler_t) on_keyboard_input);
+  ply_window_remove_backspace_handler (window, (ply_window_backspace_handler_t) on_backspace);
+  ply_window_remove_enter_handler (window, (ply_window_enter_handler_t) on_enter);
 }
 
-bool
+static bool
 show_splash_screen (ply_boot_splash_plugin_t *plugin,
                     ply_event_loop_t         *loop,
-                    ply_buffer_t             *boot_buffer)
+                    ply_buffer_t             *boot_buffer,
+                    ply_boot_splash_mode_t    mode)
 {
   size_t size;
 
@@ -249,6 +235,7 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
                    (ply_boot_splash_plugin_window_handler_t)
                    initialize_window, NULL, NULL);
   plugin->loop = loop;
+  plugin->mode = mode;
 
   ply_event_loop_watch_for_exit (loop, (ply_event_loop_exit_handler_t)
                                  detach_from_event_loop,
@@ -264,7 +251,7 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
   return true;
 }
 
-void
+static void
 update_status (ply_boot_splash_plugin_t *plugin,
                const char               *status)
 {
@@ -273,13 +260,13 @@ update_status (ply_boot_splash_plugin_t *plugin,
   ply_trace ("status update");
 }
 
-void
+static void
 on_boot_output (ply_boot_splash_plugin_t *plugin,
                 const char               *output,
                 size_t                    size)
 {
   ply_trace ("writing '%s' to all windows (%d bytes)",
-             output, size);
+             output, (int) size);
   if (size > 0)
     for_each_window (plugin,
                      (ply_boot_splash_plugin_window_handler_t)
@@ -287,7 +274,7 @@ on_boot_output (ply_boot_splash_plugin_t *plugin,
                      (void *) output, (void *) size);
 }
 
-void
+static void
 hide_splash_screen (ply_boot_splash_plugin_t *plugin,
                     ply_event_loop_t         *loop)
 {
@@ -299,13 +286,6 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin,
                    (ply_boot_splash_plugin_window_handler_t)
                    uninitialize_window, NULL, NULL);
 
-  if (plugin->pending_password_answer != NULL)
-    {
-      ply_trigger_pull (plugin->pending_password_answer, "");
-      plugin->pending_password_answer = NULL;
-      plugin->keyboard_input_is_hidden = false;
-    }
-
   ply_event_loop_stop_watching_for_exit (plugin->loop,
                                          (ply_event_loop_exit_handler_t)
                                          detach_from_event_loop,
@@ -314,36 +294,105 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin,
 }
 
 static void
-ask_for_password_on_window (ply_window_t             *window,
-                            ply_boot_splash_plugin_t *plugin,
-                            const char               *prompt)
+display_normal (ply_boot_splash_plugin_t *plugin)
 {
-  int fd;
-
-  ply_window_set_mode (window, PLY_WINDOW_MODE_TEXT);
-
-  fd = ply_window_get_tty_fd (window);
-
-  if (prompt != NULL)
+  if (plugin->state != PLY_BOOT_SPLASH_DISPLAY_NORMAL)
     {
-      write (fd, "\r\n", strlen ("\r\n"));
-      write (fd, prompt, strlen (prompt));
+      for_each_window (plugin,
+                 (ply_boot_splash_plugin_window_handler_t)
+                 write_text_on_window, 
+                 (void *) "\r\n", (void *) strlen ("\r\n"));
     }
-
-  write (fd, "\r\nPassword: ", strlen ("\r\nPassword: "));
-  plugin->keyboard_input_is_hidden = true;
+  plugin->state = PLY_BOOT_SPLASH_DISPLAY_NORMAL;
 }
 
-void
-ask_for_password (ply_boot_splash_plugin_t *plugin,
+
+static void
+display_password (ply_boot_splash_plugin_t *plugin,
                   const char               *prompt,
-                  ply_trigger_t            *answer)
+                  int                       bullets)
 {
-  plugin->pending_password_answer = answer;
+  int i;
+  if (plugin->state != PLY_BOOT_SPLASH_DISPLAY_PASSWORD_ENTRY)
+    {
+      for_each_window (plugin,
+                 (ply_boot_splash_plugin_window_handler_t)
+                 write_text_on_window,
+                 (void *) "\r\n", (void *) strlen ("\r\n"));
+    }
+  else
+    {
+      for_each_window (plugin,
+                 (ply_boot_splash_plugin_window_handler_t)
+                 write_text_on_window,
+                 (void *) CLEAR_LINE_SEQUENCE,
+                 (void *) strlen (CLEAR_LINE_SEQUENCE));
+    }
+  plugin->state = PLY_BOOT_SPLASH_DISPLAY_PASSWORD_ENTRY;
+  
+  if (prompt)
+      for_each_window (plugin,
+                 (ply_boot_splash_plugin_window_handler_t)
+                 write_text_on_window, 
+                 (void *) prompt,
+                 (void *) strlen (prompt));
+  else
+      for_each_window (plugin,
+                 (ply_boot_splash_plugin_window_handler_t)
+                 write_text_on_window, 
+                 (void *) "Password",
+                 (void *) strlen ("Password"));
 
   for_each_window (plugin,
-                   (ply_boot_splash_plugin_window_handler_t)
-                   ask_for_password_on_window, (void *) prompt, NULL);
+             (ply_boot_splash_plugin_window_handler_t)
+             write_text_on_window, 
+             (void *) ":",
+             (void *) strlen (":"));
+  for (i=0; i<bullets; i++)
+      for_each_window (plugin,
+             (ply_boot_splash_plugin_window_handler_t)
+             write_text_on_window, 
+             (void *) "*",
+             (void *) strlen ("*"));
+}
+
+static void
+display_question (ply_boot_splash_plugin_t *plugin,
+                  const char               *prompt,
+                  const char               *entry_text)
+{
+  if (plugin->state != PLY_BOOT_SPLASH_DISPLAY_QUESTION_ENTRY)
+    {
+      for_each_window (plugin,
+                 (ply_boot_splash_plugin_window_handler_t)
+                 write_text_on_window,
+                 (void *) "\r\n", (void *) strlen ("\r\n"));
+    }
+  else
+    {
+      for_each_window (plugin,
+                 (ply_boot_splash_plugin_window_handler_t)
+                 write_text_on_window,
+                 (void *) CLEAR_LINE_SEQUENCE,
+                 (void *) strlen (CLEAR_LINE_SEQUENCE));
+    }
+  plugin->state = PLY_BOOT_SPLASH_DISPLAY_QUESTION_ENTRY;
+  if (prompt)
+    for_each_window (plugin,
+               (ply_boot_splash_plugin_window_handler_t)
+               write_text_on_window, 
+               (void *) prompt,
+               (void *) strlen (prompt));
+  for_each_window (plugin,
+             (ply_boot_splash_plugin_window_handler_t)
+             write_text_on_window, 
+             (void *) ":",
+             (void *) strlen (":"));
+  for_each_window (plugin,
+             (ply_boot_splash_plugin_window_handler_t)
+             write_text_on_window, 
+             (void *) entry_text,
+             (void *) strlen (entry_text));
 }
 
 ply_boot_splash_plugin_interface_t *
@@ -359,6 +408,9 @@ ply_boot_splash_plugin_get_interface (void)
       .update_status = update_status,
       .on_boot_output = on_boot_output,
       .hide_splash_screen = hide_splash_screen,
+      .display_normal = display_normal,
+      .display_password = display_password,
+      .display_question = display_question,      
     };
 
   return &plugin_interface;

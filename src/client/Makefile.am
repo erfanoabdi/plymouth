@@ -9,7 +9,7 @@ plymouthdir = $(plymouthclientdir)
 
 plymouth_PROGRAMS = plymouth
 
-plymouth_CFLAGS = $(PLYMOUTH_CFLAGS) -DPLYMOUTH_PLUGIN_PATH=\"$(prefix)/\$${LIB}/plymouth/\"
+plymouth_CFLAGS = $(PLYMOUTH_CFLAGS) -DPLYMOUTH_PLUGIN_PATH=\"$(PLYMOUTH_PLUGIN_PATH)\"
 plymouth_LDADD = $(PLYMOUTH_LIBS) ../libply/libply.la
 plymouth_SOURCES = \
                       $(srcdir)/../ply-boot-protocol.h                        \

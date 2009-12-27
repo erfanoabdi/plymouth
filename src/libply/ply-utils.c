@@ -286,46 +286,6 @@ ply_get_credentials_from_fd (int    fd,
   return true;
 }
 
-int
-ply_create_unix_socket (const char *path)
-{
-  struct sockaddr_un address; 
-  int fd;
-
-  assert (path != NULL);
-
-  fd = socket (PF_UNIX, SOCK_STREAM, 0);
-
-  if (fd < 0)
-    return -1;
-
-  if (fcntl (fd, F_SETFD, O_NONBLOCK | FD_CLOEXEC) < 0)
-    {
-      ply_save_errno ();
-      close (fd);
-      ply_restore_errno ();
-
-      return -1;
-    }
-
-  memset (&address, 0, sizeof (address));
-
-  address.sun_family = AF_UNIX;
-  memcpy (address.sun_path, path, strlen (path));
-
-  if (connect (fd, (struct sockaddr *) &address,
-               sizeof (struct sockaddr_un)) < 0)
-    {
-      ply_save_errno ();
-      close (fd);
-      ply_restore_errno ();
-
-      return -1;
-    }
-
-  return fd;
-}
-
 bool 
 ply_write (int         fd,
            const void *buffer,
@@ -357,6 +317,20 @@ ply_write (int         fd,
   while (bytes_left_to_write > 0);
 
   return bytes_left_to_write == 0;
+}
+
+bool 
+ply_write_uint32 (int      fd,
+                  uint32_t value)
+{
+  uint8_t buffer[4];
+  
+  buffer[0] = (value >> 0) & 0xFF;
+  buffer[1] = (value >> 8) & 0xFF;
+  buffer[2] = (value >> 16) & 0xFF;
+  buffer[3] = (value >> 24) & 0xFF;
+  
+  return ply_write (fd, buffer, 4 * sizeof (uint8_t));
 }
 
 static ssize_t
@@ -412,6 +386,22 @@ ply_read (int     fd,
   read_was_successful = total_bytes_read == number_of_bytes;
 
   return read_was_successful;
+}
+
+bool 
+ply_read_uint32 (int       fd,
+                 uint32_t *value)
+{
+  uint8_t buffer[4];
+  
+  if (!ply_read (fd, buffer, 4 * sizeof (uint8_t)))
+    return false;
+  
+  *value = (buffer[0] << 0) | 
+           (buffer[1] << 8) | 
+           (buffer[2] << 16) | 
+           (buffer[3] << 24);
+  return true;
 }
 
 bool 
@@ -859,6 +849,47 @@ ply_detach_daemon (ply_daemon_handle_t *handle,
   free (handle);
 
   return true;
+}
+
+
+/*                    UTF-8 encoding
+00000000-01111111 	00-7F 	US-ASCII (single byte)
+10000000-10111111 	80-BF 	Second, third, or fourth byte of a multi-byte sequence
+11000000-11011111 	C0-DF 	Start of 2-byte sequence
+11100000-11101111 	E0-EF 	Start of 3-byte sequence
+11110000-11110100 	F0-F4 	Start of 4-byte sequence
+*/
+
+int
+ply_utf8_character_get_size (const char   *string,
+                             size_t        n)
+{
+  int length;
+  if (n < 1) return -1;
+  if (string[0] == 0x00) length = 0;
+  else if ((string[0] & 0x80) == 0x00) length = 1;
+  else if ((string[0] & 0xE0) == 0xC0) length = 2;
+  else if ((string[0] & 0xF0) == 0xE0) length = 3;
+  else if ((string[0] & 0xF8) == 0xF0) length = 4;
+  else return -2;
+  if (length > (int) n) return -1;
+  return length;
+}
+
+int
+ply_utf8_string_get_length (const char   *string,
+                            size_t        n)
+{
+  size_t count = 0;
+  while (true)
+    {
+      int charlen = ply_utf8_character_get_size(string, n);
+      if (charlen <= 0) break;
+      string += charlen;
+      n -= charlen;
+      count++;
+    }
+  return count;
 }
 
 /* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

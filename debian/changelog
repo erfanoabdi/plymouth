@@ -1,3 +1,21 @@
+plymouth (0.7.0-1) experimental; urgency=low
+
+  * Merging upstream version 0.7.0 (Closes: #541176).
+  * Updating package to standards version 3.8.3.
+  * Updating maintainer field.
+  * Updating vcs fields.
+  * Removing drop-nash.patch, went upstream.
+  * Correcting wrong vcs-browser field.
+  * Adding explicit debian source version 1.0 until switch to 3.0.
+  * Bumping versioned build-depends on debhelper.
+  * Adding misc depends.
+  * Sorting and wrapping depends.
+  * Adding upstream and maintainer header in copyright.
+  * Minimizing rules file.
+  * Updating debhelper install files for new upstream version.
+
+ -- Daniel Baumann <daniel@debian.org>  Sun, 27 Dec 2009 17:08:18 +0100
+
 plymouth (0.6.0-1) experimental; urgency=low
 
   * Initial release (Closes: #506899).

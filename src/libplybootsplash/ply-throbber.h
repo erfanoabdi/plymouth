@@ -46,6 +46,7 @@ bool ply_throbber_start (ply_throbber_t         *throbber,
                          long                y);
 void ply_throbber_stop (ply_throbber_t *throbber,
                         ply_trigger_t  *stop_trigger);
+bool ply_throbber_is_stopped (ply_throbber_t *throbber);
 
 long ply_throbber_get_width (ply_throbber_t *throbber);
 long ply_throbber_get_height (ply_throbber_t *throbber);

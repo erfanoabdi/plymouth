@@ -270,6 +270,57 @@ ply_image_get_height (ply_image_t *image)
   return image->height;
 }
 
+static uint32_t
+ply_image_interpolate (ply_image_t *image,
+                       int          width,
+                       int          height,
+                       double       x,
+                       double       y)
+{
+  int ix;
+  int iy;
+  
+  int i;
+  
+  int offset_x;
+  int offset_y;
+  uint32_t pixels[2][2];
+  uint32_t reply = 0;
+  
+  for (offset_y = 0; offset_y < 2; offset_y++)
+  for (offset_x = 0; offset_x < 2; offset_x++)
+    {
+      ix = x + offset_x;
+      iy = y + offset_y;
+      
+      if (ix < 0 || ix >= width || iy < 0 || iy >= height)
+        pixels[offset_y][offset_x] = 0x00000000;
+      else
+        pixels[offset_y][offset_x] = image->layout.as_pixels[ix + iy * width];
+    }
+  
+  ix = x;
+  iy = y;
+  x -= ix;
+  y -= iy;
+  for (i = 0; i < 4; i++)
+    {
+      int value = 0;
+      for (offset_y = 0; offset_y < 2; offset_y++)
+      for (offset_x = 0; offset_x < 2; offset_x++)
+        {
+          int subval = (pixels[offset_y][offset_x] >> (i * 8)) & 0xFF;
+          if (offset_x) subval *= x;
+          else          subval *= 1-x;
+          if (offset_y) subval *= y;
+          else          subval *= 1-y;
+          value += subval;
+        }
+      reply |= (value & 0xFF) << (i * 8);
+    }
+  return reply;
+}
+
 ply_image_t *
 ply_image_resize (ply_image_t *image,
                   long         width,
@@ -277,7 +328,8 @@ ply_image_resize (ply_image_t *image,
 {
   ply_image_t *new_image;
   int x, y;
-  int old_x, old_y, old_width, old_height;
+  double old_x, old_y;
+  int old_width, old_height;
   float scale_x, scale_y;
 
   new_image = ply_image_new (image->filename);
@@ -299,7 +351,8 @@ ply_image_resize (ply_image_t *image,
       for (x=0; x < width; x++)
         {
           old_x = x * scale_x;
-          new_image->layout.as_pixels[x + y * width] = image->layout.as_pixels[old_x + old_y * old_width];
+          new_image->layout.as_pixels[x + y * width] =
+                    ply_image_interpolate (image, old_width, old_height, old_x, old_y);
         }
     }
   return new_image;
@@ -313,7 +366,7 @@ ply_image_rotate (ply_image_t *image,
 {
   ply_image_t *new_image;
   int x, y;
-  int old_x, old_y;
+  double old_x, old_y;
   int width;
   int height;
 
@@ -333,17 +386,15 @@ ply_image_rotate (ply_image_t *image,
           double d;
           double theta;
 
-          d = sqrt ((x - center_x) * (x - center_x) + (y - center_y) * (y - center_y));
+          d = sqrt ((x - center_x) * (x - center_x) +
+                    (y - center_y) * (y - center_y));
           theta = atan2 (y - center_y, x - center_x);
 
           theta -= theta_offset;
           old_x = center_x + d * cos (theta);
           old_y = center_y + d * sin (theta);
-
-          if (old_x < 0 || old_x >= width || old_y < 0 || old_y >= height)
-            new_image->layout.as_pixels[x +y * width] = 0x00000000;
-          else
-            new_image->layout.as_pixels[x + y * width] = image->layout.as_pixels[old_x + old_y * width];
+          new_image->layout.as_pixels[x + y * width] =
+                    ply_image_interpolate (image, width, height, old_x, old_y);
         }
     }
   return new_image;

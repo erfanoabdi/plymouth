@@ -39,6 +39,8 @@ bool ply_label_show (ply_label_t      *label,
                      ply_window_t     *window,
                      long              x,
                      long              y);
+
+void ply_label_hide (ply_label_t *label);
 void ply_label_draw (ply_label_t      *label);
 bool ply_label_is_hidden (ply_label_t *label);
 

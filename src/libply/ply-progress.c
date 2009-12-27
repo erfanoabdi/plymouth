@@ -46,8 +46,6 @@
 #define DEFAULT_BOOT_DURATION 60.0
 #endif
 
-#define BOOT_DURATION_FILE PLYMOUTH_TIME_DIRECTORY "/boot-duration"
-
 
 struct _ply_progress
 {
@@ -92,6 +90,32 @@ ply_progress_new (void)
 void
 ply_progress_free (ply_progress_t* progress)
 {
+  ply_list_node_t *node;
+  node = ply_list_get_first_node (progress->current_message_list);
+
+  while (node)
+   {
+      ply_list_node_t *next_node;
+      ply_progress_message_t *message = ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (progress->current_message_list, node);
+
+      free (message->string);
+      node = next_node;
+    }
+  ply_list_free (progress->current_message_list);
+
+  node = ply_list_get_first_node (progress->previous_message_list);
+
+  while (node)
+   {
+      ply_list_node_t *next_node;
+      ply_progress_message_t *message = ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (progress->previous_message_list, node);
+
+      free (message->string);
+      node = next_node;
+    }
+  ply_list_free (progress->previous_message_list);
   free(progress);
   return;
 }
@@ -131,11 +155,12 @@ ply_progress_message_search_next (ply_list_t *message_list, double time)
 }
 
 void
-ply_progress_load_cache (ply_progress_t* progress)
+ply_progress_load_cache (ply_progress_t* progress,
+                         const char *filename)
 {
   FILE *fp;
-  
-  fp = fopen (BOOT_DURATION_FILE,"r"); 
+
+  fp = fopen (filename,"r");
   if (fp == NULL)
     return;
 
@@ -178,13 +203,14 @@ ply_progress_load_cache (ply_progress_t* progress)
 }
 
 void
-ply_progress_save_cache (ply_progress_t* progress)
+ply_progress_save_cache (ply_progress_t* progress,
+                         const char *filename)
 {
   FILE *fp;
   ply_list_node_t *node;
   double cur_time = ply_progress_get_time(progress);
-  
-  fp = fopen (BOOT_DURATION_FILE,"w");
+
+  fp = fopen (filename,"w");
   if (fp == NULL)
     return;
 
@@ -193,9 +219,7 @@ ply_progress_save_cache (ply_progress_t* progress)
   while (node)
     {
       ply_progress_message_t *message = ply_list_node_get_data (node);
-      ply_progress_message_t *message_prev = ply_progress_message_search(progress->previous_message_list, message->string);
       double percentage = message->time / cur_time;
-      if (message_prev) percentage = (percentage + message_prev->time)/2;
       if (!message->disabled)
           fprintf (fp, "%.3lf:%s\n", percentage, message->string);
       node = ply_list_get_next_node (progress->current_message_list, node);
@@ -207,7 +231,6 @@ ply_progress_save_cache (ply_progress_t* progress)
 double
 ply_progress_get_percentage (ply_progress_t* progress)
 {
-  char* string;
   double percentage;
   double cur_time = ply_progress_get_time (progress);
   
@@ -305,7 +328,7 @@ main (int    argc,
   int slowness;
   double time;
   int i;
-  char* strings[10]={"foobar", "barfoo", "barbar", "foo", "foo", "bar", "foo", "more", "even more", "even even more"};
+  const char* strings[10]={"foobar", "barfoo", "barbar", "foo", "foo", "bar", "foo", "more", "even more", "even even more"};
   ply_progress_t* progress = ply_progress_new ();
   
   progress->scalar = 1.0/5;  /* Original time estimate is 5 sec*/
@@ -325,7 +348,7 @@ main (int    argc,
       printf("Time:%f   \t Percentage: %f%%\n", time, percent*100);
     }
   printf("Load cache\n");
-  ply_progress_load_cache (progress);
+  ply_progress_load_cache (progress, PLYMOUTH_TIME_DIRECTORY "/boot-duration");
 
   for (i=0; i<10; i++)
     {
@@ -336,7 +359,7 @@ main (int    argc,
       printf("Time:%f   \t Percentage: %f%% \tScalar:%f\n", time, percent*100, progress->scalar);
     }
   printf("Save and free cache\n");
-  ply_progress_save_cache (progress);
+  ply_progress_save_cache (progress, PLYMOUTH_TIME_DIRECTORY "/boot-duration");
   ply_progress_free(progress);
   return 0;
 }

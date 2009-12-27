@@ -1,2 +1,2 @@
-/usr/lib/plymouth/fade-in.so
-/usr/share/plymouth/fade-in
+/usr/lib/plymouth/fade-throbber.so
+/usr/share/plymouth/themes/fade-in

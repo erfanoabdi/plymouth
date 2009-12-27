@@ -1,0 +1,5 @@
+fun SpriteSetPosition(sprite, x, y, z){
+    SpriteSetX(sprite, x);
+    SpriteSetY(sprite, y);
+    SpriteSetZ(sprite, z);
+    }

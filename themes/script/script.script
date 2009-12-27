@@ -1,0 +1,145 @@
+# This is an example plymouth plugin script
+
+SpriteWindowSetBackgroundTopColor(0.234, 0.43, 0.705);
+SpriteWindowSetBackgroundBottomColor(0.16, 0.25, 0.44);
+
+logo.image = ImageNew("special://logo");
+logo.sprite = SpriteNew();
+SpriteSetImage(logo.sprite, logo.image);
+logo.opacity_angle = 0;
+
+fun refresh_callback ()
+  {
+    if (status == "normal")
+      {
+        logo.opacity_angle += ((2 * 3.14) / 50) * 0.5;  # 0.5 HZ
+        min_opacity = 0.3;
+        opacity = (MathCos(logo.opacity_angle) + 1) / 2;
+        opacity *= 1 - min_opacity;
+        opacity += min_opacity;
+        SpriteSetX (logo.sprite, SpriteWindowGetWidth()  / 2 - ImageGetWidth(logo.image)  / 2);
+        SpriteSetY (logo.sprite, SpriteWindowGetHeight() / 2 - ImageGetHeight(logo.image) / 2);
+        SpriteSetOpacity (logo.sprite, opacity);
+      }
+    else
+      {
+        SpriteSetX (logo.sprite, 0);
+        SpriteSetY (logo.sprite, 0);
+        SpriteSetOpacity (logo.sprite, 1);
+      }
+  }
+  
+PlymouthSetRefreshFunction (refresh_callback);
+
+#----------------------------------------- Dialogue --------------------------------
+
+status = "normal";
+
+fun dialogue_setup()
+  {
+    local.box;
+    local.lock;
+    local.entry;
+    
+    box.image = ImageNew("box.png");
+    lock.image = ImageNew("lock.png");
+    entry.image = ImageNew("entry.png");
+    
+    box.sprite = SpriteNew();
+    SpriteSetImage(box.sprite, box.image);
+    box.x = SpriteWindowGetWidth()  / 2 - ImageGetWidth (box.image)/2;
+    box.y = SpriteWindowGetHeight() / 2 - ImageGetHeight(box.image)/2;
+    box.z = 10000;
+    SpriteSetPosition(box.sprite, box.x, box.y, box.z);
+    
+    lock.sprite = SpriteNew();
+    SpriteSetImage(lock.sprite, lock.image);
+    lock.x = box.x + ImageGetWidth(box.image)/2 - (ImageGetWidth(lock.image) + ImageGetWidth(entry.image)) / 2;
+    lock.y = box.y + ImageGetHeight(box.image)/2 - ImageGetHeight(lock.image)/2;
+    lock.z = box.z + 1;
+    SpriteSetPosition(lock.sprite, lock.x, lock.y, lock.z);
+    
+    entry.sprite = SpriteNew();
+    SpriteSetImage(entry.sprite, entry.image);
+    entry.x = lock.x + ImageGetWidth(lock.image);
+    entry.y = box.y + ImageGetHeight(box.image)/2 - ImageGetHeight(entry.image)/2;
+    entry.z = box.z + 1;
+    SpriteSetPosition(entry.sprite, entry.x, entry.y, entry.z);
+    
+    global.dialogue.box = box;
+    global.dialogue.lock = lock;
+    global.dialogue.entry = entry;
+    global.dialogue.bullet_image = ImageNew("bullet.png");
+    dialogue_opacity (1);
+  }
+    
+fun dialogue_opacity(opacity)
+  {
+    SpriteSetOpacity (dialogue.box.sprite, opacity);
+    SpriteSetOpacity (dialogue.lock.sprite, opacity);
+    SpriteSetOpacity (dialogue.entry.sprite, opacity);
+    for (index = 0; dialogue.bullet[index]; index++)
+      {
+        SpriteSetOpacity(dialogue.bullet[index].sprite, opacity);
+      }
+  }
+
+fun display_normal_callback ()
+  {
+    global.status = "normal";
+    if (global.dialogue)
+      dialogue_opacity (0);
+  }
+
+fun display_password_callback (prompt, bullets)
+  {
+    global.status = "password";
+    if (!global.dialogue) dialogue_setup();
+    for (index = 0; dialogue.bullet[index] || index < bullets; index++)
+      {
+        if (!dialogue.bullet[index])
+          {
+            dialogue.bullet[index].sprite = SpriteNew();
+            SpriteSetImage(dialogue.bullet[index].sprite, dialogue.bullet_image);
+            dialogue.bullet[index].x = dialogue.entry.x + index * ImageGetWidth(dialogue.bullet_image);
+            dialogue.bullet[index].y = dialogue.entry.y + ImageGetHeight(dialogue.entry.image) / 2 - ImageGetHeight(dialogue.bullet_image) / 2;
+            dialogue.bullet[index].z = dialogue.entry.z + 1;
+            SpriteSetPosition(dialogue.bullet[index].sprite, dialogue.bullet[index].x, dialogue.bullet[index].y, dialogue.bullet[index].z);
+          }
+        if (index < bullets)
+          SpriteSetOpacity(dialogue.bullet[index].sprite, 1);
+        else
+          SpriteSetOpacity(dialogue.bullet[index].sprite, 0);
+      }
+  }
+
+PlymouthSetDisplayNormalFunction(display_normal_callback);
+PlymouthSetDisplayPasswordFunction(display_password_callback);
+
+#----------------------------------------- Progress Bar --------------------------------
+
+progress_box.image = ImageNew("progress_box.png");
+progress_box.sprite = SpriteNew();
+SpriteSetImage(progress_box.sprite, progress_box.image);
+
+progress_box.x = SpriteWindowGetWidth()  / 2 -    ImageGetWidth(progress_box.image)  / 2;
+progress_box.y = SpriteWindowGetHeight() * 0.75 - ImageGetHeight(progress_box.image) / 2;
+SpriteSetPosition(progress_box.sprite, progress_box.x, progress_box.y, 0);
+
+progress_bar.original_image = ImageNew("progress_bar.png");
+progress_bar.sprite = SpriteNew();
+
+progress_bar.x = SpriteWindowGetWidth()  / 2 -        ImageGetWidth(progress_bar.original_image) / 2;
+progress_bar.y = SpriteWindowGetHeight() / 2 * 1.5  - ImageGetHeight(progress_box.image) / 2 + (ImageGetHeight(progress_box.image) - ImageGetHeight(progress_bar.original_image)) / 2;
+SpriteSetPosition(progress_bar.sprite, progress_bar.x, progress_bar.y, 1);
+
+fun progress_callback (duration, progress)
+  {
+    if (ImageGetWidth (progress_bar.image) != MathInt (ImageGetWidth (progress_bar.original_image) * progress))
+      {
+        progress_bar.image = ImageScale(progress_bar.original_image, ImageGetWidth(progress_bar.original_image) * progress, ImageGetHeight(progress_bar.original_image));
+        SpriteSetImage (progress_bar.sprite, progress_bar.image);
+      }
+  }
+
+PlymouthSetBootProgressFunction(progress_callback);

@@ -51,6 +51,8 @@ struct _ply_label
 typedef const ply_label_plugin_interface_t *
         (* get_plugin_interface_function_t) (void);
 
+static void ply_label_unload_plugin (ply_label_t *label);
+
 ply_label_t *
 ply_label_new (void)
 {
@@ -65,6 +67,12 @@ ply_label_free (ply_label_t *label)
 {
   if (label == NULL)
     return;
+
+  if (label->plugin_interface != NULL)
+    {
+      ply_trace ("Unloading label control plugin");
+      ply_label_unload_plugin (label);
+    }
 
   free (label);
 

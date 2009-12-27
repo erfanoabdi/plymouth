@@ -37,7 +37,6 @@ typedef void (* ply_window_keyboard_input_handler_t) (void *user_data,
                                                       size_t      character_size);
 
 typedef void (* ply_window_backspace_handler_t) (void *user_data);
-
 typedef void (* ply_window_escape_handler_t) (void *user_data);
 typedef void (* ply_window_enter_handler_t) (void *user_data,
                                              const char *line);
@@ -76,24 +75,36 @@ typedef enum
 ply_window_t *ply_window_new (const char *name);
 void ply_window_free (ply_window_t *window);
 
-void ply_window_set_keyboard_input_handler (ply_window_t *window,
-                                            ply_window_keyboard_input_handler_t input_handler,
-                                            void         *user_data);
-void ply_window_set_backspace_handler (ply_window_t *window,
-                                       ply_window_backspace_handler_t backspace_handler,
-                                       void         *user_data);
-void ply_window_set_escape_handler (ply_window_t *window,
-                                    ply_window_escape_handler_t escape_handler,
-                                    void         *user_data);
-void ply_window_set_enter_handler (ply_window_t *window,
-                                   ply_window_enter_handler_t enter_handler,
-                                   void         *user_data);
-void ply_window_set_draw_handler (ply_window_t *window,
-                                  ply_window_draw_handler_t draw_handler,
-                                  void         *user_data);
-void ply_window_set_erase_handler (ply_window_t *window,
-                                   ply_window_erase_handler_t erase_handler,
-                                   void         *user_data);
+void ply_window_add_keyboard_input_handler (ply_window_t                        *window,
+                                            ply_window_keyboard_input_handler_t  input_handler,
+                                            void                                *user_data);
+void ply_window_remove_keyboard_input_handler (ply_window_t                        *window,
+                                               ply_window_keyboard_input_handler_t  input_handler);
+void ply_window_add_backspace_handler (ply_window_t                   *window,
+                                       ply_window_backspace_handler_t  backspace_handler,
+                                       void                           *user_data);
+void ply_window_remove_backspace_handler (ply_window_t                   *window,
+                                          ply_window_backspace_handler_t  backspace_handler);
+void ply_window_add_escape_handler (ply_window_t                *window,
+                                    ply_window_escape_handler_t  escape_handler,
+                                    void                        *user_data);
+void ply_window_remove_escape_handler (ply_window_t                *window,
+                                       ply_window_escape_handler_t  escape_handler);
+void ply_window_add_enter_handler (ply_window_t               *window,
+                                   ply_window_enter_handler_t  enter_handler,
+                                   void                       *user_data);
+void ply_window_remove_enter_handler (ply_window_t               *window,
+                                      ply_window_enter_handler_t  enter_handler);
+void ply_window_add_draw_handler (ply_window_t              *window,
+                                  ply_window_draw_handler_t  draw_handler,
+                                  void                      *user_data);
+void ply_window_remove_draw_handler (ply_window_t              *window,
+                                     ply_window_draw_handler_t  draw_handler);
+void ply_window_add_erase_handler (ply_window_t               *window,
+                                   ply_window_erase_handler_t  erase_handler,
+                                   void                       *user_data);
+void ply_window_remove_erase_handler (ply_window_t               *window,
+                                      ply_window_erase_handler_t erase_handler);
 
 bool ply_window_open (ply_window_t *window);
 bool ply_window_is_open (ply_window_t *window);
@@ -138,6 +149,12 @@ void ply_window_set_color_hex_value (ply_window_t       *window,
                                      uint32_t            hex_value);
 void ply_window_reset_colors (ply_window_t *window);
 
+void ply_window_set_draw_handler (ply_window_t                *window,
+                                  ply_window_draw_handler_t    draw_handler,
+                                  void                        *user_data);
+void ply_window_set_erase_handler (ply_window_t               *window,
+                                   ply_window_erase_handler_t  erase_handler,
+                                   void                       *user_data);
 void ply_window_attach_to_event_loop (ply_window_t     *window,
                                       ply_event_loop_t *loop);
 ply_frame_buffer_t *ply_window_get_frame_buffer (ply_window_t *window);
