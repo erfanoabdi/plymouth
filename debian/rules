@@ -1,7 +1,7 @@
 #!/usr/bin/make -f
 
 %:
-	dh ${@}
+	dh --with quilt ${@}
 
 override_dh_auto_clean:
 	dh_auto_clean
@@ -15,23 +15,23 @@ override_dh_auto_configure:
 	dh_auto_configure -- --prefix=/usr --localstatedir=/var --enable-pango \
 		--enable-tracing --disable-tests --enable-gdm-transition \
 		--with-system-root-install --without-rhgb-compat-link \
-		--with-gdm-autostart-file --without-default-plugin
-
-	#	--with-logo=$(CURDIR)/debian/local/logo.png \
-	#	--with-background-color=0x3391cd \
-	#	--with-background-start-color-stop=0x0073B3 \
-	#	--with-background-end-color-stop=0x00457E \
+		--with-gdm-autostart-file --without-default-plugin \
+		--with-release-file=/etc/debian_version \
+		--with-logo=/usr/share/plymouth/debian-logo.png \
+		--with-background-color=0x005a8a
 
 override_dh_auto_build:
 	dh_auto_build
 
-	install -D -m 0755 debian/local/plymouth.hook debian/plymouth/usr/share/initramfs-tools/hooks/plymouth
-	install -D -m 0755 debian/local/plymouth-set-default-plugin.sh debian/plymouth/usr/sbin/plymouth-set-default-plugin
-
 	# Removing double files
 	rm -rf debian/tmp/usr/libexec
-	rm -f debian/tmp/usr/sbin/plymouth-set-default-plugin
 	rm -rf debian/tmp/var
+
+override_dh_install:
+	dh_install
+
+	uudecode debian/local/debian-logo.png.uue -o debian/plymouth/usr/share/plymouth/debian-logo.png
+	install -D -m 0755 debian/local/plymouth.hook debian/plymouth/usr/share/initramfs-tools/hooks/plymouth
 
 override_dh_makeshlibs:
 	dh_makeshlibs -p plymouth

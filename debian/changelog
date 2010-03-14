@@ -1,3 +1,33 @@
+plymouth (0.7.2-2) experimental; urgency=low
+
+  [ Daniel Baumann ]
+  * Updating year in copyright file.
+  * Updating to standards 3.8.4.
+
+  [ Guido Guenther ]
+  * Parse /etc/debian_version (Closes: #573602).
+  * No need to check for lib64 (Closes: #565508).
+  * Install base themes (Closes: #573577).
+  * Add missing shared objects (Closes: #573578).
+  * Set default framebuffer device to /dev/fb0 instead of /dev/fb which
+    doesn't exist by default (Closes: #573724).
+  * Add Debian logo (Closes: #573760).
+
+  [ Daniel Baumann ]
+  * Adding entry for the debian logo in copyright file.
+
+  [ Guido Guenther ]
+  * Add themes to hook script (Closes: #573862).
+  * Simplify initramfs creation (Closes: #573725).
+
+  [ Daniel Baumann ]
+  * Adding REAMDE.source.
+  * Adding README.Debian (Closes: #546155).
+  * Removing useless empty line at the end of plymouth.hook.
+  * Removing TODO file, not needed anymore.
+
+ -- Daniel Baumann <daniel@debian.org>  Sun, 14 Mar 2010 19:19:51 +0100
+
 plymouth (0.7.2-1) experimental; urgency=low
 
   * Merging upstream version 0.7.2.

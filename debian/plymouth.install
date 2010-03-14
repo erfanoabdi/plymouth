@@ -7,4 +7,5 @@
 /usr/lib/plymouth/text.so
 /usr/sbin
 /usr/share/gdm
-/usr/share/plymouth/*.png
+/usr/share/plymouth/themes/text/
+/usr/share/plymouth/themes/details/

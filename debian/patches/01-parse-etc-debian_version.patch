@@ -1,0 +1,23 @@
+Author: Guido Guenther <agx@sigxcpu.org>
+Description: Parse /etc/debian_version (Closes: #573602).
+
+diff -Naurp plymouth.orig/src/libplybootsplash/ply-text-progress-bar.c plymouth/src/libplybootsplash/ply-text-progress-bar.c
+--- plymouth.orig/src/libplybootsplash/ply-text-progress-bar.c	2010-01-02 11:22:54.000000000 +0100
++++ plymouth/src/libplybootsplash/ply-text-progress-bar.c	2010-03-14 16:57:16.000000000 +0100
+@@ -109,15 +109,7 @@ get_os_string (void)
+    read(fd, buf, sbuf.st_size);
+    close(fd);
+    
+-   pos = strstr(buf, " release ");
+-   if (!pos) goto out;
+-   pos2 = strstr(pos, " (");
+-   if (!pos2) goto out;
+-   *pos = '\0';
+-   pos+= 9;
+-   *pos2 = '\0';
+-   asprintf(&os_string," %s %s", buf, pos);
+-out:
++   asprintf(&os_string," Debian %s", buf);
+    free(buf);
+ }
+ 

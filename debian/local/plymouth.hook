@@ -22,12 +22,27 @@ esac
 
 . /usr/share/initramfs-tools/hook-functions
 
-# plymouth hook
-copy_exec /bin/plymouth /bin
-copy_exec /sbin/plymouthd /bin
+THEMES=/usr/share/plymouth/themes/
+DEFAULT=$THEMES/default.plymouth
+
+[ -r $DEFAULT ] || exit 0
+
+THEME=$THEMES/$(readlink $DEFAULT)
+
+IMAGES=$(sed -n 's/^ImageDir=\(.*\)/\1/p' $THEME)
+MODULE=/usr/lib/plymouth/$(sed -n 's/^ModuleName=\(.*\)/\1/p' $THEME).so
+
+copy_exec $MODULE
+copy_exec /bin/plymouth
+copy_exec /sbin/plymouthd
 copy_exec /usr/lib/plymouth/details.so
 copy_exec /usr/lib/plymouth/text.so
+copy_exec /usr/lib/plymouth/label.so
 
-# TODO:
-# handling logos
-# handling default plugins
+mkdir -p $DESTDIR/$THEMES
+# No images in text mode:
+[ -z "$IMAGES" ] || cp -r $IMAGES $DESTDIR/$THEMES/
+cp -rL $DEFAULT $DESTDIR/$THEMES/
+cp -a $THEMES/details ${DESTDIR}/$THEMES/
+cp -a $THEMES/text ${DESTDIR}/$THEMES/
+cp /usr/share/plymouth/debian-logo.png $DESTDIR/usr/share/plymouth/
