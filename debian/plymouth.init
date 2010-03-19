@@ -1,0 +1,62 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          plymouth
+# Required-Start:    udev $remote_fs
+# Required-Stop:     $remote_fs
+# Should-Start:
+# Should-Stop:
+# X-Start-Before:    gdm xdm kdm
+# X-Stop-After:      gdm xdm kdm
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 6
+# Short-Description: Stop plymouth during boot and start it on shutdown
+### END INIT INFO
+
+PATH="/sbin:/bin:/usr/sbin:/usr/bin"
+NAME="plymouth"
+DESC="Boot splash manager"
+
+[ -r "/etc/default/$NAME" ] && . "/etc/default/$NAME"
+
+set -e
+
+for x in $(cat /proc/cmdline); do
+        case $x in
+        splash*)
+                SPLASH=true
+                ;;
+        nosplash*)
+                SPLASH=false
+                ;;
+        esac
+done
+
+start_plymouthd ()
+{
+	if ! plymouth --ping; then
+		/sbin/plymouthd --mode=$1
+	fi
+}
+
+case "$1" in
+    start)
+	/bin/plymouth --quit
+        ;;
+
+    stop)
+	start_plymouthd shutdown
+	/bin/plymouth --show-splash
+        ;;
+
+    restart|force-reload)
+        ;;
+
+    *)
+        N=/etc/init.d/$NAME
+        echo "Usage: $N {start|stop|restart|force-reload}" >&2
+        exit 1
+        ;;
+esac
+
+exit 0
+

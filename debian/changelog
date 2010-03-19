@@ -1,3 +1,15 @@
+plymouth (0.7.2-3) experimental; urgency=low
+
+  [ Guido Guenther ]
+  * Add initramfs and init scripts (Closes: #573888).
+
+  [ Daniel Baumann ]
+  * Unify coding style in initramfs files.
+  * Correcting accidentally dropped install call for debians plymouth-
+    set-default-plugin (Closes: #573947).
+
+ -- Daniel Baumann <daniel@debian.org>  Fri, 19 Mar 2010 10:37:58 +0100
+
 plymouth (0.7.2-2) experimental; urgency=low
 
   [ Daniel Baumann ]
