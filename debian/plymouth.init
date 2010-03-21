@@ -1,62 +1,76 @@
 #!/bin/sh
+
 ### BEGIN INIT INFO
-# Provides:          plymouth
-# Required-Start:    udev $remote_fs
-# Required-Stop:     $remote_fs
+# Provides:		plymouth
+# Required-Start:	udev $remote_fs
+# Required-Stop:	$remote_fs
 # Should-Start:
 # Should-Stop:
-# X-Start-Before:    gdm xdm kdm
-# X-Stop-After:      gdm xdm kdm
-# Default-Start:     2 3 4 5
-# Default-Stop:      0 6
-# Short-Description: Stop plymouth during boot and start it on shutdown
+# X-Start-Before:	gdm kdm xdm
+# X-Stop-After:		gdm kdm xdm
+# Default-Start:	2 3 4 5
+# Default-Stop:		0 6
+# Short-Description:	Stop plymouth during boot and start it on shutdown
 ### END INIT INFO
 
 PATH="/sbin:/bin:/usr/sbin:/usr/bin"
 NAME="plymouth"
 DESC="Boot splash manager"
+SPLASH="false"
 
-[ -r "/etc/default/$NAME" ] && . "/etc/default/$NAME"
+if [ -r "/etc/default/${NAME}" ]
+then
+	. "/etc/default/${NAME}"
+fi
 
 set -e
 
-for x in $(cat /proc/cmdline); do
-        case $x in
-        splash*)
-                SPLASH=true
-                ;;
-        nosplash*)
-                SPLASH=false
-                ;;
-        esac
-done
-
-start_plymouthd ()
+Start_plymouthd ()
 {
-	if ! plymouth --ping; then
-		/sbin/plymouthd --mode=$1
+	if ! plymouth --ping
+	then
+		/sbin/plymouthd --mode=${1}
 	fi
 }
 
-case "$1" in
-    start)
-	/bin/plymouth --quit
-        ;;
+for ARGUMENT in $(cat /proc/cmdline)
+do
+	case "${ARGUMENT}" in
+		splash*)
+			SPLASH="true"
+			;;
 
-    stop)
-	start_plymouthd shutdown
-	/bin/plymouth --show-splash
-        ;;
+		nosplash*)
+			SPLASH="false"
+			;;
+	esac
+done
 
-    restart|force-reload)
-        ;;
+case "${1}" in
+	start)
+		if [ "${SPLASH}" = "true" ]
+		then
+			/bin/plymouth --quit
+		fi
+		;;
 
-    *)
-        N=/etc/init.d/$NAME
-        echo "Usage: $N {start|stop|restart|force-reload}" >&2
-        exit 1
-        ;;
+	stop)
+		if [ "$SPLASH" = "true" ]
+		then
+			Start_plymouthd shutdown
+			/bin/plymouth --show-splash
+		fi
+		;;
+
+	restart|force-reload)
+
+		;;
+
+	*)
+		N="/etc/init.d/${NAME}"
+		echo "Usage: ${N} {start|stop|restart|force-reload}" >&2
+		exit 1
+		;;
 esac
 
 exit 0
-

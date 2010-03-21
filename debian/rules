@@ -40,4 +40,4 @@ override_dh_makeshlibs:
 	dh_makeshlibs -p plymouth
 
 override_dh_installinit:
-	dh_installinit -- start 21 2 3 4 5 . stop 02 0 6 .
+	dh_installinit --no-start -- start 21 2 3 4 5 . stop 02 0 6 .

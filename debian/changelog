@@ -1,3 +1,17 @@
+plymouth (0.7.2-4) experimental; urgency=low
+
+  [ Daniel Baumann ]
+  * Correcting spelling mistake in previous changelog entry.
+
+  [ Guido Guenther ]
+  * Don't stop init script on upgrade (Closes: #574720).
+  * Honor nosplash option in init script (Closes: #574722).
+
+  [ Daniel Baumann ]
+  * Unify coding style in init script.
+
+ -- Daniel Baumann <daniel@debian.org>  Sun, 21 Mar 2010 08:39:02 +0100
+
 plymouth (0.7.2-3) experimental; urgency=low
 
   [ Guido Guenther ]
@@ -5,8 +19,8 @@ plymouth (0.7.2-3) experimental; urgency=low
 
   [ Daniel Baumann ]
   * Unify coding style in initramfs files.
-  * Correcting accidentally dropped install call for debians plymouth-
-    set-default-plugin (Closes: #573947).
+  * Correcting accidentally dropped install call for Debian's
+    plymouth-set-default-plugin (Closes: #573947).
 
  -- Daniel Baumann <daniel@debian.org>  Fri, 19 Mar 2010 10:37:58 +0100
 
