@@ -303,16 +303,19 @@ bool script_obj_as_bool (script_obj_t *obj)
 
 char *script_obj_as_string (script_obj_t *obj)              /* reply is strdupped and may be NULL */
 {
+  char *reply;        
   script_obj_t *string_obj = script_obj_as_obj_type (obj, SCRIPT_OBJ_TYPE_STRING);
   if (string_obj) return strdup (string_obj->data.string);
   string_obj = script_obj_as_obj_type (obj, SCRIPT_OBJ_TYPE_NUMBER);
   if (string_obj)
     {
-        char *reply;        
         asprintf (&reply, "%g", string_obj->data.number);
         return reply;
     }
-  return NULL;
+  if (script_obj_is_null (obj))
+    return strdup("#NULL");
+  asprintf (&reply, "#(0x%p)", obj);
+  return reply;
 }
 
 static void *script_obj_direct_as_native_of_class (script_obj_t *obj,
@@ -406,8 +409,8 @@ static void *script_obj_direct_as_hash_element (script_obj_t *obj,
   if (obj->type == SCRIPT_OBJ_TYPE_HASH)
     {
       script_variable_t *variable = ply_hashtable_lookup (obj->data.hash, (void *) name);
-      if (!variable) return NULL;
-      return variable->object;
+      if (variable)
+        return variable->object;
     }
   return NULL;
 }

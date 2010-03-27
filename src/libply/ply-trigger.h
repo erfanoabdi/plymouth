@@ -44,6 +44,7 @@ void ply_trigger_remove_handler (ply_trigger_t         *trigger,
                                  void                  *user_data);
 void ply_trigger_free (ply_trigger_t *trigger);
 
+void ply_trigger_ignore_next_pull (ply_trigger_t *trigger);
 void ply_trigger_pull (ply_trigger_t *trigger,
                        const void    *data);
 #endif

@@ -21,6 +21,8 @@
  */
 #define _GNU_SOURCE
 #include "ply-image.h"
+#include "ply-label.h"
+#include "ply-pixel-buffer.h"
 #include "ply-utils.h"
 #include "script.h"
 #include "script-parse.h"
@@ -39,9 +41,9 @@
 
 static void image_free (script_obj_t *obj)
 {
-  ply_image_t *image = obj->data.native.object_data;
+  ply_pixel_buffer_t *image = obj->data.native.object_data;
 
-  ply_image_free (image);
+  ply_pixel_buffer_free (image);
 }
 
 static script_return_t image_new (script_state_t *state,
@@ -68,12 +70,15 @@ static script_return_t image_new (script_state_t *state,
     }
   else
     asprintf (&path_filename, "%s/%s", data->image_dir, filename);
-  ply_image_t *image = ply_image_new (path_filename);
-  if (ply_image_load (image))
-    reply = script_obj_new_native (image, data->class);
+  ply_image_t *file_image = ply_image_new (path_filename);
+  if (ply_image_load (file_image))
+    {
+      ply_pixel_buffer_t *buffer = ply_image_convert_to_pixel_buffer (file_image);
+      reply = script_obj_new_native (buffer, data->class);
+    }
   else
     {
-      ply_image_free (image);
+      ply_image_free (file_image);
       reply = script_obj_new_null ();
     }
   free (filename);
@@ -85,35 +90,47 @@ static script_return_t image_get_width (script_state_t *state,
                                         void           *user_data)
 {
   script_lib_image_data_t *data = user_data;
-  ply_image_t *image = script_obj_as_native_of_class (state->this, data->class);
-  if (image)
-    return script_return_obj (script_obj_new_number (ply_image_get_width (image)));
-  return script_return_obj_null ();
+  ply_rectangle_t size;
+  ply_pixel_buffer_t *image;
+  
+  image = script_obj_as_native_of_class (state->this, data->class);
+  if (!image) return script_return_obj_null ();
+  
+  ply_pixel_buffer_get_size (image, &size);
+  
+  return script_return_obj (script_obj_new_number (size.width));
 }
 
 static script_return_t image_get_height (script_state_t *state,
                                          void           *user_data)
 {
   script_lib_image_data_t *data = user_data;
-  ply_image_t *image = script_obj_as_native_of_class (state->this, data->class);
-  if (image)
-    return script_return_obj (script_obj_new_number (ply_image_get_height (image)));
-  return script_return_obj_null ();
+  ply_rectangle_t size;
+  ply_pixel_buffer_t *image;
+  
+  image = script_obj_as_native_of_class (state->this, data->class);
+  if (!image) return script_return_obj_null ();
+  
+  ply_pixel_buffer_get_size (image, &size);
+  
+  return script_return_obj (script_obj_new_number (size.height));
 }
 
 static script_return_t image_rotate (script_state_t *state,
                                      void           *user_data)
 {
   script_lib_image_data_t *data = user_data;
-  ply_image_t *image = script_obj_as_native_of_class (state->this, data->class);
+  ply_pixel_buffer_t *image = script_obj_as_native_of_class (state->this, data->class);
   float angle = script_obj_hash_get_number (state->local, "angle");
-
+  ply_rectangle_t size;
+  
   if (image)
     {
-      ply_image_t *new_image = ply_image_rotate (image,
-                                                 ply_image_get_width (image) / 2,
-                                                 ply_image_get_height (image) / 2,
-                                                 angle);
+      ply_pixel_buffer_get_size (image, &size);
+      ply_pixel_buffer_t *new_image = ply_pixel_buffer_rotate (image,
+                                                               size.width / 2,
+                                                               size.height / 2,
+                                                               angle);
       return script_return_obj (script_obj_new_native (new_image, data->class));
     }
   return script_return_obj_null ();
@@ -123,16 +140,50 @@ static script_return_t image_scale (script_state_t *state,
                                     void           *user_data)
 {
   script_lib_image_data_t *data = user_data;
-  ply_image_t *image = script_obj_as_native_of_class (state->this, data->class);
+  ply_pixel_buffer_t *image = script_obj_as_native_of_class (state->this, data->class);
   int width = script_obj_hash_get_number (state->local, "width");
   int height = script_obj_hash_get_number (state->local, "height");
 
   if (image)
     {
-      ply_image_t *new_image = ply_image_resize (image, width, height);
+      ply_pixel_buffer_t *new_image = ply_pixel_buffer_resize (image, width, height);
       return script_return_obj (script_obj_new_native (new_image, data->class));
     }
   return script_return_obj_null ();
+}
+
+static script_return_t image_text (script_state_t *state,
+                                   void           *user_data)
+{
+  script_lib_image_data_t *data = user_data;
+  ply_pixel_buffer_t *image;
+  ply_label_t *label;
+  int width, height;
+  
+  char *text = script_obj_hash_get_string (state->local, "text");
+  
+  /* These colour values are currently unused, but will be once label supports them */
+  float red = CLAMP(script_obj_hash_get_number (state->local, "red"), 0, 1);
+  float green = CLAMP(script_obj_hash_get_number (state->local, "green"), 0, 1);
+  float blue = CLAMP(script_obj_hash_get_number (state->local, "blue"), 0, 1);
+  
+  if (!text) return script_return_obj_null ();
+  
+  label = ply_label_new ();
+  ply_label_set_text (label, text);
+  ply_label_set_color (label, red, green, blue, 1.0);
+  ply_label_show (label, NULL, 0, 0);
+  
+  width = ply_label_get_width (label);
+  height = ply_label_get_height (label);
+  
+  image = ply_pixel_buffer_new (width, height);
+  ply_label_draw_area (label, image, 0, 0, width, height);
+  
+  free (text);
+  ply_label_free (label);
+  
+  return script_return_obj (script_obj_new_native (image, data->class));
 }
 
 script_lib_image_data_t *script_lib_image_setup (script_state_t *state,
@@ -173,6 +224,15 @@ script_lib_image_data_t *script_lib_image_setup (script_state_t *state,
                               "GetHeight",
                               image_get_height,
                               data,
+                              NULL);
+  script_add_native_function (image_hash,
+                              "_Text",
+                              image_text,
+                              data,
+                              "text",
+                              "red",
+                              "green",
+                              "blue",
                               NULL);
 
   script_obj_unref (image_hash);

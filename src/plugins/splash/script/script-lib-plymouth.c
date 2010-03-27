@@ -88,6 +88,7 @@ script_lib_plymouth_data_t *script_lib_plymouth_setup (script_state_t         *s
   data->script_display_password_func = script_obj_new_null ();
   data->script_display_question_func = script_obj_new_null ();
   data->script_message_func = script_obj_new_null ();
+  data->script_quit_func = script_obj_new_null ();
   data->mode = mode;
   
   script_obj_t *plymouth_hash = script_obj_hash_get_element (state->global, "Plymouth");
@@ -146,6 +147,12 @@ script_lib_plymouth_data_t *script_lib_plymouth_setup (script_state_t         *s
                               "function",
                               NULL);
   script_add_native_function (plymouth_hash,
+                              "SetQuitFunction",
+                              plymouth_set_function,
+                              &data->script_quit_func,
+                              "function",
+                              NULL);
+  script_add_native_function (plymouth_hash,
                               "GetMode",
                               plymouth_get_mode,
                               data,
@@ -171,6 +178,7 @@ void script_lib_plymouth_destroy (script_lib_plymouth_data_t *data)
   script_obj_unref (data->script_display_password_func);
   script_obj_unref (data->script_display_question_func);
   script_obj_unref (data->script_message_func);
+  script_obj_unref (data->script_quit_func);
   free (data);
 }
 
@@ -297,5 +305,15 @@ void script_lib_plymouth_on_message (script_state_t             *state,
                                                new_message_obj,
                                                NULL);
   script_obj_unref (new_message_obj);
+  script_obj_unref (ret.object);
+}
+
+void script_lib_plymouth_on_quit (script_state_t             *state,
+                                  script_lib_plymouth_data_t *data)
+{
+  script_return_t ret = script_execute_object (state,
+                                               data->script_quit_func,
+                                               NULL,
+                                               NULL);
   script_obj_unref (ret.object);
 }

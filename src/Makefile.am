@@ -1,7 +1,7 @@
-SUBDIRS = libply libplybootsplash . plugins client viewer tests
+SUBDIRS = libply libply-splash-core libply-splash-graphics . plugins client viewer tests
 INCLUDES = -I$(top_srcdir)                                                    \
            -I$(srcdir)/libply                                                 \
-           -I$(srcdir)/libplybootsplash                                       \
+           -I$(srcdir)/libply-splash-core                                     \
            -I$(srcdir)                                                        \
            -DPLYMOUTH_LOG_DIRECTORY=\"$(localstatedir)/log\"                  \
            -DPLYMOUTH_SPOOL_DIRECTORY=\"$(localstatedir)/spool/plymouth\"     \
@@ -13,8 +13,10 @@ plymouthdbin_PROGRAMS = plymouthd
 
 plymouthd_CFLAGS = $(PLYMOUTH_CFLAGS)                                         \
 		   -DPLYMOUTH_PLUGIN_PATH=\"$(PLYMOUTH_PLUGIN_PATH)\"         \
-		   -DPLYMOUTH_THEME_PATH=\"$(PLYMOUTH_THEME_PATH)/\"
-plymouthd_LDADD = $(PLYMOUTH_LIBS) libply/libply.la libplybootsplash/libplybootsplash.la
+		   -DPLYMOUTH_THEME_PATH=\"$(PLYMOUTH_THEME_PATH)/\"          \
+		   -DPLYMOUTH_POLICY_DIR=\"$(PLYMOUTH_POLICY_DIR)/\"          \
+		   -DPLYMOUTH_CONF_DIR=\"$(PLYMOUTH_CONF_DIR)/\"
+plymouthd_LDADD = $(PLYMOUTH_LIBS) libply/libply.la libply-splash-core/libply-splash-core.la
 plymouthd_SOURCES =                                                            \
                    ply-boot-protocol.h                                        \
                    ply-boot-server.h                                          \
@@ -26,12 +28,18 @@ plymouthdspooldir = $(localstatedir)/spool/plymouth
 plymouthdtimedir = $(localstatedir)/lib/plymouth
 
 pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = plymouth-1.pc
+pkgconfig_DATA = ply-splash-core.pc ply-splash-graphics.pc
+
+plymouthd_defaultsdir = $(PLYMOUTH_POLICY_DIR)
+dist_plymouthd_defaults_DATA = plymouthd.defaults
+
+plymouthd_confdir = $(PLYMOUTH_CONF_DIR)
+dist_plymouthd_conf_DATA = plymouthd.conf
 
 install-data-hook:
 	-mkdir -p $(DESTDIR)$(plymouthdrundir)
 	-mkdir -p $(DESTDIR)$(plymouthdspooldir)
 	-mkdir -p $(DESTDIR)$(plymouthdtimedir)
 
-EXTRA_DIST = plymouth-1.pc.in
+EXTRA_DIST = ply-splash-core.pc.in ply-splash-graphics.pc.in
 MAINTAINERCLEANFILES = Makefile.in

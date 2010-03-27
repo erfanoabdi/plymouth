@@ -41,6 +41,7 @@ struct _ply_trigger
   ply_list_t *closures;
 
   ply_trigger_t **free_address;
+  int ignore_count;
 };
 
 ply_trigger_t *
@@ -51,6 +52,7 @@ ply_trigger_new (ply_trigger_t **free_address)
   trigger = calloc (1, sizeof (ply_trigger_t));
   trigger->free_address = free_address;
   trigger->closures = ply_list_new ();
+  trigger->ignore_count = 0;
 
   return trigger;
 }
@@ -132,12 +134,25 @@ ply_trigger_remove_handler (ply_trigger_t         *trigger,
 }
 
 void
+ply_trigger_ignore_next_pull (ply_trigger_t *trigger)
+{
+  trigger->ignore_count++;
+}
+
+void
 ply_trigger_pull (ply_trigger_t *trigger,
                   const void    *data)
 {
   ply_list_node_t *node;
 
   assert (trigger != NULL);
+  assert (trigger->ignore_count >= 0);
+
+  if (trigger->ignore_count > 0)
+    {
+      trigger->ignore_count--;
+      return;
+    }
 
   node = ply_list_get_first_node (trigger->closures);
   while (node != NULL)

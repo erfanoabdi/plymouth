@@ -44,11 +44,15 @@ void ply_list_remove_data (ply_list_t *list,
 void ply_list_remove_node (ply_list_t      *list,
                            ply_list_node_t *node);
 void ply_list_remove_all_nodes (ply_list_t *list);
-void ply_list_sort (ply_list_t  *list,
-                     ply_list_compare_func_t *compare);
+void ply_list_sort (ply_list_t              *list,
+                    ply_list_compare_func_t *compare);
+void ply_list_sort_stable (ply_list_t              *list,
+                           ply_list_compare_func_t *compare);
 ply_list_node_t *ply_list_get_first_node (ply_list_t *list);
 ply_list_node_t *ply_list_get_last_node (ply_list_t *list);
-ply_list_node_t *ply_list_get_next_node (ply_list_t  *list,
+ply_list_node_t *ply_list_get_nth_node (ply_list_t *list,
+                                        int         index);
+ply_list_node_t *ply_list_get_next_node (ply_list_t      *list,
                                          ply_list_node_t *node);
 void *ply_list_node_get_data (ply_list_node_t *node);
 void ply_list_node_set_data (ply_list_node_t *node, void *data);

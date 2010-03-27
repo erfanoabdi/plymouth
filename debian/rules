@@ -15,25 +15,30 @@ override_dh_auto_configure:
 	dh_auto_configure -- --prefix=/usr --localstatedir=/var --enable-pango \
 		--enable-tracing --disable-tests --disable-gdm-transition \
 		--with-system-root-install --without-rhgb-compat-link \
-		--with-gdm-autostart-file --without-default-plugin \
+		--with-gdm-autostart-file \
 		--with-release-file=/etc/debian_version \
 		--with-logo=/usr/share/plymouth/debian-logo.png \
 		--with-background-color=0x005a8a
 
-override_dh_auto_build:
-	dh_auto_build
-
-	# Removing double files
-	rm -rf debian/tmp/usr/libexec
-	rm -rf debian/tmp/var
-
 override_dh_install:
-	dh_install
+	# Removing useless files
+	rm -f debian/tmp/lib/*.la
+	rm -f debian/tmp/usr/lib/*.la
+	rm -f debian/tmp/usr/lib/plymouth/*.la
+	rm -f debian/tmp/usr/lib/plymouth/*/*.la
 
-	uudecode debian/local/debian-logo.png.uue -o debian/plymouth/usr/share/plymouth/debian-logo.png
+	rm -f debian/tmp/etc/plymouth/plymouthd.conf
+	rm -f debian/tmp/usr/share/plymouth/plymouthd.defaults
+
+	dh_install --fail-missing
+
+	# Adding initramfs-tools integration
 	install -D -m 0755 debian/local/plymouth.hook debian/plymouth/usr/share/initramfs-tools/hooks/plymouth
 	install -D -m 0755 debian/local/plymouth.init-premount debian/plymouth/usr/share/initramfs-tools/scripts/init-premount/plymouth
 	install -D -m 0755 debian/local/plymouth.init-bottom debian/plymouth/usr/share/initramfs-tools/scripts/init-bottom/plymouth
+
+	# Adding other debian specific files
+	uudecode debian/local/debian-logo.png.uue -o debian/plymouth/usr/share/plymouth/debian-logo.png
 	install -D -m 0755 debian/local/plymouth-set-default-plugin.sh debian/plymouth/usr/sbin/plymouth-set-default-plugin
 
 override_dh_makeshlibs:

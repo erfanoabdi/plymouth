@@ -37,11 +37,18 @@
 #include "ply-logger.h"
 #include "ply-utils.h"
 
+#ifndef PLY_MAX_COMMAND_LINE_SIZE
+#define PLY_MAX_COMMAND_LINE_SIZE 512
+#endif
+
+#define KEY_CTRL_C ('\100' ^'C')
+
 typedef struct
 {
   ply_event_loop_t     *loop;
   ply_boot_client_t    *client;
   ply_command_parser_t *command_parser;
+  char kernel_command_line[PLY_MAX_COMMAND_LINE_SIZE];
 } state_t;
 
 typedef struct
@@ -120,6 +127,9 @@ answer_via_command (char           *command,
   pid_t pid;
   int command_input_sender_fd, command_input_receiver_fd;
 
+
+  ply_trace ("running command '%s'", command);
+
   /* answer may be NULL which means,
    * "The daemon can't ask the user questions,
    *   do all the prompting from the client"
@@ -181,9 +191,55 @@ on_success (state_t *state)
 }
 
 static void
-on_password_answer_failure (password_answer_state_t *answer_state, ply_boot_client_t *client)
+on_password_answer_failure (password_answer_state_t *answer_state,
+                            ply_boot_client_t       *client)
 {
-  ply_event_loop_exit (answer_state->state->loop, 1);
+  ply_trace ("password answer failure");
+
+  /* plymouthd isn't running for some reason.  If there is a command
+   * to run, we'll run it anyway, because it might be important for
+   * boot up to continue (to decrypt the root partition or whatever)
+   */
+  if (answer_state->command != NULL)
+    {
+      int exit_status;
+      bool command_started;
+
+      ply_trace ("daemon not available, running command on our own");
+
+      exit_status = 127;
+      command_started = false;
+      while (answer_state->number_of_tries_left > 0)
+        {
+          command_started = answer_via_command (answer_state->command, NULL,
+                                                &exit_status);
+
+          if (command_started && WIFEXITED (exit_status) &&
+              WEXITSTATUS (exit_status) == 0)
+            {
+              ply_trace ("command was successful");
+              break;
+            }
+
+          ply_trace ("command failed");
+          answer_state->number_of_tries_left--;
+        }
+
+      if (command_started && WIFSIGNALED (exit_status))
+        {
+          ply_trace ("command died with signal %s", strsignal (WTERMSIG (exit_status)));
+          raise (WTERMSIG (exit_status));
+        }
+      else
+        {
+          ply_event_loop_exit (answer_state->state->loop,
+                               WEXITSTATUS (exit_status));
+        }
+    }
+  else
+    {
+      ply_event_loop_exit (answer_state->state->loop, 1);
+    }
 }
 
 static void
@@ -194,7 +250,7 @@ on_password_answer (password_answer_state_t   *answer_state,
   int exit_status;
 
   exit_status = 127;
-  if (answer != NULL)  /* a NULL answer means the user quit */
+  if (answer != NULL && answer[0] != KEY_CTRL_C)  /* a CTRL-C answer means the user canceled */
     {
       if (answer_state->command != NULL)
         {
@@ -226,6 +282,10 @@ on_password_answer (password_answer_state_t   *answer_state,
           write (STDOUT_FILENO, answer, strlen (answer));
           exit_status = 0;
         }
+    }
+  else if (answer == NULL)
+    {
+      on_password_answer_failure (answer_state, answer_state->state->client);
     }
 
   if (WIFSIGNALED (exit_status))
@@ -327,22 +387,31 @@ on_multiple_password_answers (password_answer_state_t     *answer_state,
 
   assert (answer_state->command != NULL);
 
+  ply_trace ("on multiple password answers");
+
   need_to_ask_user = true;
 
   if (answers != NULL)
-    for (i = 0; answers[i] != NULL; i++)
-      {
-        bool command_started;
-        exit_status = 127;
-        command_started = answer_via_command (answer_state->command, answers[i],
-                                              &exit_status);
-        if (command_started && WIFEXITED (exit_status) &&
-            WEXITSTATUS (exit_status) == 0)
-          {
-            need_to_ask_user = false;
-            break;
-          }
-      }
+    {
+      ply_trace ("daemon has a few candidate passwords for us to try");
+      for (i = 0; answers[i] != NULL; i++)
+        {
+          bool command_started;
+          exit_status = 127;
+          command_started = answer_via_command (answer_state->command, answers[i],
+                                                &exit_status);
+          if (command_started && WIFEXITED (exit_status) &&
+              WEXITSTATUS (exit_status) == 0)
+            {
+              need_to_ask_user = false;
+              break;
+            }
+        }
+    }
+  else
+    {
+      ply_trace ("daemon has no candidate passwords for us to try");
+    }
 
   if (need_to_ask_user)
     {
@@ -375,6 +444,7 @@ on_disconnect (state_t *state)
       status = 2;
   }
 
+  ply_trace ("disconnect");
   ply_event_loop_exit (state->loop, status);
 }
 
@@ -382,6 +452,9 @@ static void
 on_password_request_execute (password_answer_state_t *password_answer_state,
                              ply_boot_client_t       *client)
 {
+  ply_trace ("executing password request (command %s)",
+             password_answer_state->command);
+
   if (password_answer_state->command != NULL)
     {
       ply_boot_client_ask_daemon_for_cached_passwords (client,
@@ -415,7 +488,8 @@ on_password_request (state_t    *state,
   program = NULL;
   number_of_tries = 0;
   dont_pause = false;
-  
+
+  ply_trace ("Password request");
   ply_command_parser_get_command_options (state->command_parser,
                                           command,
                                           "command", &program,
@@ -594,6 +668,28 @@ on_report_error_request (state_t    *state,
 }
 
 static void
+on_deactivate_request (state_t    *state,
+                       const char *command)
+{
+  ply_boot_client_tell_daemon_to_deactivate (state->client,
+                                             (ply_boot_client_response_handler_t)
+                                             on_success,
+                                             (ply_boot_client_response_handler_t)
+                                             on_failure, state);
+}
+
+static void
+on_reactivate_request (state_t    *state,
+                       const char *command)
+{
+  ply_boot_client_tell_daemon_to_reactivate (state->client,
+                                             (ply_boot_client_response_handler_t)
+                                             on_success,
+                                             (ply_boot_client_response_handler_t)
+                                             on_failure, state);
+}
+
+static void
 on_quit_request (state_t    *state,
                  const char *command)
 {
@@ -613,12 +709,39 @@ on_quit_request (state_t    *state,
                                        on_failure, state);
 }
 
+static bool
+get_kernel_command_line (state_t *state)
+{
+  int fd;
+
+  ply_trace ("opening /proc/cmdline");
+  fd = open ("proc/cmdline", O_RDONLY);
+
+  if (fd < 0)
+    {
+      ply_trace ("couldn't open it: %m");
+      return false;
+    }
+
+  ply_trace ("reading kernel command line");
+  if (read (fd, state->kernel_command_line, sizeof (state->kernel_command_line)) < 0)
+    {
+      ply_trace ("couldn't read it: %m");
+      return false;
+    }
+
+  ply_trace ("Kernel command line is: '%s'", state->kernel_command_line);
+  close (fd);
+  return true;
+}
+
 int
 main (int    argc,
       char **argv)
 {
   state_t state = { 0 };
-  bool should_help, should_quit, should_ping, should_sysinit, should_ask_for_password, should_show_splash, should_hide_splash, should_wait, should_be_verbose, report_error, should_get_plugin_path;
+  bool should_help, should_quit, should_ping, should_check_for_active_vt, should_sysinit, should_ask_for_password, should_show_splash, should_hide_splash, should_wait, should_be_verbose, report_error, should_get_plugin_path;
+  bool is_connected;
   char *status, *chroot_dir, *ignore_keystroke;
   int exit_code;
 
@@ -637,6 +760,7 @@ main (int    argc,
                                   "newroot", "Tell boot daemon that new root filesystem is mounted", PLY_COMMAND_OPTION_TYPE_STRING,
                                   "quit", "Tell boot daemon to quit", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   "ping", "Check of boot daemon is running", PLY_COMMAND_OPTION_TYPE_FLAG,
+                                  "has-active-vt", "Check if boot daemon has an active vt", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   "sysinit", "Tell boot daemon root filesystem is mounted read-write", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   "show-splash", "Show splash screen", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   "hide-splash", "Hide splash screen", PLY_COMMAND_OPTION_TYPE_FLAG,
@@ -710,6 +834,16 @@ main (int    argc,
                                   NULL);
 
   ply_command_parser_add_command (state.command_parser,
+                                  "deactivate", "Tell boot daemon to deactivate",
+                                  (ply_command_handler_t)
+                                  on_deactivate_request, &state, NULL);
+
+  ply_command_parser_add_command (state.command_parser,
+                                  "reactivate", "Tell boot daemon to reactivate",
+                                  (ply_command_handler_t)
+                                  on_reactivate_request, &state, NULL);
+
+  ply_command_parser_add_command (state.command_parser,
                                   "quit", "Tell boot daemon to quit",
                                   (ply_command_handler_t)
                                   on_quit_request, &state,
@@ -735,6 +869,7 @@ main (int    argc,
                                   "newroot", &chroot_dir,
                                   "quit", &should_quit,
                                   "ping", &should_ping,
+                                  "has-active-vt", &should_check_for_active_vt,
                                   "sysinit", &should_sysinit,
                                   "show-splash", &should_show_splash,
                                   "hide-splash", &should_hide_splash,
@@ -760,6 +895,13 @@ main (int    argc,
       return 0;
     }
 
+  if (get_kernel_command_line (&state))
+    {
+      if (strstr (state.kernel_command_line, "plymouth:debug") != NULL
+          && !ply_is_tracing ())
+        ply_toggle_tracing ();
+    }
+
   if (should_be_verbose && !ply_is_tracing ())
     ply_toggle_tracing ();
 
@@ -769,24 +911,23 @@ main (int    argc,
       return 0;
     }
 
-  if (!ply_boot_client_connect (state.client,
-                                (ply_boot_client_disconnect_handler_t)
-                                on_disconnect, &state))
+  is_connected = ply_boot_client_connect (state.client,
+                                          (ply_boot_client_disconnect_handler_t)
+                                          on_disconnect, &state);
+  if (!is_connected)
     {
+      ply_trace ("daemon not running");
+
       if (should_ping)
-         return 1;
-
-#if 0
-      ply_save_errno ();
-
-      if (errno == ECONNREFUSED)
-        ply_error ("error: boot status daemon not running "
-                   "(use --ping to check ahead of time)");
-      else
-        ply_error ("could not connect to boot status daemon: %m");
-      ply_restore_errno ();
-#endif
-      return errno;
+        {
+          ply_trace ("ping failed");
+          return 1;
+        }
+      if (should_check_for_active_vt)
+        {
+          ply_trace ("has active vt? failed");
+          return 1;
+        }
     }
 
   ply_boot_client_attach_to_event_loop (state.client, state.loop);
@@ -816,6 +957,12 @@ main (int    argc,
                                  on_success, 
                                  (ply_boot_client_response_handler_t)
                                  on_failure, &state);
+  else if (should_check_for_active_vt)
+    ply_boot_client_ask_daemon_has_active_vt (state.client,
+                                              (ply_boot_client_response_handler_t)
+                                              on_success,
+                                              (ply_boot_client_response_handler_t)
+                                              on_failure, &state);
   else if (status != NULL)
     ply_boot_client_update_daemon (state.client, status,
                                    (ply_boot_client_response_handler_t)

@@ -39,12 +39,11 @@
 
 #include "ply-event-loop.h"
 #include "ply-logger.h"
-#include "ply-terminal.h"
 #include "ply-utils.h"
 
 struct _ply_terminal_session
 {
-  ply_terminal_t *terminal;
+  int pseudoterminal_master_fd;
   ply_logger_t *logger;
   ply_event_loop_t *loop;
   char **argv;
@@ -71,7 +70,7 @@ ply_terminal_session_open_console (ply_terminal_session_t *session)
   int fd;
   const char *terminal_name;
 
-  terminal_name = ply_terminal_get_device_name (session->terminal);
+  terminal_name = ptsname (session->pseudoterminal_master_fd);
 
   fd = open (terminal_name, O_RDONLY); 
 
@@ -128,8 +127,8 @@ ply_terminal_session_new (const char * const *argv)
   assert (argv == NULL || argv[0] != NULL);
 
   session = calloc (1, sizeof (ply_terminal_session_t));
+  session->pseudoterminal_master_fd = -1;
   session->argv = argv == NULL ? NULL : ply_copy_string_array (argv);
-  session->terminal = ply_terminal_new ();
   session->logger = ply_logger_new ();
   session->is_running = false;
   session->console_is_redirected = false;
@@ -147,7 +146,8 @@ ply_terminal_session_free (ply_terminal_session_t *session)
   ply_logger_free (session->logger);
 
   ply_free_string_array (session->argv);
-  ply_terminal_free (session->terminal);
+
+  close (session->pseudoterminal_master_fd);
   free (session);
 }
 
@@ -181,7 +181,7 @@ ply_terminal_session_redirect_console (ply_terminal_session_t *session)
 
   assert (session != NULL);
 
-  terminal_name = ply_terminal_get_device_name (session->terminal);
+  terminal_name = ptsname (session->pseudoterminal_master_fd);
 
   assert (terminal_name != NULL);
 
@@ -218,6 +218,49 @@ ply_terminal_session_unredirect_console (ply_terminal_session_t *session)
   session->console_is_redirected = false;
 }
 
+static void
+close_pseudoterminal (ply_terminal_session_t *session)
+{
+  close (session->pseudoterminal_master_fd);
+  session->pseudoterminal_master_fd = -1;
+}
+
+static bool
+open_pseudoterminal (ply_terminal_session_t *session)
+{
+  ply_trace ("opening device '/dev/ptmx'");
+  session->pseudoterminal_master_fd = posix_openpt (O_RDWR | O_NOCTTY);
+
+  if (session->pseudoterminal_master_fd < 0)
+    return false;
+
+  ply_trace (" opened device '/dev/ptmx'");
+
+  ply_trace ("creating pseudoterminal");
+  if (grantpt (session->pseudoterminal_master_fd) < 0)
+    {
+      ply_save_errno ();
+      ply_trace ("could not create psuedoterminal: %m");
+      close_pseudoterminal (session);
+      ply_restore_errno ();
+      return false;
+    }
+  ply_trace ("done creating pseudoterminal");
+
+  ply_trace ("unlocking pseudoterminal");
+  if (unlockpt (session->pseudoterminal_master_fd) < 0)
+    {
+      ply_save_errno ();
+      close_pseudoterminal (session);
+      ply_restore_errno ();
+      return false;
+    }
+  ply_trace ("unlocked pseudoterminal");
+
+  return true;
+}
+
+
 bool 
 ply_terminal_session_run (ply_terminal_session_t              *session,
                           ply_terminal_session_flags_t         flags,
@@ -240,7 +283,7 @@ ply_terminal_session_run (ply_terminal_session_t              *session,
     (flags & PLY_TERMINAL_SESSION_FLAGS_REDIRECT_CONSOLE) != 0;
 
   ply_trace ("creating terminal device");
-  if (!ply_terminal_create_device (session->terminal))
+  if (!open_pseudoterminal (session))
     return false;
   ply_trace ("done creating terminal device");
 
@@ -250,7 +293,7 @@ ply_terminal_session_run (ply_terminal_session_t              *session,
       !ply_terminal_session_redirect_console (session))
     {
       ply_save_errno ();
-      ply_terminal_destroy_device (session->terminal);
+      close_pseudoterminal (session);
       ply_restore_errno ();
       return false;
     }
@@ -264,7 +307,7 @@ ply_terminal_session_run (ply_terminal_session_t              *session,
     {
       ply_save_errno ();
       ply_terminal_session_unredirect_console (session);
-      ply_terminal_destroy_device (session->terminal);
+      close_pseudoterminal (session);
       ply_restore_errno ();
       return false;
     }
@@ -316,12 +359,12 @@ ply_terminal_session_attach (ply_terminal_session_t               *session,
   if (ptmx >= 0)
     {
       ply_trace ("ptmx passed in, using it");
-      ply_terminal_set_fd(session->terminal, ptmx);
+      session->pseudoterminal_master_fd = ptmx;
     }
   else
     {
       ply_trace ("ptmx not passed in, creating one");
-      if (!ply_terminal_create_device (session->terminal))
+      if (!open_pseudoterminal (session))
         {
           ply_trace ("could not create pseudo-terminal: %m");
           return false;
@@ -336,7 +379,7 @@ ply_terminal_session_attach (ply_terminal_session_t               *session,
       !ply_terminal_session_redirect_console (session))
     {
       ply_save_errno ();
-      ply_terminal_destroy_device (session->terminal);
+      close_pseudoterminal (session);
       ply_restore_errno ();
       return false;
     }
@@ -370,7 +413,7 @@ ply_terminal_session_detach (ply_terminal_session_t       *session)
   if (session->created_terminal_device)
     {
       ply_trace ("ptmx wasn't originally passed in, destroying created one");
-      ply_terminal_destroy_device (session->terminal);
+      close_pseudoterminal (session);
       session->created_terminal_device = false;
     }
 
@@ -386,7 +429,7 @@ ply_terminal_session_get_fd (ply_terminal_session_t *session)
 {
   assert (session != NULL);
 
-  return ply_terminal_get_fd (session->terminal);
+  return session->pseudoterminal_master_fd;
 }
 
 static void

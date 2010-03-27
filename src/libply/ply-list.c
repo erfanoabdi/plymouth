@@ -265,38 +265,108 @@ ply_list_get_last_node (ply_list_t *list)
 }
 
 ply_list_node_t *
+ply_list_get_nth_node (ply_list_t *list,
+                       int         index)
+{
+  ply_list_node_t *node;
+  node = list->first_node;
+  if (index < 0)
+    return NULL;
+  if (index >= list->number_of_nodes)
+    return NULL;
+  while (index--)
+    {
+      node = node->next;
+    }
+  return node;
+}
+
+ply_list_node_t *
 ply_list_get_next_node (ply_list_t     *list,
                        ply_list_node_t *node)
 {
   return node->next;
 }
-void ply_list_sort (ply_list_t  *list,
+
+static void 
+ply_list_sort_swap (void **element_a,
+                    void **element_b)
+{
+  void *temp;
+  temp = *element_a;
+  *element_a = *element_b;
+  *element_b = temp;
+}
+
+static void 
+ply_list_sort_body (ply_list_node_t         *node_start,
+                    ply_list_node_t         *node_end,
                     ply_list_compare_func_t *compare)
 {
-  ply_list_node_t *nodea;
-  ply_list_node_t *nodeb;
-  int clean;
-  do
+  if (node_start == node_end) return;
+  ply_list_node_t *cur_node = node_start;
+  ply_list_node_t *top_node = node_end;
+  ply_list_node_t *next_node = cur_node->next;
+  while (cur_node != top_node)
     {
-      clean=1;
-      nodea = ply_list_get_first_node (list);
-      if (!nodea) return;
-      nodeb = ply_list_get_next_node (list, nodea);
-      while (nodeb)
+      int diff = compare(cur_node->data, next_node->data);
+      if (diff > 0)
         {
-          if ((compare)(ply_list_node_get_data(nodea), ply_list_node_get_data(nodeb))>0)
-            {
-              void* temp = ply_list_node_get_data(nodea);
-              ply_list_node_set_data(nodea, ply_list_node_get_data(nodeb));
-              ply_list_node_set_data(nodeb, temp);
-              clean=0;
-            }
-          nodea = nodeb;
-          nodeb = ply_list_get_next_node (list, nodea);
+          ply_list_sort_swap (&next_node->data,
+                              &cur_node->data);
+          cur_node = next_node;
+          next_node = cur_node->next;
+        }
+      else
+        {
+          ply_list_sort_swap (&next_node->data,
+                              &top_node->data);
+          top_node = top_node->previous;
         }
     }
-  while (!clean);
- 
+
+  if (cur_node != node_end)
+    ply_list_sort_body (cur_node->next,
+                        node_end,
+                        compare);
+  if (cur_node != node_start)
+    ply_list_sort_body (node_start,
+                        cur_node->previous,
+                        compare);
+}
+
+void
+ply_list_sort (ply_list_t              *list,
+               ply_list_compare_func_t *compare)
+{
+  ply_list_sort_body (ply_list_get_first_node (list),
+                      ply_list_get_last_node (list),
+                      compare);
+}
+
+void
+ply_list_sort_stable (ply_list_t              *list,
+                      ply_list_compare_func_t *compare)
+{
+  ply_list_node_t *top_node;
+  ply_list_node_t *cur_node;
+
+  top_node = ply_list_get_first_node (list);
+  if (top_node == NULL) return;
+  top_node = top_node->next;
+
+  while (top_node)
+    {
+      cur_node = top_node->previous;
+      while (cur_node && compare(cur_node->data, cur_node->next->data) > 0)
+        {
+          ply_list_sort_swap (&cur_node->data,
+                              &cur_node->next->data);
+          cur_node = cur_node->previous;
+        }
+      top_node = top_node->next;
+    }
+  
 }
 
 void *
@@ -315,13 +385,27 @@ ply_list_node_set_data (ply_list_node_t *node, void *data)
 #ifdef PLY_LIST_ENABLE_TEST
 #include <stdio.h>
 
+static int
+compare_int_ptr (void *element_a,
+                 void *element_b)
+{
+  int *int_a = element_a;
+  int *int_b = element_b;
+  return *int_a - *int_b;
+
+}
+
 int
 main (int    argc,
       char **argv)
 {
   ply_list_t *list;
   ply_list_node_t *node;
-  int i;
+  int i, lastval;
+  int *value;
+  int errors;
+
+  errors = 0;
 
   list = ply_list_new ();
 
@@ -343,8 +427,39 @@ main (int    argc,
       i++;
     }
 
+  printf ("\n");
+  ply_list_remove_all_nodes (list);
+  srandom(1);
+
+  for (i = 0; i<100; i++)
+    {
+      value = malloc (sizeof (int));
+      *value = random() % 100;
+      ply_list_append_data (list, (void *) value);
+    }
+
+  ply_list_sort (list, compare_int_ptr);
+
+  node = ply_list_get_first_node (list);
+  i = 0;
+  lastval = 0;
+
+  while (node != NULL)
+    {
+      value = (int *) ply_list_node_get_data (node);
+      if (*value < lastval)
+        {
+          printf ("ERROR: incorrect order\n");
+          errors = 1;
+        }
+      lastval = *value;
+      printf ("node '%d' has data '%d'\n", i, *value);
+      node = ply_list_get_next_node (list, node);
+      i++;
+    }
+
   ply_list_free (list);
-  return 0;
+  return errors;
 }
 
 #endif

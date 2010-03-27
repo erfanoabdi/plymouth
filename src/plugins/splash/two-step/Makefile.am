@@ -1,6 +1,7 @@
 INCLUDES = -I$(top_srcdir)                                                    \
            -I$(srcdir)/../../../libply                                        \
-           -I$(srcdir)/../../../libplybootsplash                              \
+           -I$(srcdir)/../../../libply-splash-core                            \
+           -I$(srcdir)/../../../libply-splash-graphics                        \
            -I$(srcdir)/../../..                                               \
            -I$(srcdir)/../..                                                  \
            -I$(srcdir)/..                                                     \
@@ -18,7 +19,8 @@ two_step_la_CFLAGS =    $(PLYMOUTH_CFLAGS)                                    \
 two_step_la_LDFLAGS =   -module -avoid-version -export-dynamic
 two_step_la_LIBADD =    $(PLYMOUTH_LIBS)                                      \
                     ../../../libply/libply.la                                 \
-                    ../../../libplybootsplash/libplybootsplash.la
+                    ../../../libply-splash-core/libply-splash-core.la         \
+                    ../../../libply-splash-graphics/libply-splash-graphics.la
 two_step_la_SOURCES = $(srcdir)/plugin.c
 
 MAINTAINERCLEANFILES = Makefile.in

@@ -1,9 +1,9 @@
-AC_INIT(plymouth, 0.7.2, "halfline@gmail.com")
+AC_INIT([plymouth],[0.8.0],[https://bugs.freedesktop.org/enter_bug.cgi?product=plymouth])
 AC_CONFIG_SRCDIR(src/main.c)
 AC_CONFIG_HEADER(config.h)
 AC_CONFIG_AUX_DIR(build-tools)
 
-AC_GNU_SOURCE
+AC_USE_SYSTEM_EXTENSIONS
 AC_PROG_AWK
 AC_PROG_CC
 AM_PROG_CC_C_O
@@ -12,10 +12,10 @@ AC_C_CONST
 
 AM_INIT_AUTOMAKE([dist-bzip2 no-dist-gzip])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
-AM_MAINTAINER_MODE
+AM_MAINTAINER_MODE([enable])
 
 PKG_PROG_PKG_CONFIG
-AM_PROG_LIBTOOL
+LT_INIT
 
 ## increment if the interface has additions, changes, removals.
 LT_CURRENT=2
@@ -56,6 +56,10 @@ PKG_CHECK_MODULES(GTK, [gtk+-2.0 >= 2.12.0 ])
 AC_SUBST(GTK_CFLAGS)
 AC_SUBST(GTK_LIBS)
 
+PKG_CHECK_MODULES(DRM, [libdrm libdrm_intel libdrm_radeon libdrm_nouveau])
+AC_SUBST(DRM_CFLAGS)
+AC_SUBST(DRM_LIBS)
+
 AC_ARG_ENABLE(tracing, AS_HELP_STRING([--enable-tracing],[enable verbose tracing code]),enable_tracing=$enableval,enable_tracing=yes)
 
 if test x$enable_tracing = xyes; then
@@ -72,7 +76,7 @@ if test x$enable_gdm_transition = xyes; then
   AC_DEFINE(PLY_ENABLE_GDM_TRANSITION, 1, [Enable smooth transition to GDM])
 fi
 
-AC_ARG_WITH(system-root-install, AC_HELP_STRING([--with-system-root-install], [Install client in /bin and daemon in /sbin]),with_system_root_install=${withval},with_system_root_install=yes)
+AC_ARG_WITH(system-root-install, AS_HELP_STRING([--with-system-root-install],[Install client in /bin and daemon in /sbin]),with_system_root_install=${withval},with_system_root_install=yes)
 AM_CONDITIONAL(WITH_SYSTEM_ROOT_INSTALL,  [test "$with_system_root_install" = yes])
 
 if test x$with_system_root_install = xyes; then
@@ -85,41 +89,37 @@ fi
 AC_SUBST(plymouthclientdir)
 AC_SUBST(plymouthdaemondir)
 
-AC_ARG_WITH(rhgb-compat-link, AC_HELP_STRING([--with-rhgb-compat-link], [Install /usr/bin/rhgb-client compatability symlink]),with_rhgb_compat_link=${withval},with_rhgb_compat_link=yes)
+AC_ARG_WITH(rhgb-compat-link, AS_HELP_STRING([--with-rhgb-compat-link],[Install /usr/bin/rhgb-client compatability symlink]),with_rhgb_compat_link=${withval},with_rhgb_compat_link=yes)
 AM_CONDITIONAL(WITH_RHGB_COMPAT_LINK,  [test "$with_rhgb_compat_link" = yes])
 
 AC_ARG_WITH(gdm-autostart-file, AS_HELP_STRING([--with-gdm-autostart-file],[start log viewer from gdm on boot errors]),with_gdm_autostart_file=$withval,with_gdm_autostart_file=yes)
 
 AM_CONDITIONAL(START_FROM_GDM,  [test "$with_gdm_autostart_file" = yes])
 
-AC_ARG_WITH(logo, AC_HELP_STRING([--with-logo], [logo used by boot splash plugins]),logofile=${withval},logofile=$datadir/plymouth/bizcom.png)
+AC_ARG_WITH(logo, AS_HELP_STRING([--with-logo],[logo used by boot splash plugins]),logofile=${withval},logofile=$datadir/plymouth/bizcom.png)
 AC_SUBST(logofile)
 
 AM_CONDITIONAL(INSTALL_FALLBACK_LOGO,  [test "$logofile" = $datadir/plymouth/bizcom.png])
 
-AC_ARG_WITH(background-color, AC_HELP_STRING([--with-background-color], [background color used by boot splash plugins]),background_color=${withval},background_color=0x5d5950)
+AC_ARG_WITH(background-color, AS_HELP_STRING([--with-background-color],[background color used by boot splash plugins]),background_color=${withval},background_color=0x5d5950)
 AC_SUBST(background_color)
 
-AC_ARG_WITH(background-start-color-stop, AC_HELP_STRING([--with-background-start-color-stop], [first color stop in background gradients used by boot splash plugins]),background_start_color=${withval},background_start_color=0x807c71)
+AC_ARG_WITH(background-start-color-stop, AS_HELP_STRING([--with-background-start-color-stop],[first color stop in background gradients used by boot splash plugins]),background_start_color=${withval},background_start_color=0x807c71)
 AC_SUBST(background_start_color)
 
-AC_ARG_WITH(background-end-color-stop, AC_HELP_STRING([--with-background-end-color-stop], [first color end in background gradients used by boot splash plugins]),background_end_color=${withval},background_end_color=0x3a362f)
+AC_ARG_WITH(background-end-color-stop, AS_HELP_STRING([--with-background-end-color-stop],[first color end in background gradients used by boot splash plugins]),background_end_color=${withval},background_end_color=0x3a362f)
 AC_SUBST(background_end_color)
 
-AC_ARG_WITH(default-plugin, AC_HELP_STRING([--with-default-plugin=fade-throbber], [Plugin to use by default]),default_plugin_name=${withval},default_plugin_name=fade-throbber)
-AM_CONDITIONAL(ADD_DEFAULT_PLUGIN_LINK,
-               [test "$default_plugin_name" = "spinfinity" \
-                  -o "$default_plugin_name" = "fade-throbber"    \
-                  -o "$default_plugin_name" = "text"       \
-                  -o "$default_plugin_name" = "glow"       \
-                  -o "$default_plugin_name" = "solar"      \
-                  -o "$default_plugin_name" = "details"])
-AC_SUBST(default_plugin_name)
-
-AC_ARG_WITH(release-file, AC_HELP_STRING([--with-release-file=<path_to_release_file>], [Release File to use to detect distribution (by default /etc/system-reelase)]),RELEASE_FILE=${withval},RELEASE_FILE=/etc/system-release)
+AC_ARG_WITH(release-file, AS_HELP_STRING([--with-release-file=<path_to_release_file>],[Release File to use to detect distribution (by default /etc/system-reelase)]),RELEASE_FILE=${withval},RELEASE_FILE=/etc/system-release)
 
 AC_SUBST(RELEASE_FILE)
 AC_DEFINE_UNQUOTED(RELEASE_FILE, "$RELEASE_FILE", [Release file path])
+
+AC_ARG_WITH(boot-tty, AS_HELP_STRING([--with-boot-tty=<tty>],[Default TTY to use in boot mode (by default tty1)]),BOOT_TTY=${withval},BOOT_TTY=/dev/tty1)
+AC_DEFINE_UNQUOTED(BOOT_TTY, "$BOOT_TTY", [TTY to use in boot mode])
+
+AC_ARG_WITH(shutdown-tty, AS_HELP_STRING([--with-shutdown-tty=<tty>],[Default TTY to use in shutdown mode (by default tty63)]),SHUTDOWN_TTY=${withval},SHUTDOWN_TTY=/dev/tty63)
+AC_DEFINE_UNQUOTED(SHUTDOWN_TTY, "$SHUTDOWN_TTY", [TTY to use in shutdown mode])
 
 # Turn on the additional warnings last, so -Werror doesn't affect other tests.
 
@@ -204,11 +204,27 @@ AS_AC_EXPAND(PLYMOUTH_THEME_PATH, $plymouththemedir)
 plymouthplugindir=$libdir/plymouth/
 AS_AC_EXPAND(PLYMOUTH_PLUGIN_PATH, $plymouthplugindir)
 
-AC_OUTPUT([Makefile
+plymouthpolicydir=$datadir/plymouth/
+AS_AC_EXPAND(PLYMOUTH_POLICY_DIR, $plymouthpolicydir)
+
+plymouthconfdir=$sysconfdir/plymouth/
+AS_AC_EXPAND(PLYMOUTH_CONF_DIR, $plymouthconfdir)
+
+AS_AC_EXPAND(PLYMOUTH_LIBDIR, $libdir)
+AS_AC_EXPAND(PLYMOUTH_LIBEXECDIR, $libexecdir)
+AS_AC_EXPAND(PLYMOUTH_DATADIR, $datadir)
+
+AC_CONFIG_FILES([Makefile
            src/libply/Makefile
-           src/libplybootsplash/Makefile
-           src/plymouth-1.pc
+           src/libply-splash-core/Makefile
+           src/libply-splash-graphics/Makefile
+           src/ply-splash-core.pc
+           src/ply-splash-graphics.pc
            src/plugins/Makefile
+           src/plugins/renderers/Makefile
+           src/plugins/renderers/frame-buffer/Makefile
+           src/plugins/renderers/drm/Makefile
+           src/plugins/renderers/x11/Makefile
            src/plugins/splash/Makefile
            src/plugins/splash/throbgress/Makefile
            src/plugins/splash/fade-throbber/Makefile
@@ -220,6 +236,7 @@ AC_OUTPUT([Makefile
            src/plugins/controls/Makefile
            src/plugins/controls/label/Makefile
            src/Makefile
+           src/client/ply-boot-client.pc
            src/client/Makefile
            src/viewer/Makefile
            src/tests/Makefile
@@ -234,5 +251,10 @@ AC_OUTPUT([Makefile
            themes/glow/Makefile
            themes/script/Makefile
            images/Makefile
+	   scripts/plymouth-generate-initrd
+	   scripts/plymouth-populate-initrd
+	   scripts/plymouth-set-default-theme
            scripts/Makefile
+           docs/Makefile
 ])
+AC_OUTPUT

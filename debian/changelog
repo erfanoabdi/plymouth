@@ -1,3 +1,52 @@
+plymouth (0.8.0-1) experimental; urgency=low
+
+  [ Daniel Baumann ]
+  * Merging upstream version 0.8.0 (Closes: #573582).
+  * Rediffing parse-etc-debian_version.patch.
+  * Removing no-need-to-check-for-lib64, not needed anymore.
+  * Rediffing set-default-framebuffer-device-to-dev-fb0.
+  * Renumbering patches.
+
+  [ Guido Guenther ]
+  * Disable noveau.
+
+  [ Daniel Baumann ]
+  * Adding TODO file.
+  * Adding build-depends to libdrm-dev.
+
+  [ Guido Guenther ]
+  * Add new plugins.
+  * Add renderers.
+
+  [ Daniel Baumann ]
+  * Dropping la files.
+  * Droppping shlibs file, not needed anymore.
+  * Correcting typo in plymouth-plugins-script package short-
+    description.
+  * Sorting plugins in control.
+  * Removing deprecated --without-default-plugin from configure call in
+    rules.
+  * Reordering install blocks in rule in preparation of using --fail-
+    missing for dh_install.
+  * Updating plymouth debhelper install file to include newly added
+    manpage.
+  * Sorting plymouth debhelper install file.
+  * Updating plymouth-dev debhelper install file to include static files
+    of the newly added renderers.
+  * Removing removal of /usr/libexec, not needed anymore.
+  * Updating removal of /var in a more 'break-early-when-things-change'-
+    way.
+  * Including upstreams initrd scripts in plymouth.
+  * Removing plymouthd default configs from build-tree.
+  * Calling dh_install with --fail-missing.
+  * Dropping manual removal of empty directories, dh_install doesn't
+    fail on them.
+  * Sorting debhelper install files for the plugin packages.
+  * Dropping library links, not worth the efforts.
+  * Updating TODO.
+
+ -- Daniel Baumann <daniel@debian.org>  Sat, 27 Mar 2010 16:26:12 +0100
+
 plymouth (0.7.2-6) unstable; urgency=low
 
   * Applying slightely modifed patch from Christian Meyer

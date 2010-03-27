@@ -46,6 +46,9 @@ typedef void (* ply_module_function_t) (void);
 typedef intptr_t ply_daemon_handle_t;
 
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
+
+#define ply_round_to_multiple(n, m) (((n) + (((m) - 1))) & ~((m) - 1))
+
 bool ply_open_unidirectional_pipe (int *sender_fd,
                                    int *receiver_fd);
 int ply_connect_to_unix_socket (const char *path,
@@ -95,7 +98,7 @@ bool ply_create_file_link (const char *source,
                            const char *destination);
 void ply_show_new_kernel_messages (bool should_show);
 
-ply_daemon_handle_t *ply_create_daemon (void);
+ply_daemon_handle_t *ply_create_daemon (const char *pid_file);
 bool ply_detach_daemon (ply_daemon_handle_t *handle,
                         int                  exit_code);
 
@@ -103,8 +106,6 @@ int ply_utf8_character_get_size (const char   *string,
                                  size_t        n);
 int ply_utf8_string_get_length (const char   *string,
                                 size_t        n);
-
-void ply_switch_to_vt (int vt_number);
 
 #endif
 

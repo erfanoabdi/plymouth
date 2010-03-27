@@ -4,7 +4,7 @@ Priority: optional
 Maintainer: Daniel Baumann <daniel@lists.debian-maintainers.org>
 Uploaders: Daniel Baumann <daniel@debian.org>
 Build-Depends:
- debhelper (>= 7.0.50~), autotools-dev, libgtk2.0-dev,
+ debhelper (>= 7.0.50~), autotools-dev, libdrm-dev, libgtk2.0-dev,
  libpango1.0-dev (>= 1.21), libpng-dev, pkg-config, sharutils, quilt (>= 0.46-7)
 Standards-Version: 3.8.4
 Homepage: http://www.freedesktop.org/wiki/Software/Plymouth
@@ -22,6 +22,18 @@ Description: Graphical Boot Animation and Logger
  messages that normally get shown. Text messages are instead redirected to a log
  file for viewing after boot.
 
+Package: plymouth-x11
+Architecture: any
+Depends:
+ ${misc:Depends}, ${shlibs:Depends}, plymouth (>= ${binary:Version})
+Suggests: gdm
+Description: Graphical Boot Animation and Logger
+ Plymouth provides an attractive graphical boot animation in place of the text
+ messages that normally get shown. Text messages are instead redirected to a log
+ file for viewing after boot.
+ .
+ This package contains the x11 renderer and the log viewer.
+
 Package: plymouth-dev
 Architecture: any
 Depends: ${misc:Depends}, plymouth (= ${binary:Version})
@@ -35,8 +47,9 @@ Description: Graphical Boot Animation and Logger (development)
 Package: plymouth-plugins-all
 Architecture: all
 Depends:
- ${misc:Depends}, plymouth-plugins-fade-in, plymouth-plugins-label,
- plymouth-plugins-solar, plymouth-plugins-spinfinity
+ ${misc:Depends}, plymouth-plugins-fade-in, plymouth-plugins-glow,
+ plymouth-plugins-label, plymouth-plugins-script, plymouth-plugins-solar,
+ plymouth-plugins-spinfinity
 Description: Graphical Boot Animation and Logger (plugin metapackage)
  Plymouth provides an attractive graphical boot animation in place of the text
  messages that normally get shown. Text messages are instead redirected to a log
@@ -56,6 +69,18 @@ Description: Graphical Boot Animation and Logger (fad-in plugin)
  This package contains the fade-in plugin. It features a centered logo that
  fades in and out while stars twinkle around the logo during system boot up.
 
+Package: plymouth-plugins-glow
+Architecture: any
+Depends: ${misc:Depends}, ${shlibs:Depends}, plymouth (= ${binary:Version})
+Provides: plymouth-plugin
+Description: Graphical Boot Animation and Logger (glow plugin)
+ Plymouth provides an attractive graphical boot animation in place of the text
+ messages that normally get shown. Text messages are instead redirected to a log
+ file for viewing after boot.
+ .
+ This package contains the glow plugin. It features a pie chart as progress
+ indicator.
+
 Package: plymouth-plugins-label
 Architecture: any
 Depends: ${misc:Depends}, ${shlibs:Depends}, plymouth (= ${binary:Version})
@@ -67,6 +92,17 @@ Description: Graphical Boot Animation and Logger (label plugin)
  .
  This package contains the label plugin. It provides the ability to render text
  on graphical boot splashes using pango and cairo.
+
+Package: plymouth-plugins-script
+Architecture: any
+Depends: ${misc:Depends}, ${shlibs:Depends}, plymouth (= ${binary:Version})
+Provides: plymouth-plugin
+Description: Graphical Boot Animation and Logger (script plugin)
+ Plymouth provides an attractive graphical boot animation in place of the text
+ messages that normally get shown. Text messages are instead redirected to a log
+ file for viewing after boot.
+ .
+ This package contains the script plugin. It features a simple base theme.
 
 Package: plymouth-plugins-solar
 Architecture: any

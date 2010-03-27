@@ -130,6 +130,7 @@ typedef enum
   SCRIPT_EXP_TYPE_TERM_LOCAL,
   SCRIPT_EXP_TYPE_TERM_GLOBAL,
   SCRIPT_EXP_TYPE_TERM_THIS,
+  SCRIPT_EXP_TYPE_TERM_SET,
   SCRIPT_EXP_TYPE_PLUS,
   SCRIPT_EXP_TYPE_MINUS,
   SCRIPT_EXP_TYPE_MUL,
@@ -181,6 +182,7 @@ typedef struct script_exp_t
       struct script_exp_t *name;
       ply_list_t *parameters;
     } function_exe;
+    ply_list_t *parameters;
     script_function_t *function_def;
   } data;
 } script_exp_t;
@@ -191,6 +193,7 @@ typedef enum
   SCRIPT_OP_TYPE_OP_BLOCK,
   SCRIPT_OP_TYPE_IF,
   SCRIPT_OP_TYPE_WHILE,
+  SCRIPT_OP_TYPE_DO_WHILE,
   SCRIPT_OP_TYPE_FOR,
   SCRIPT_OP_TYPE_RETURN,
   SCRIPT_OP_TYPE_FAIL,

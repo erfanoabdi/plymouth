@@ -259,8 +259,8 @@ create_window (GtkTextBuffer *buffer)
   gtk_box_pack_start (GTK_BOX (box), bbox, FALSE, TRUE, 6);
   gtk_box_pack_start (GTK_BOX (bbox), close_button, FALSE, TRUE, 6);
 
-  g_signal_connect (window, "delete-event", 
-                    G_CALLBACK (gtk_widget_hide_on_delete), NULL);
+  g_signal_connect (window, "delete-event",
+                    G_CALLBACK (close_window), NULL);
   g_signal_connect_swapped (close_button, "clicked", 
                             G_CALLBACK (close_window), window);
 

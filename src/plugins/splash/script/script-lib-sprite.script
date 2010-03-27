@@ -5,9 +5,9 @@ Sprite.SetPosition = fun (x, y, z)
   this.SetZ(z);
 };
 
-Sprite |= fun(image)
+Sprite |= fun (image)
 {
-  new_sprite = Sprite._New() | Sprite;
+  new_sprite = Sprite._New() | [] | Sprite;
   if (image) new_sprite.SetImage(image);
   return new_sprite;
 };
@@ -70,7 +70,7 @@ fun SpriteWindowSetBackgroundTopColor (red, green, blue)
 }
 
 
-fun SpriteWindowGetSetBackgroundBottomColor (red, green, blue)
+fun SpriteWindowSetBackgroundBottomColor (red, green, blue)
 {
   return Window.SetBackgroundBottomColor (red, green, blue);
 }
