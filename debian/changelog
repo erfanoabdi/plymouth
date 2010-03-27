@@ -1,3 +1,11 @@
+plymouth (0.7.2-6) unstable; urgency=low
+
+  * Applying slightely modifed patch from Christian Meyer
+    <c2h5oh@web.de> to add notes about how to enable KMS in
+    README.Debian (Closes: #574755).
+
+ -- Daniel Baumann <daniel@debian.org>  Sat, 27 Mar 2010 14:28:52 +0100
+
 plymouth (0.7.2-5) experimental; urgency=low
 
   [ Daniel Baumann ]
