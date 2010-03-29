@@ -99,7 +99,7 @@ destroy_driver (ply_renderer_driver_t *driver)
 {
   ply_hashtable_free (driver->buffers);
 
-  ply_trace ("uninitializing intel buffer manager");
+  ply_trace ("uninitializing radeon buffer manager");
   radeon_bo_manager_gem_dtor (driver->manager);
   free (driver);
 }

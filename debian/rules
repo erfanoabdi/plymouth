@@ -27,9 +27,6 @@ override_dh_install:
 	rm -f debian/tmp/usr/lib/plymouth/*.la
 	rm -f debian/tmp/usr/lib/plymouth/*/*.la
 
-	rm -f debian/tmp/etc/plymouth/plymouthd.conf
-	rm -f debian/tmp/usr/share/plymouth/plymouthd.defaults
-
 	dh_install --fail-missing
 
 	# Adding initramfs-tools integration
@@ -39,7 +36,7 @@ override_dh_install:
 
 	# Adding other debian specific files
 	uudecode debian/local/debian-logo.png.uue -o debian/plymouth/usr/share/plymouth/debian-logo.png
-	install -D -m 0755 debian/local/plymouth-set-default-plugin.sh debian/plymouth/usr/sbin/plymouth-set-default-plugin
+	install -D -m 0755 debian/local/plymouth-update-initrd debian/plymouth/usr/lib/plymouth/plymouth/plymouth-update-initrd
 
 override_dh_makeshlibs:
 	dh_makeshlibs -p plymouth

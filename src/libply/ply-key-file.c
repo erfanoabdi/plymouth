@@ -38,6 +38,7 @@
 
 #include "ply-utils.h"
 #include "ply-hashtable.h"
+#include "ply-logger.h"
 
 typedef struct
 {
@@ -70,7 +71,11 @@ ply_key_file_open_file (ply_key_file_t *key_file)
   key_file->fp = fopen (key_file->filename, "r");
 
   if (key_file->fp == NULL)
-    return false;
+    {
+      ply_trace ("Failed to open key file %s: %m",
+                 key_file->filename);
+      return false;
+    }
   return true;
 }
 
@@ -155,15 +160,34 @@ ply_key_file_load_group (ply_key_file_t *key_file,
   group->name = strdup (group_name);
   group->entries = ply_hashtable_new (ply_hashtable_string_hash, ply_hashtable_string_compare);
 
+  ply_trace ("trying to load group %s", group_name);
   do
     {
       ply_key_file_entry_t *entry;
       char *key;
       char *value;
       long offset;
+      int first_byte;
 
       key = NULL;
       value = NULL;
+
+      first_byte = fgetc (key_file->fp);
+      if (first_byte == '#')
+        {
+          char *line_to_toss;
+          size_t number_of_bytes;
+
+          line_to_toss = NULL;
+          number_of_bytes = 0;
+
+          getline (&line_to_toss, &number_of_bytes,
+                   key_file->fp);
+          free (line_to_toss);
+          items_matched = 0;
+          continue;
+        }
+      ungetc (first_byte, key_file->fp);
 
       offset = ftell (key_file->fp);
       items_matched = fscanf (key_file->fp, " %a[^= \t\n] = %a[^\n] ", &key, &value);
@@ -196,15 +220,40 @@ ply_key_file_load_groups (ply_key_file_t *key_file)
   int items_matched;
   char *group_name;
   bool added_group = false;
+  bool has_comments = false;
   
   do
     {
+      int first_byte;
+
       ply_key_file_group_t *group;
+
+      first_byte = fgetc (key_file->fp);
+      if (first_byte == '#')
+        {
+          char *line_to_toss;
+          size_t number_of_bytes;
+
+          line_to_toss = NULL;
+          number_of_bytes = 0;
+
+          getline (&line_to_toss, &number_of_bytes,
+                   key_file->fp);
+          free (line_to_toss);
+          has_comments = true;
+          items_matched = 0;
+          continue;
+        }
+      ungetc (first_byte, key_file->fp);
 
       items_matched = fscanf (key_file->fp, " [ %a[^]] ] ", &group_name);
 
       if (items_matched <= 0)
-        break;
+        {
+          ply_trace ("key file has no %sgroups",
+                     added_group? "more " : "");
+          break;
+        }
 
       group = ply_key_file_load_group (key_file, group_name);
 
@@ -217,6 +266,11 @@ ply_key_file_load_groups (ply_key_file_t *key_file)
       added_group = true;
     }
   while (items_matched != EOF);
+
+  if (!added_group && has_comments)
+    {
+      ply_trace ("key file has comments but no groups");
+    }
 
   return added_group;
 }
@@ -232,6 +286,11 @@ ply_key_file_load (ply_key_file_t *key_file)
     return false;
 
   was_loaded = ply_key_file_load_groups (key_file);
+
+  if (!was_loaded)
+    {
+      ply_trace ("was unable to load any groups");
+    }
 
   ply_key_file_close_file (key_file);
 
@@ -282,12 +341,18 @@ ply_key_file_get_value (ply_key_file_t *key_file,
   group = ply_key_file_find_group (key_file, group_name);
 
   if (group == NULL)
-    return NULL;
+    {
+      ply_trace ("key file does not have group '%s'", group_name);
+      return NULL;
+    }
 
   entry = ply_key_file_find_entry (key_file, group, key);
 
   if (entry == NULL)
-    return NULL;
+    {
+      ply_trace ("key file does not have entry for key '%s'", key);
+      return NULL;
+    }
 
   return strdup (entry->value);
 }

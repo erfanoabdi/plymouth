@@ -1,3 +1,37 @@
+plymouth (0.8.1-1) experimental; urgency=low
+
+  [ Daniel Baumann ]
+  * Merging upstream version 0.8.1.
+
+  [ Guido Guenther ]
+  * Add missing config files.
+
+  [ Daniel Baumann ]
+  * Removing removal of config files in rules so that they actually can
+    be installed into the package.
+
+  [ Guido Guenther ]
+  * Drop /usr/bin otherwise log-viewer ends up in two packages.
+  * Update libdrm.patch to not use
+    ply_renderer_nouveau_driver_get_interface to avoid undefined
+    reference.
+  * Update initramfs hook for 0.8.0.
+  * Install custom plymouth-update-initrd (Closes: #575713).
+
+  [ Daniel Baumann ]
+  * Renaming plugins packages to themes, and including plugins in main
+    plymouth package (Closes: #575712).
+  * Dropping no longer needed depends on plymouth themes.
+  * Adding recommends to plymouth-themes-all.
+  * Correcting version depends of plymouth-x11 on plymouth.
+  * Wrapping depends.
+  * Removing default.plymouth from initramfs hook, doesn't exist anymore
+    in 0.8.1.
+  * Adding patch to update awk call in plymouth-set-default-theme to not
+    always return zero.
+
+ -- Daniel Baumann <daniel@debian.org>  Mon, 29 Mar 2010 08:27:14 +0200
+
 plymouth (0.8.0-1) experimental; urgency=low
 
   [ Daniel Baumann ]
