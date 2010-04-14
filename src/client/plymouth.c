@@ -24,6 +24,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <limits.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -499,7 +500,7 @@ on_password_request (state_t    *state,
                                           NULL);
 
   if (number_of_tries <= 0)
-    number_of_tries = 3;
+    number_of_tries = INT_MAX;
 
   password_answer_state = calloc (1, sizeof (password_answer_state_t));
   password_answer_state->state = state;

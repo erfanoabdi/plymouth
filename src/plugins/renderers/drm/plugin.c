@@ -773,9 +773,11 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
       ply_list_append_data (backend->heads, head);
     }
 
+#ifdef PLY_ENABLE_GDM_TRANSITION
   /* If the driver doesn't support mapping the fb console
    * then we can't get a smooth crossfade transition to
-   * the display manager unless we use the /dev/fb interface.
+   * the display manager unless we use the /dev/fb interface
+   * or the plymouth deactivate interface.
    *
    * In multihead configurations, we'd rather have working
    * multihead, but otherwise bail now.
@@ -790,6 +792,7 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
       free_heads (backend);
       return false;
     }
+#endif
 
   return ply_list_get_length (backend->heads) > 0;
 }
@@ -883,6 +886,9 @@ ply_renderer_head_set_scan_out_buffer_to_console (ply_renderer_backend_t *backen
       area.height = height;
 
       should_set_to_black = true;
+      ply_trace ("Console fb is %ldx%ld and screen contents are %ldx%ld. "
+                 "They aren't the same dimensions; forcing black",
+                 width, height, head->area.width, head->area.height);
     }
   else
     area = head->area;
@@ -898,6 +904,7 @@ ply_renderer_head_set_scan_out_buffer_to_console (ply_renderer_backend_t *backen
       shadow_buffer = ply_pixel_buffer_get_argb32_data (head->pixel_buffer);
     }
 
+  ply_trace ("Drawing %s to console fb", should_set_to_black? "black" : "screen contents");
   map_address =
         backend->driver_interface->begin_flush (backend->driver,
                                                 head->console_buffer_id);
@@ -911,6 +918,7 @@ ply_renderer_head_set_scan_out_buffer_to_console (ply_renderer_backend_t *backen
   backend->driver_interface->unmap_buffer (backend->driver,
                                            head->console_buffer_id);
 
+  ply_trace ("Setting scan out hardware to console fb");
   ply_renderer_head_set_scan_out_buffer (backend,
                                          head, head->console_buffer_id);
 
@@ -946,7 +954,8 @@ unmap_from_device (ply_renderer_backend_t *backend)
 
       if (backend->is_active)
         {
-          ply_trace ("scanning out directly to console");
+          ply_trace ("scanning out %s directly to console",
+                     should_set_to_black? "black" : "splash");
           ply_renderer_head_set_scan_out_buffer_to_console (backend, head,
                                                             should_set_to_black);
         }

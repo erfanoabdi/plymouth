@@ -4,7 +4,7 @@ Priority: optional
 Maintainer: Daniel Baumann <daniel@lists.debian-maintainers.org>
 Uploaders: Daniel Baumann <daniel@debian.org>
 Build-Depends:
- debhelper (>= 7.0.50~), autotools-dev, libdrm-dev, libgtk2.0-dev,
+ debhelper (>= 7.0.50~), autotools-dev, libdrm-dev (>= 2.4.18-4), libgtk2.0-dev,
  libpango1.0-dev (>= 1.21), libpng-dev, pkg-config, sharutils, quilt (>= 0.46-7)
 Standards-Version: 3.8.4
 Homepage: http://www.freedesktop.org/wiki/Software/Plymouth
@@ -61,8 +61,8 @@ Description: Graphical Boot Animation and Logger (themes metapackage)
  This package is a metapackage depending on all available themes.
 
 Package: plymouth-themes-fade-in
-Architecture: any
-Depends: ${misc:Depends}, ${shlibs:Depends}, plymouth (= ${binary:Version})
+Architecture: all
+Depends: ${misc:Depends}, plymouth (>= ${source:Version})
 Conflicts: plymouth-plugins-fade-in
 Replaces: plymouth-plugins-fade-in
 Provides: plymouth-theme
@@ -75,8 +75,8 @@ Description: Graphical Boot Animation and Logger (fad-in theme)
  fades in and out while stars twinkle around the logo during system boot up.
 
 Package: plymouth-themes-glow
-Architecture: any
-Depends: ${misc:Depends}, ${shlibs:Depends}, plymouth (= ${binary:Version})
+Architecture: all
+Depends: ${misc:Depends}, plymouth (>= ${source:Version})
 Conflicts: plymouth-plugins-glow
 Replaces: plymouth-plugins-glow
 Provides: plymouth-theme
@@ -89,8 +89,8 @@ Description: Graphical Boot Animation and Logger (glow theme)
  indicator.
 
 Package: plymouth-themes-script
-Architecture: any
-Depends: ${misc:Depends}, ${shlibs:Depends}, plymouth (= ${binary:Version})
+Architecture: all
+Depends: ${misc:Depends}, plymouth (>= ${source:Version})
 Conflicts: plymouth-plugins-script
 Replaces: plymouth-plugins-script
 Provides: plymouth-theme
@@ -102,8 +102,8 @@ Description: Graphical Boot Animation and Logger (script theme)
  This package contains the script theme. It features a simple base theme.
 
 Package: plymouth-themes-solar
-Architecture: any
-Depends: ${misc:Depends}, ${shlibs:Depends}, plymouth (= ${binary:Version})
+Architecture: all
+Depends: ${misc:Depends}, plymouth (>= ${source:Version})
 Conflicts: plymouth-plugins-solar
 Replaces: plymouth-plugins-solar
 Provides: plymouth-theme
@@ -116,8 +116,8 @@ Description: Graphical Boot Animation and Logger (solar theme)
  animated solar flares.
 
 Package: plymouth-themes-spinfinity
-Architecture: any
-Depends: ${misc:Depends}, ${shlibs:Depends}, plymouth (= ${binary:Version})
+Architecture: all
+Depends: ${misc:Depends}, plymouth (>= ${source:Version})
 Conflicts: plymouth-plugins-spinfinity
 Replaces: plymouth-plugins-spinfinity
 Provides: plymouth-theme

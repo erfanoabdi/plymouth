@@ -324,7 +324,10 @@ static script_obj_t *script_evaluate_func (script_state_t *state,
         {
           func_obj = script_obj_hash_peek_element (state->this, name);
           if (func_obj)
-            this_obj = state->this;
+            {
+              this_obj = state->this;
+              script_obj_ref(this_obj);
+            }
           else
             {
               func_obj = script_obj_hash_peek_element (state->global, name);

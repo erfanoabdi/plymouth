@@ -158,6 +158,7 @@ static script_return_t image_text (script_state_t *state,
   script_lib_image_data_t *data = user_data;
   ply_pixel_buffer_t *image;
   ply_label_t *label;
+  script_obj_t *alpha_obj;
   int width, height;
   
   char *text = script_obj_hash_get_string (state->local, "text");
@@ -166,12 +167,21 @@ static script_return_t image_text (script_state_t *state,
   float red = CLAMP(script_obj_hash_get_number (state->local, "red"), 0, 1);
   float green = CLAMP(script_obj_hash_get_number (state->local, "green"), 0, 1);
   float blue = CLAMP(script_obj_hash_get_number (state->local, "blue"), 0, 1);
-  
+  float alpha = 1;
+
+  alpha_obj = script_obj_hash_peek_element (state->local, "alpha");
+
+  if (alpha_obj)
+    {
+      alpha = CLAMP(script_obj_as_number (alpha_obj), 0, 1);
+      script_obj_unref(alpha_obj);
+    }
+
   if (!text) return script_return_obj_null ();
-  
+
   label = ply_label_new ();
   ply_label_set_text (label, text);
-  ply_label_set_color (label, red, green, blue, 1.0);
+  ply_label_set_color (label, red, green, blue, alpha);
   ply_label_show (label, NULL, 0, 0);
   
   width = ply_label_get_width (label);
@@ -233,6 +243,7 @@ script_lib_image_data_t *script_lib_image_setup (script_state_t *state,
                               "red",
                               "green",
                               "blue",
+                              "alpha",
                               NULL);
 
   script_obj_unref (image_hash);

@@ -1,4 +1,4 @@
-AC_INIT([plymouth],[0.8.1],[https://bugs.freedesktop.org/enter_bug.cgi?product=plymouth])
+AC_INIT([plymouth],[0.8.2],[https://bugs.freedesktop.org/enter_bug.cgi?product=plymouth])
 AC_CONFIG_SRCDIR(src/main.c)
 AC_CONFIG_HEADER(config.h)
 AC_CONFIG_AUX_DIR(build-tools)
@@ -57,6 +57,45 @@ AC_SUBST(GTK_CFLAGS)
 AC_SUBST(GTK_LIBS)
 
 PKG_CHECK_MODULES(DRM, [libdrm libdrm_intel libdrm_radeon libdrm_nouveau])
+
+OLD_CFLAGS="$CFLAGS"
+CFLAGS="$CFLAGS $DRM_CFLAGS"
+AC_MSG_CHECKING([if i915_drm.h, radeon_drm.h and nouveau_drm.h are in include path])
+AC_COMPILE_IFELSE(AC_LANG_PROGRAM(
+[[
+  #include <stdint.h>
+  #include <stdlib.h>
+  #include "i915_drm.h"
+  #include "radeon_drm.h"
+  #include "nouveau_drm.h"
+]],[[]]),[found_drm_kernel_headers=yes],[found_drm_kernel_headers=no])
+
+if test "$found_drm_kernel_headers" = "yes"; then
+  AC_MSG_RESULT([yes])
+else
+  AC_MSG_RESULT([no])
+  AC_MSG_CHECKING([if we can find them anyway])
+
+  MORE_DRM_CFLAGS="-I`$PKG_CONFIG --variable includedir libdrm`/drm"
+  CFLAGS="$CFLAGS $MORE_DRM_CFLAGS"
+  AC_COMPILE_IFELSE(AC_LANG_PROGRAM(
+  [[
+    #include <stdint.h>
+    #include <stdlib.h>
+    #include "i915_drm.h"
+    #include "radeon_drm.h"
+    #include "nouveau_drm.h"
+  ]],[[]]),[found_drm_kernel_headers=yes],[found_drm_kernel_headers=no])
+
+  if test "$found_drm_kernel_headers" = "yes"; then
+    AC_MSG_RESULT([yes])
+    DRM_CFLAGS="$DRM_CFLAGS $MORE_DRM_CFLAGS"
+  else
+    AC_MSG_RESULT([no])
+    AC_MSG_ERROR([Could not find i915_drm.h, radeon_drm.h and/or nouveau_drm.h])
+  fi
+fi
+CFLAGS="$OLD_CFLAGS"
 AC_SUBST(DRM_CFLAGS)
 AC_SUBST(DRM_LIBS)
 

@@ -353,6 +353,62 @@ ply_boot_splash_unload (ply_boot_splash_t *splash)
   splash->is_loaded = false;
 }
 
+static void
+remove_displays (ply_boot_splash_t *splash)
+{
+  ply_list_node_t *node, *next_node;
+
+  ply_trace ("removing pixel displays");
+
+  node = ply_list_get_first_node (splash->pixel_displays);
+  while (node != NULL)
+    {
+      ply_pixel_display_t *display;
+      ply_list_node_t *next_node;
+      unsigned long width, height;
+
+      display = ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (splash->pixel_displays, node);
+
+      width = ply_pixel_display_get_width (display);
+      height = ply_pixel_display_get_height (display);
+
+      ply_trace ("Removing %lux%lu pixel display", width, height);
+
+      if (splash->plugin_interface->remove_pixel_display != NULL)
+        splash->plugin_interface->remove_pixel_display (splash->plugin, display);
+
+      ply_trace ("Removing node");
+      ply_list_remove_node (splash->pixel_displays, node);
+
+      node = next_node;
+    }
+
+  ply_trace ("removing text displays");
+  node = ply_list_get_first_node (splash->text_displays);
+  while (node != NULL)
+    {
+      ply_text_display_t *display;
+      int number_of_columns, number_of_rows;
+
+      display = ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (splash->text_displays, node);
+
+      number_of_columns = ply_text_display_get_number_of_columns (display);
+      number_of_rows = ply_text_display_get_number_of_rows (display);
+
+      ply_trace ("Removing %dx%d text display", number_of_columns, number_of_rows);
+
+      if (splash->plugin_interface->remove_text_display != NULL)
+        splash->plugin_interface->remove_text_display (splash->plugin, display);
+
+      ply_trace ("Removing node");
+      ply_list_remove_node (splash->text_displays, node);
+
+      node = next_node;
+    }
+}
+
 void
 ply_boot_splash_free (ply_boot_splash_t *splash)
 {
@@ -374,14 +430,16 @@ ply_boot_splash_free (ply_boot_splash_t *splash)
                                              splash);
     }
 
+  remove_displays (splash);
+  ply_list_free (splash->pixel_displays);
+  ply_list_free (splash->text_displays);
+
   if (splash->module_handle != NULL)
     ply_boot_splash_unload (splash);
 
   if (splash->idle_trigger != NULL)
     ply_trigger_free (splash->idle_trigger);
 
-  ply_list_free (splash->pixel_displays);
-  ply_list_free (splash->text_displays);
   free (splash->theme_path);
   free (splash->plugin_dir);
   free (splash);

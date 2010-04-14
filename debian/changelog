@@ -1,6 +1,26 @@
+plymouth (0.8.2-1) experimental; urgency=low
+
+  [ Daniel Baumann ]
+  * Correcting spelling typo in previous changelog entry.
+
+  [ Guido Guenther ]
+  * Add drm modules (Closes: #576731).
+
+  [ Daniel Baumann ]
+  * Updating plymouth lintian overrides.
+  * Removing patch to disable nouveau, and making libdrm build-depends
+    versioned.
+  * Renumbering patches.
+  * Merging upstream version 0.8.2.
+  * Removing shlibs depends from theme packages.
+  * Marking themes packages architecture independent.
+  * Removing todo file, currently nothing is left.
+
+ -- Daniel Baumann <daniel@debian.org>  Wed, 14 Apr 2010 19:41:42 +0200
+
 plymouth (0.8.1-2) unstable; urgency=low
 
-  * Uploading to untable.
+  * Uploading to unstable.
 
  -- Daniel Baumann <daniel@debian.org>  Tue, 06 Apr 2010 12:41:39 +0200
 
