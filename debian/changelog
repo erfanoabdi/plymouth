@@ -1,3 +1,11 @@
+plymouth (0.8.2-2) unstable; urgency=low
+
+  * Making libdrm-dev build-depends unversioned again, now that it has
+    been uploaded to unstable.
+  * Uploading to unstable.
+
+ -- Daniel Baumann <daniel@debian.org>  Sat, 17 Apr 2010 16:50:34 +0200
+
 plymouth (0.8.2-1) experimental; urgency=low
 
   [ Daniel Baumann ]
