@@ -27,6 +27,10 @@
 #include <unistd.h>
 
 typedef struct _ply_key_file ply_key_file_t;
+typedef void (ply_key_file_foreach_func_t) (const char *group_name,
+                                            const char *key,
+                                            const char *value,
+                                            void       *user_data);
 
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
 ply_key_file_t *ply_key_file_new (const char *filename);
@@ -38,6 +42,9 @@ bool ply_key_file_has_key (ply_key_file_t *key_file,
 char *ply_key_file_get_value (ply_key_file_t *key_file,
                               const char     *group_name,
                               const char     *key);
+void ply_key_file_foreach_entry (ply_key_file_t              *key_file,
+                                 ply_key_file_foreach_func_t  func,
+                                 void                        *user_data);
 #endif
 
 #endif /* PLY_KEY_FILE_H */

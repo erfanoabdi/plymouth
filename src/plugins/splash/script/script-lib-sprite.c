@@ -458,28 +458,26 @@ static void script_lib_sprite_draw_area (script_lib_display_t *display,
        node = ply_list_get_next_node (data->sprite_list, node))
     {
       sprite_t *sprite = ply_list_node_get_data (node);
-      ply_rectangle_t sprite_area;
+      int position_x, position_y;
 
       if (!sprite->image) continue;
       if (sprite->remove_me) continue;
       if (sprite->opacity < 0.011) continue;
 
-      ply_pixel_buffer_get_size (sprite->image, &sprite_area);
+      position_x = sprite->x - display->x;
+      position_y = sprite->y - display->y;
 
-      sprite_area.x = sprite->x - display->x;
-      sprite_area.y = sprite->y - display->y;
+      if (position_x >= (x + width)) continue;
+      if (position_y >= (y + height)) continue;
 
-      if (sprite_area.x >= (x + width)) continue;
-      if (sprite_area.y >= (y + height)) continue;
-
-      if ((sprite_area.x + (int) sprite_area.width) <= x) continue;
-      if ((sprite_area.y + (int) sprite_area.height) <= y) continue;
-      ply_pixel_buffer_fill_with_argb32_data_at_opacity_with_clip (pixel_buffer,
-                                                                   &sprite_area,
-                                                                   &clip_area,
-                                                                   0, 0,
-                                                                   ply_pixel_buffer_get_argb32_data (sprite->image),
-                                                                   sprite->opacity);
+      if ((position_x + (int) ply_pixel_buffer_get_width (sprite->image)) <= x) continue;
+      if ((position_y + (int) ply_pixel_buffer_get_height (sprite->image)) <= y) continue;
+      ply_pixel_buffer_fill_with_buffer_at_opacity_with_clip (pixel_buffer,
+                                                              sprite->image,
+                                                              position_x,
+                                                              position_y,
+                                                              &clip_area,
+                                                              sprite->opacity);
     }
 }
 

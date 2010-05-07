@@ -665,6 +665,12 @@ ply_boot_splash_become_idle (ply_boot_splash_t                  *splash,
 {
   assert (splash->idle_trigger == NULL);
 
+  if (splash->progress != NULL)
+    {
+      ply_progress_set_percentage (splash->progress, 1.0);
+      ply_boot_splash_update_progress (splash);
+    }
+
   ply_trace ("telling splash to become idle");
   if (splash->plugin_interface->become_idle == NULL)
     {

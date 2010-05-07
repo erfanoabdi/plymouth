@@ -163,19 +163,20 @@ static script_return_t image_text (script_state_t *state,
   
   char *text = script_obj_hash_get_string (state->local, "text");
   
-  /* These colour values are currently unused, but will be once label supports them */
+  float alpha;
   float red = CLAMP(script_obj_hash_get_number (state->local, "red"), 0, 1);
   float green = CLAMP(script_obj_hash_get_number (state->local, "green"), 0, 1);
   float blue = CLAMP(script_obj_hash_get_number (state->local, "blue"), 0, 1);
-  float alpha = 1;
 
   alpha_obj = script_obj_hash_peek_element (state->local, "alpha");
 
-  if (alpha_obj)
+  if (script_obj_is_number (alpha_obj))
     {
       alpha = CLAMP(script_obj_as_number (alpha_obj), 0, 1);
-      script_obj_unref(alpha_obj);
     }
+  else
+    alpha = 1;
+  script_obj_unref(alpha_obj);
 
   if (!text) return script_return_obj_null ();
 

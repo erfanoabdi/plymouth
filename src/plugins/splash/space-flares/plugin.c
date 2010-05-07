@@ -1317,13 +1317,13 @@ on_draw (view_t                   *view,
 
       box_data = ply_image_get_data (plugin->box_image);
       ply_pixel_buffer_fill_with_argb32_data (pixel_buffer,
-                                              &view->box_area, 0, 0,
+                                              &view->box_area,
                                               box_data);
       ply_entry_draw_area (view->entry, pixel_buffer, x, y, width, height);
       ply_label_draw_area (view->label, pixel_buffer, x, y, width, height);
       lock_data = ply_image_get_data (plugin->lock_image);
       ply_pixel_buffer_fill_with_argb32_data (pixel_buffer,
-                                              &view->lock_area, 0, 0,
+                                              &view->lock_area,
                                               lock_data);
     }
   else
@@ -1365,7 +1365,7 @@ on_draw (view_t                   *view,
           else
             {
               ply_pixel_buffer_fill_with_argb32_data_at_opacity_with_clip (pixel_buffer,
-                                                                           &sprite_area, &clip_area, 0, 0,
+                                                                           &sprite_area, &clip_area,
                                                                            ply_image_get_data (sprite->image), sprite->opacity);
             }
         }
@@ -1400,7 +1400,7 @@ draw_background (view_t             *view,
   image_area.height = ply_image_get_height (view->scaled_background_image);
 
   ply_pixel_buffer_fill_with_argb32_data_with_clip (pixel_buffer,
-                                                    &image_area, &area, 0, 0,
+                                                    &image_area, &area,
                                                     ply_image_get_data (view->scaled_background_image));
   
   image_area.x = image_area.width-ply_image_get_width(plugin->star_image);
@@ -1410,7 +1410,7 @@ draw_background (view_t             *view,
   
   
   ply_pixel_buffer_fill_with_argb32_data_with_clip (pixel_buffer,
-                                                     &image_area, &area, 0, 0,
+                                                     &image_area, &area,
                                                      ply_image_get_data (plugin->star_image));
                                                      
   image_area.x = 20;
@@ -1420,7 +1420,7 @@ draw_background (view_t             *view,
   
   
   ply_pixel_buffer_fill_with_argb32_data_with_clip (pixel_buffer,
-                                                     &image_area, &area, 0, 0,
+                                                     &image_area, &area,
                                                      ply_image_get_data (plugin->logo_image));
 }
 

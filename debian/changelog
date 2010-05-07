@@ -1,3 +1,9 @@
+plymouth (0.8.3-1) unstable; urgency=low
+
+  * Merging upstream version 0.8.3.
+
+ -- Daniel Baumann <daniel@debian.org>  Fri, 07 May 2010 14:20:23 +0200
+
 plymouth (0.8.2-2) unstable; urgency=low
 
   * Making libdrm-dev build-depends unversioned again, now that it has

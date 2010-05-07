@@ -42,7 +42,7 @@
 #include <values.h>
 #include <unistd.h>
 
-#include <drm/drm.h>
+#include <drm.h>
 #include <xf86drm.h>
 #include <xf86drmMode.h>
 

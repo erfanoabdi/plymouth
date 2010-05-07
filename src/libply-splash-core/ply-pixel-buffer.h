@@ -43,6 +43,10 @@ ply_pixel_buffer_t *ply_pixel_buffer_new (unsigned long width,
 void ply_pixel_buffer_free (ply_pixel_buffer_t *buffer);
 void ply_pixel_buffer_get_size (ply_pixel_buffer_t *buffer,
                                 ply_rectangle_t    *size);
+
+unsigned long ply_pixel_buffer_get_width (ply_pixel_buffer_t *buffer);
+unsigned long ply_pixel_buffer_get_height (ply_pixel_buffer_t *buffer);
+
 ply_region_t *ply_pixel_buffer_get_updated_areas (ply_pixel_buffer_t *buffer);
 
 void ply_pixel_buffer_fill_with_color (ply_pixel_buffer_t *buffer,
@@ -67,29 +71,43 @@ void ply_pixel_buffer_fill_with_gradient (ply_pixel_buffer_t *buffer,
 
 void ply_pixel_buffer_fill_with_argb32_data (ply_pixel_buffer_t *buffer,
                                              ply_rectangle_t    *fill_area,
-                                             unsigned long       x,
-                                             unsigned long       y,
                                              uint32_t           *data);
 void ply_pixel_buffer_fill_with_argb32_data_at_opacity (ply_pixel_buffer_t *buffer,
                                                         ply_rectangle_t    *fill_area,
-                                                        unsigned long       x,
-                                                        unsigned long       y,
                                                         uint32_t           *data,
                                                         double              opacity);
 
 void ply_pixel_buffer_fill_with_argb32_data_with_clip (ply_pixel_buffer_t *buffer,
                                                        ply_rectangle_t    *fill_area,
                                                        ply_rectangle_t    *clip_area,
-                                                       unsigned long       x,
-                                                       unsigned long       y,
                                                        uint32_t           *data);
 void ply_pixel_buffer_fill_with_argb32_data_at_opacity_with_clip (ply_pixel_buffer_t *buffer,
                                                                   ply_rectangle_t    *fill_area,
                                                                   ply_rectangle_t    *clip_area,
-                                                                  unsigned long       x,
-                                                                  unsigned long       y,
                                                                   uint32_t           *data,
                                                                   double              opacity);
+
+void ply_pixel_buffer_fill_with_buffer_at_opacity_with_clip (ply_pixel_buffer_t *canvas,
+                                                             ply_pixel_buffer_t *source,
+                                                             int                 x_offset,
+                                                             int                 y_offset,
+                                                             ply_rectangle_t    *clip_area,
+                                                             float               opacity);
+void ply_pixel_buffer_fill_with_buffer_at_opacity (ply_pixel_buffer_t *canvas,
+                                                   ply_pixel_buffer_t *source,
+                                                   int                 x_offset,
+                                                   int                 y_offset,
+                                                   float               opacity);
+void ply_pixel_buffer_fill_with_buffer_with_clip (ply_pixel_buffer_t *canvas,
+                                                  ply_pixel_buffer_t *source,
+                                                  int                 x_offset,
+                                                  int                 y_offset,
+                                                  ply_rectangle_t    *clip_area);
+void ply_pixel_buffer_fill_with_buffer (ply_pixel_buffer_t *canvas,
+                                        ply_pixel_buffer_t *source,
+                                        int                 x_offset,
+                                        int                 y_offset);
+
 
 void ply_pixel_buffer_push_clip_area (ply_pixel_buffer_t *buffer,
                                       ply_rectangle_t    *clip_area);

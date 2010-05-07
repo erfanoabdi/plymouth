@@ -697,14 +697,14 @@ draw_normal_view (view_t             *view,
       star_area.x = star->x;
       star_area.y = star->y;
       ply_pixel_buffer_fill_with_argb32_data_at_opacity (pixel_buffer,
-                                                         &star_area, 0, 0,
+                                                         &star_area,
                                                          star_data,
                                                          star->opacity);
       node = next_node;
     }
 
   ply_pixel_buffer_fill_with_argb32_data_at_opacity (pixel_buffer,
-                                                     &logo_area, 0, 0,
+                                                     &logo_area,
                                                      logo_data,
                                                      view->logo_opacity);
 }
@@ -731,7 +731,7 @@ draw_prompt_view (view_t             *view,
 
   lock_data = ply_image_get_data (plugin->lock_image);
   ply_pixel_buffer_fill_with_argb32_data (pixel_buffer,
-                                          &view->lock_area, 0, 0,
+                                          &view->lock_area,
                                           lock_data);
 }
 
