@@ -12,7 +12,7 @@ Vcs-Browser: http://git.debian-maintainers.org/?p=daniel/plymouth.git
 Vcs-Git: git://git.debian-maintainers.org/git/daniel/plymouth.git
 
 Package: plymouth
-Architecture: any
+Architecture: amd64 i386
 Depends: ${misc:Depends}, ${shlibs:Depends}, initramfs-tools
 Conflicts:
  plymouth-plugins-fade-in, plymouth-plugins-glow, plymouth-plugins-label,
@@ -28,7 +28,7 @@ Description: Graphical Boot Animation and Logger
  file for viewing after boot.
 
 Package: plymouth-x11
-Architecture: any
+Architecture: amd64 i386
 Depends: ${misc:Depends}, ${shlibs:Depends}, plymouth (= ${binary:Version})
 Suggests: gdm
 Description: Graphical Boot Animation and Logger
@@ -39,7 +39,7 @@ Description: Graphical Boot Animation and Logger
  This package contains the x11 renderer and the log viewer.
 
 Package: plymouth-dev
-Architecture: any
+Architecture: amd64 i386
 Depends: ${misc:Depends}, plymouth (= ${binary:Version})
 Description: Graphical Boot Animation and Logger (development)
  Plymouth provides an attractive graphical boot animation in place of the text
