@@ -4,10 +4,8 @@
 # Provides:		plymouth
 # Required-Start:	udev $remote_fs
 # Required-Stop:	$remote_fs
-# Should-Start:
-# Should-Stop:
-# X-Start-Before:	gdm kdm xdm
-# X-Stop-After:		gdm kdm xdm
+# Should-Start:		gdm gdm3 kdm xdm slim nodm
+# Should-Stop:		gdm gdm3 kdm xdm slim nodm
 # Default-Start:	2 3 4 5
 # Default-Stop:		0 6
 # Short-Description:	Stop plymouth during boot and start it on shutdown
