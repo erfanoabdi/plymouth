@@ -2,7 +2,7 @@
 
 ### BEGIN INIT INFO
 # Provides:		plymouth
-# Required-Start:	udev $remote_fs
+# Required-Start:	udev $remote_fs $all
 # Required-Stop:	$remote_fs
 # Should-Start:		gdm gdm3 kdm xdm slim nodm
 # Should-Stop:		gdm gdm3 kdm xdm slim nodm

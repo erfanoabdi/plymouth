@@ -1,3 +1,22 @@
+plymouth (0.8.3-5) unstable; urgency=high
+
+  [ Daniel Baumann ]
+  * Updating standards version to 3.9.0.
+
+  [ Anisse Astier ]
+  * Starting plymouth as late as possible in order to have it on screen
+    until X is started on an user mode setting system.
+
+  [ Daniel Baumann ]
+  * Adding depends to ttf-dejavu-core, thanks to Anisse Astier
+    <anisse@astier.eu>.
+
+  [ Michael Prokop ]
+  * Only copying /etc/plymouth/plymouthd.conf in hook if it exists
+    (Closes: #587557).
+
+ -- Daniel Baumann <daniel@debian.org>  Sat, 31 Jul 2010 03:17:35 +0200
+
 plymouth (0.8.3-4) unstable; urgency=medium
 
   * Correcting lsb headers in initscript (Closes: #584204).

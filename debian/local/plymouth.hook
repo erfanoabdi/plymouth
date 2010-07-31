@@ -73,7 +73,12 @@ copy_exec /usr/lib/libpangocairo-1.0.so.0
 
 # copy config files
 mkdir -p "${DESTDIR}/etc/plymouth"
-cp -a /etc/plymouth/plymouthd.conf "${DESTDIR}/etc/plymouth/"
+
+if [ -r /etc/plymouth/plymouthd.conf ]
+then
+	cp -a /etc/plymouth/plymouthd.conf "${DESTDIR}/etc/plymouth/"
+fi
+
 cp -a /usr/share/plymouth/plymouthd.defaults "${DESTDIR}/usr/share/plymouth/"
 
 # copy renderers
