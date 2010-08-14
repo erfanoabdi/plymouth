@@ -1,3 +1,10 @@
+plymouth (0.8.3-6) unstable; urgency=low
+
+  * Removing old conflicts and replaces.
+  * Correcting spelling typo in package description (Closes: #592866).
+
+ -- Daniel Baumann <daniel@debian.org>  Sat, 14 Aug 2010 12:44:50 +0200
+
 plymouth (0.8.3-5) unstable; urgency=high
 
   [ Daniel Baumann ]
