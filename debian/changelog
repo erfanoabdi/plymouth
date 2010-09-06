@@ -1,3 +1,14 @@
+plymouth (0.8.3-8) unstable; urgency=low
+
+  [ Anisse Astier ]
+  * Adding fontconfig-fontconfig to depends.
+
+  [ Daniel Baumann ]
+  * Updating postinst script to deal with not just with empty but also
+    with the uninitialized theme.
+
+ -- Daniel Baumann <daniel@debian.org>  Mon, 06 Sep 2010 13:31:39 +0200
+
 plymouth (0.8.3-7) unstable; urgency=low
 
   * Calling plymouthd with --attach-to-session (Closes: #575177,

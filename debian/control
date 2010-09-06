@@ -13,7 +13,9 @@ Vcs-Git: git://git.debian-maintainers.org/git/daniel/plymouth.git
 
 Package: plymouth
 Architecture: amd64 i386
-Depends: ${misc:Depends}, ${shlibs:Depends}, initramfs-tools, ttf-dejavu-core
+Depends:
+ ${misc:Depends}, ${shlibs:Depends}, fontconfig-config, initramfs-tools,
+ ttf-dejavu-core
 Recommends: plymouth-themes-all
 Suggests: gdm
 Description: Graphical Boot Animation and Logger
