@@ -1,3 +1,19 @@
+plymouth (0.8.3-7) unstable; urgency=low
+
+  * Calling plymouthd with --attach-to-session (Closes: #575177,
+    #593408, #595178).
+  * Setting default plugin to text if nothing else was specified
+    (Closes: #594999).
+  * Adding shutdown and restart messages in initscript when using text
+    plugin, thanks to Leszek Lesner <leszek.lesner@googlemail.com>.
+  * Updating to standards version 3.9.1.
+  * Updating README.Debian for plymouth 0.8.
+  * Adding information for AMD (ATI) graphic cards to README.Debian,
+    thanks to Sebastian Leske <Sebastian.Leske@sleske.name> (Closes:
+    #591623).
+
+ -- Daniel Baumann <daniel@debian.org>  Mon, 06 Sep 2010 12:30:29 +0200
+
 plymouth (0.8.3-6) unstable; urgency=low
 
   * Removing old conflicts and replaces.

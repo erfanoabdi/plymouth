@@ -34,6 +34,6 @@ then
 	modprobe i8042
 	modprobe atkbd
 
-	/sbin/plymouthd --mode=boot
+	/sbin/plymouthd --mode=boot --attach-to-session
 	/bin/plymouth --show-splash
 fi

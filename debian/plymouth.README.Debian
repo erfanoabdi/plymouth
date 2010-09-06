@@ -1,20 +1,30 @@
 plymouth for Debian
 -------------------
 
+Plymouth supports both KMS (kernel mode setting) and standard console output.
+For standard console support the plymouth-x11 package has to be installed.
+
 The following steps are required in order to enable the plymouth bootsplash:
 
-  * plymouth 0.7 works only with KMS (kernel mode setting). Make sure to have
-    it enabled in your initrd with the following lines in
-    /etc/initramfs-tools/modules and don't forget to update your initrd by
-    running 'update-initramfs -u' as root afterwards.
+  * In case the KMS backend should be used and KMS is not yet enabled on your
+    system, add the following lines to /etc/initramfs-tools/modules:
 
-    # KMS
+    # for KMS with Intel graphic cards
     intel_agp
     drm
     i915 modeset=1
 
-  * Install plymouth and one or more of the themes packages.
-  * Add 'splash' as boot parameter in your bootloader configuration.
-  * Configure the default theme by running plymouth-set-default-theme.
+    # for KMS with AMD (ATI) graphic cards
+    radeon modeset=1
 
- -- Daniel Baumann <daniel@debian.org>  Sun, 14 Mar 2010 18:52:25 +0100
+    Remember to afterwards rebuild the initrd with 'update-initramfs -u' as
+    root.
+
+  * Install plymouth and one or more of the themes packages.
+
+  * Add 'splash' as boot parameter in your bootloader configuration.
+
+  * Optionally switch to a different theme by running
+    plymouth-set-default-theme (and rebuilding the initrd again).
+
+ -- Daniel Baumann <daniel@debian.org>  Mon, 06 Sep 2010 12:11:20 +0200

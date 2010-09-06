@@ -27,7 +27,7 @@ Start_plymouthd ()
 {
 	if ! plymouth --ping
 	then
-		/sbin/plymouthd --mode=${1}
+		/sbin/plymouthd --mode=${1} --attach-to-session
 	fi
 }
 
@@ -56,6 +56,21 @@ case "${1}" in
 		if [ "$SPLASH" = "true" ]
 		then
 			Start_plymouthd shutdown
+
+			RUNLEVEL="$(/sbin/runlevel | cut -d " " -f 2)"
+
+			case "${RUNLEVEL}" in
+				0)
+					TEXT="Shutting down system..."
+					;;
+
+				6)
+					TEXT="Restarting system..."
+					;;
+			esac
+
+			/bin/plymouth message --text="${TEXT}"
+
 			/bin/plymouth --show-splash
 		fi
 		;;
