@@ -20,6 +20,7 @@ esac
 
 THEME="$(/usr/sbin/plymouth-set-default-theme || true)"
 THEMES="/usr/share/plymouth/themes"
+
 if [ -n "${THEME}" ]
 then
 	THEME="${THEMES}/${THEME}/${THEME}.plymouth"
@@ -54,22 +55,41 @@ done
 cp -a "${THEMES}/details" "${DESTDIR}/${THEMES}"
 cp -a "${THEMES}/text" "${DESTDIR}/${THEMES}"
 cp /etc/debian_version "${DESTDIR}/etc"
-cp /usr/share/plymouth/debian-logo.png "${DESTDIR}/usr/share/plymouth"
 
-# copy files for font rendering
-mkdir -p "${DESTDIR}/usr/share/fonts/truetype/ttf-dejavu"
-mkdir -p "${DESTDIR}/usr/lib/pango/1.6.0/modules"
-mkdir -p "${DESTDIR}/etc/fonts/conf.d"
-mkdir -p "${DESTDIR}/var/cache/fontconfig"
-cp -a /usr/share/fonts/truetype/ttf-dejavu/DejaVuSerif.ttf "${DESTDIR}/usr/share/fonts/truetype/ttf-dejavu"
-cp -a /usr/share/fonts/truetype/ttf-dejavu/DejaVuSans.ttf  "${DESTDIR}/usr/share/fonts/truetype/ttf-dejavu"
-cp -a /etc/fonts/fonts.conf "${DESTDIR}/etc/fonts"
-cp -rL /etc/fonts/conf.d/60-latin.conf "${DESTDIR}/etc/fonts/conf.d"
-copy_exec /usr/lib/pango/1.6.0/modules/pango-basic-fc.so
-copy_exec /usr/lib/pango/1.6.0/module-files.d/libpango1.0-0.modules
-copy_exec /usr/lib/libpango-1.0.so.0
-copy_exec /usr/lib/libpangoft2-1.0.so.0
-copy_exec /usr/lib/libpangocairo-1.0.so.0
+case "${THEME}" in
+	text)
+
+		;;
+
+	*)
+		cp /usr/share/plymouth/debian-logo.png "${DESTDIR}/usr/share/plymouth"
+
+		# copy files for font rendering
+		mkdir -p "${DESTDIR}/usr/share/fonts/truetype/ttf-dejavu"
+		mkdir -p "${DESTDIR}/usr/lib/pango/1.6.0/modules"
+		mkdir -p "${DESTDIR}/etc/fonts/conf.d"
+		mkdir -p "${DESTDIR}/var/cache/fontconfig"
+		cp -a /usr/share/fonts/truetype/ttf-dejavu/DejaVuSerif.ttf "${DESTDIR}/usr/share/fonts/truetype/ttf-dejavu"
+		cp -a /usr/share/fonts/truetype/ttf-dejavu/DejaVuSans.ttf  "${DESTDIR}/usr/share/fonts/truetype/ttf-dejavu"
+		cp -a /etc/fonts/fonts.conf "${DESTDIR}/etc/fonts"
+		cp -rL /etc/fonts/conf.d/60-latin.conf "${DESTDIR}/etc/fonts/conf.d"
+		copy_exec /usr/lib/pango/1.6.0/modules/pango-basic-fc.so
+		copy_exec /usr/lib/pango/1.6.0/module-files.d/libpango1.0-0.modules
+		copy_exec /usr/lib/libpango-1.0.so.0
+		copy_exec /usr/lib/libpangoft2-1.0.so.0
+		copy_exec /usr/lib/libpangocairo-1.0.so.0
+
+		# copy renderers
+		copy_exec /usr/lib/plymouth/renderers/frame-buffer.so
+		copy_exec /usr/lib/plymouth/renderers/drm.so
+
+		# add drm/fb modules
+		manual_add_modules intel-agp
+		manual_add_modules ati-agp
+		manual_add_modules i915
+		manual_add_modules radeon
+		;;
+esac
 
 # copy config files
 mkdir -p "${DESTDIR}/etc/plymouth"
@@ -80,13 +100,3 @@ then
 fi
 
 cp -a /usr/share/plymouth/plymouthd.defaults "${DESTDIR}/usr/share/plymouth/"
-
-# copy renderers
-copy_exec /usr/lib/plymouth/renderers/frame-buffer.so
-copy_exec /usr/lib/plymouth/renderers/drm.so
-
-# add drm/fb modules
-manual_add_modules intel-agp
-manual_add_modules ati-agp
-manual_add_modules i915
-manual_add_modules radeon

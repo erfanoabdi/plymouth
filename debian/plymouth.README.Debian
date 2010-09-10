@@ -10,8 +10,6 @@ The following steps are required in order to enable the plymouth bootsplash:
     system, add the following lines to /etc/initramfs-tools/modules:
 
     # for KMS with Intel graphic cards
-    intel_agp
-    drm
     i915 modeset=1
 
     # for KMS with AMD (ATI) graphic cards

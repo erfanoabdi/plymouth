@@ -1,7 +1,24 @@
+plymouth (0.8.3-9) unstable; urgency=high
+
+  * Removing superfluous reference to intel_agp and drm in
+    README.Debian, thanks to Julien Cristau <jcristau@debian.org>.
+  * Shipping preconfigured plymouthd.conf instead of setting the default
+    theme in postinst which doesn't work reliable (Closes: #594999).
+  * Correcting typo in fontconfig-config package name in previous
+    changelog entry.
+  * Avoid kms bloat if text theme is used (the text theme only works in
+    non-kms mode anyway).
+  * Also setting default plugin to text in plymouthd.defaults.
+  * Downgrading fontconfig-config and ttf-dejavu-core depends to
+    recommends, they are not needed when running the default text
+    plugin.
+
+ -- Daniel Baumann <daniel@debian.org>  Fri, 10 Sep 2010 22:06:46 +0200
+
 plymouth (0.8.3-8) unstable; urgency=low
 
   [ Anisse Astier ]
-  * Adding fontconfig-fontconfig to depends.
+  * Adding fontconfig-config to depends.
 
   [ Daniel Baumann ]
   * Updating postinst script to deal with not just with empty but also

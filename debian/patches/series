@@ -2,3 +2,4 @@
 02-set-default-framebuffer-device-to-dev-fb0.patch
 03-awk.patch
 04-stderr.patch
+05-default-theme.patch

@@ -4,12 +4,6 @@ set -e
 
 case "${1}" in
 	configure)
-		case "$(plymouth-set-default-theme || true)" in
-			.plymouth|"")
-				plymouth-set-default-theme text
-				;;
-		esac
-
 		if [ -x /usr/sbin/update-initramfs ]
 		then
 			update-initramfs -u
