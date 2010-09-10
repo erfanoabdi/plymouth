@@ -1,10 +1,11 @@
 Source: plymouth
 Section: misc
 Priority: optional
-Maintainer: Julien Cristau <jcristau@debian.org>
+Maintainer: Daniel Baumann <daniel@lists.debian-maintainers.org>
+Uploaders: Daniel Baumann <daniel@debian.org>
 Build-Depends:
  debhelper (>= 7.0.50~), autotools-dev, libdrm-dev, libgtk2.0-dev,
- libpango1.0-dev (>= 1.21), libpng-dev, pkg-config, sharutils, quilt (>= 0.46-7)
+ libpango1.0-dev, libpng-dev, pkg-config, sharutils, quilt (>= 0.46-7)
 Standards-Version: 3.9.1
 Homepage: http://www.freedesktop.org/wiki/Software/Plymouth
 Vcs-Browser: http://git.debian-maintainers.org/?p=daniel/plymouth.git
@@ -13,31 +14,48 @@ Vcs-Git: git://git.debian-maintainers.org/git/daniel/plymouth.git
 Package: plymouth
 Architecture: amd64 i386
 Depends: ${misc:Depends}, ${shlibs:Depends}, initramfs-tools
-Recommends: plymouth-themes-all, fontconfig-config, ttf-dejavu-core
-Suggests: gdm
 Description: Graphical Boot Animation and Logger
- Plymouth provides an attractive graphical boot animation in place of the text
- messages that normally get shown. Text messages are instead redirected to a log
- file for viewing after boot.
+ Plymouth provides an attractive boot animation in place of the text messages
+ that normally get shown. Text messages are instead redirected to a logfile for
+ viewing after boot.
+
+Package: plymouth-drm
+Architecture: amd64 i386
+Depends:
+ ${misc:Depends}, ${shlibs:Depends}, plymouth (= ${binary:Version}),
+ plymouth-theme | plymouth-themes-fade-in (= ${binary:Version}),
+ fontconfig-config, ttf-dejavu-core
+Conflicts: plymouth (<< 0.8.3-10)
+Replaces: plymouth
+Recommends: plymouth-themes-all
+Description: Graphical Boot Animation and Logger (DRM)
+ Plymouth provides an attractive boot animation in place of the text messages
+ that normally get shown. Text messages are instead redirected to a logfile for
+ viewing after boot.
+ .
+ This package contains the DRM backend for systems supporting Kernel Mode
+ Setting (KMS).
 
 Package: plymouth-x11
 Architecture: amd64 i386
-Depends: ${misc:Depends}, ${shlibs:Depends}, plymouth (= ${binary:Version})
+Depends: ${misc:Depends}, ${shlibs:Depends}, plymouth-drm (= ${binary:Version})
 Suggests: gdm
 Description: Graphical Boot Animation and Logger
- Plymouth provides an attractive graphical boot animation in place of the text
- messages that normally get shown. Text messages are instead redirected to a log
- file for viewing after boot.
+ Plymouth provides an attractive boot animation in place of the text messages
+ that normally get shown. Text messages are instead redirected to a logfile for
+ viewing after boot.
  .
  This package contains the x11 renderer and the log viewer.
 
 Package: plymouth-dev
 Architecture: amd64 i386
-Depends: ${misc:Depends}, plymouth (= ${binary:Version})
+Depends:
+ ${misc:Depends}, plymouth (= ${binary:Version}),
+ plymouth-drm (= ${binary:Version}), plymouth-x11 (= ${binary:Version})
 Description: Graphical Boot Animation and Logger (development)
- Plymouth provides an attractive graphical boot animation in place of the text
- messages that normally get shown. Text messages are instead redirected to a log
- file for viewing after boot.
+ Plymouth provides an attractive boot animation in place of the text messages
+ that normally get shown. Text messages are instead redirected to a logfile for
+ viewing after boot.
  .
  This package contains the development files.
 
@@ -47,67 +65,67 @@ Depends:
  ${misc:Depends}, plymouth-themes-fade-in, plymouth-themes-glow,
  plymouth-themes-script, plymouth-themes-solar, plymouth-themes-spinfinity
 Description: Graphical Boot Animation and Logger (themes metapackage)
- Plymouth provides an attractive graphical boot animation in place of the text
- messages that normally get shown. Text messages are instead redirected to a log
- file for viewing after boot.
+ Plymouth provides an attractive boot animation in place of the text messages
+ that normally get shown. Text messages are instead redirected to a logfile for
+ viewing after boot.
  .
  This package is a metapackage depending on all available themes.
 
 Package: plymouth-themes-fade-in
 Architecture: all
-Depends: ${misc:Depends}, plymouth (>= ${source:Version})
+Depends: ${misc:Depends}
 Provides: plymouth-theme
 Description: Graphical Boot Animation and Logger (fade-in theme)
- Plymouth provides an attractive graphical boot animation in place of the text
- messages that normally get shown. Text messages are instead redirected to a log
- file for viewing after boot.
+ Plymouth provides an attractive boot animation in place of the text messages
+ that normally get shown. Text messages are instead redirected to a logfile for
+ viewing after boot.
  .
  This package contains the fade-in theme. It features a centered logo that
  fades in and out while stars twinkle around the logo during system boot up.
 
 Package: plymouth-themes-glow
 Architecture: all
-Depends: ${misc:Depends}, plymouth (>= ${source:Version})
+Depends: ${misc:Depends}
 Provides: plymouth-theme
 Description: Graphical Boot Animation and Logger (glow theme)
- Plymouth provides an attractive graphical boot animation in place of the text
- messages that normally get shown. Text messages are instead redirected to a log
- file for viewing after boot.
+ Plymouth provides an attractive boot animation in place of the text messages
+ that normally get shown. Text messages are instead redirected to a logfile for
+ viewing after boot.
  .
  This package contains the glow theme. It features a pie chart as progress
  indicator.
 
 Package: plymouth-themes-script
 Architecture: all
-Depends: ${misc:Depends}, plymouth (>= ${source:Version})
+Depends: ${misc:Depends}
 Provides: plymouth-theme
 Description: Graphical Boot Animation and Logger (script theme)
- Plymouth provides an attractive graphical boot animation in place of the text
- messages that normally get shown. Text messages are instead redirected to a log
- file for viewing after boot.
+ Plymouth provides an attractive boot animation in place of the text messages
+ that normally get shown. Text messages are instead redirected to a logfile for
+ viewing after boot.
  .
  This package contains the script theme. It features a simple base theme.
 
 Package: plymouth-themes-solar
 Architecture: all
-Depends: ${misc:Depends}, plymouth (>= ${source:Version})
+Depends: ${misc:Depends}
 Provides: plymouth-theme
 Description: Graphical Boot Animation and Logger (solar theme)
- Plymouth provides an attractive graphical boot animation in place of the text
- messages that normally get shown. Text messages are instead redirected to a log
- file for viewing after boot.
+ Plymouth provides an attractive boot animation in place of the text messages
+ that normally get shown. Text messages are instead redirected to a logfile for
+ viewing after boot.
  .
  This package contains the solar theme. It features a blue flamed sun with
  animated solar flares.
 
 Package: plymouth-themes-spinfinity
 Architecture: all
-Depends: ${misc:Depends}, plymouth (>= ${source:Version})
+Depends: ${misc:Depends}
 Provides: plymouth-theme
 Description: Graphical Boot Animation and Logger (spinfinity theme)
- Plymouth provides an attractive graphical boot animation in place of the text
- messages that normally get shown. Text messages are instead redirected to a log
- file for viewing after boot.
+ Plymouth provides an attractive boot animation in place of the text messages
+ that normally get shown. Text messages are instead redirected to a logfile for
+ viewing after boot.
  .
  This package contains the spinfinity theme. It features a centered logo and
  animated spinner that spins in the shape of an infinity sign.

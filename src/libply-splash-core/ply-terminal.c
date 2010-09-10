@@ -188,8 +188,7 @@ ply_terminal_set_unbuffered_input (ply_terminal_t *terminal)
   if (tcsetattr (terminal->fd, TCSANOW, &term_attributes) != 0)
     return false;
 
-  if (!terminal->original_locked_term_attributes_saved &&
-      ioctl (terminal->fd, TIOCGLCKTRMIOS, &locked_term_attributes) == 0)
+  if (ioctl (terminal->fd, TIOCGLCKTRMIOS, &locked_term_attributes) == 0)
     {
       terminal->original_locked_term_attributes = locked_term_attributes;
       terminal->original_locked_term_attributes_saved = true;

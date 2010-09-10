@@ -16,8 +16,6 @@ NAME="plymouth"
 DESC="Boot splash manager"
 SPLASH="false"
 
-test -x /sbin/plymouthd || exit 0
-
 if [ -r "/etc/default/${NAME}" ]
 then
 	. "/etc/default/${NAME}"

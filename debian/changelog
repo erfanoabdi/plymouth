@@ -1,19 +1,12 @@
-plymouth (0.8.3-9.2) squeeze; urgency=low
+plymouth (0.8.3-10) experimental; urgency=low
 
-  * Fix the init script to not do anything if the plymouth package is removed
-    (closes: #617857).
+  * Making pango build-depends unversioned, not needed anymore.
+  * Splitting out kms stuff into plymouth-drm, this allows to have the
+    plymouth package containing everything for the text splash without
+    any depends other than libc6 and initramfs-tools.
+  * Correcting conditionals for text theme in initramfs hook.
 
- -- Julien Cristau <jcristau@debian.org>  Wed, 04 Jul 2012 20:51:56 +0200
-
-plymouth (0.8.3-9.1) testing; urgency=low
-
-  * Non-maintainer upload.
-  * Cherry-pick "[terminal] don't stomp over original tty lock settings".
-    Prevents setting tty1 in 'echo' mode after boot (closes: 595178).
-  * Set myself as maintainer for squeeze, Daniel doesn't want to support this
-    package there.
-
- -- Julien Cristau <jcristau@debian.org>  Wed, 13 Oct 2010 17:20:32 +0200
+ -- Daniel Baumann <daniel@debian.org>  Sat, 11 Sep 2010 00:01:15 +0200
 
 plymouth (0.8.3-9) unstable; urgency=high
 
