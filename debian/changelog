@@ -1,3 +1,10 @@
+plymouth (0.8.3-11) experimental; urgency=low
+
+  * Adding symlink from plymouth.8 to plymouth-set-default-theme.8
+    (Closes: #596570).
+
+ -- Daniel Baumann <daniel@debian.org>  Sun, 12 Sep 2010 19:29:47 +0200
+
 plymouth (0.8.3-10) experimental; urgency=low
 
   * Making pango build-depends unversioned, not needed anymore.
