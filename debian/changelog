@@ -1,3 +1,11 @@
+plymouth (0.8.3-12) experimental; urgency=low
+
+  * Adding patch from upstream prepared by Michael Biebl
+    <biebl@debian.org> to make plymouth work with systemd (Closes:
+    #596680).
+
+ -- Daniel Baumann <daniel@debian.org>  Tue, 14 Sep 2010 21:21:39 +0200
+
 plymouth (0.8.3-11) experimental; urgency=low
 
   * Adding symlink from plymouth.8 to plymouth-set-default-theme.8
