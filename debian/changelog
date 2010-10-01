@@ -1,3 +1,10 @@
+plymouth (0.8.3-13) experimental; urgency=low
+
+  * Reverting patch from upstream for make plymouth work with systemd,
+    made plymouth break otherwise (Reopen: #596680).
+
+ -- Daniel Baumann <daniel@debian.org>  Fri, 01 Oct 2010 07:18:25 +0200
+
 plymouth (0.8.3-12) experimental; urgency=low
 
   * Adding patch from upstream prepared by Michael Biebl
