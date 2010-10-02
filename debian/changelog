@@ -1,3 +1,10 @@
+plymouth (0.8.3-14) experimental; urgency=low
+
+  * Adding conflicts/replaces for old plymouth on plymouth-x11 (Closes:
+    #598733).
+
+ -- Daniel Baumann <daniel@debian.org>  Sat, 02 Oct 2010 11:41:37 +0200
+
 plymouth (0.8.3-13) experimental; urgency=low
 
   * Reverting patch from upstream for make plymouth work with systemd,

@@ -39,6 +39,8 @@ Description: Graphical Boot Animation and Logger (DRM)
 Package: plymouth-x11
 Architecture: amd64 i386
 Depends: ${misc:Depends}, ${shlibs:Depends}, plymouth-drm (= ${binary:Version})
+Conflicts: plymouth (<< 0.8.3-10)
+Replaces: plymouth
 Suggests: gdm
 Description: Graphical Boot Animation and Logger
  Plymouth provides an attractive boot animation in place of the text messages
