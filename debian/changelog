@@ -1,3 +1,9 @@
+plymouth (0.8.3-15) unstable; urgency=low
+
+  * Updating to debhelper version 8.
+
+ -- Daniel Baumann <daniel@debian.org>  Thu, 07 Oct 2010 08:15:17 +0200
+
 plymouth (0.8.3-14) experimental; urgency=low
 
   * Adding conflicts/replaces for old plymouth on plymouth-x11 (Closes:
