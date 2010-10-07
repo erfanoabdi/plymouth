@@ -1,3 +1,9 @@
+plymouth (0.8.3-16) unstable; urgency=low
+
+  * Correcting themes depends (Closes: #599411).
+
+ -- Daniel Baumann <daniel@debian.org>  Thu, 07 Oct 2010 15:02:11 +0200
+
 plymouth (0.8.3-15) unstable; urgency=low
 
   * Updating to debhelper version 8.

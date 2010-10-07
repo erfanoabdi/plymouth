@@ -23,7 +23,6 @@ Package: plymouth-drm
 Architecture: amd64 i386
 Depends:
  ${misc:Depends}, ${shlibs:Depends}, plymouth (= ${binary:Version}),
- plymouth-theme | plymouth-themes-fade-in (= ${binary:Version}),
  fontconfig-config, ttf-dejavu-core
 Conflicts: plymouth (<< 0.8.3-10)
 Replaces: plymouth
@@ -75,7 +74,7 @@ Description: Graphical Boot Animation and Logger (themes metapackage)
 
 Package: plymouth-themes-fade-in
 Architecture: all
-Depends: ${misc:Depends}
+Depends: ${misc:Depends}, plymouth-drm (>= ${source:Version})
 Provides: plymouth-theme
 Description: Graphical Boot Animation and Logger (fade-in theme)
  Plymouth provides an attractive boot animation in place of the text messages
@@ -87,7 +86,7 @@ Description: Graphical Boot Animation and Logger (fade-in theme)
 
 Package: plymouth-themes-glow
 Architecture: all
-Depends: ${misc:Depends}
+Depends: ${misc:Depends}, plymouth-drm (>= ${source:Version})
 Provides: plymouth-theme
 Description: Graphical Boot Animation and Logger (glow theme)
  Plymouth provides an attractive boot animation in place of the text messages
@@ -99,7 +98,7 @@ Description: Graphical Boot Animation and Logger (glow theme)
 
 Package: plymouth-themes-script
 Architecture: all
-Depends: ${misc:Depends}
+Depends: ${misc:Depends}, plymouth-drm (>= ${source:Version})
 Provides: plymouth-theme
 Description: Graphical Boot Animation and Logger (script theme)
  Plymouth provides an attractive boot animation in place of the text messages
@@ -110,7 +109,7 @@ Description: Graphical Boot Animation and Logger (script theme)
 
 Package: plymouth-themes-solar
 Architecture: all
-Depends: ${misc:Depends}
+Depends: ${misc:Depends}, plymouth-drm (>= ${source:Version})
 Provides: plymouth-theme
 Description: Graphical Boot Animation and Logger (solar theme)
  Plymouth provides an attractive boot animation in place of the text messages
@@ -122,7 +121,7 @@ Description: Graphical Boot Animation and Logger (solar theme)
 
 Package: plymouth-themes-spinfinity
 Architecture: all
-Depends: ${misc:Depends}
+Depends: ${misc:Depends}, plymouth-drm (>= ${source:Version})
 Provides: plymouth-theme
 Description: Graphical Boot Animation and Logger (spinfinity theme)
  Plymouth provides an attractive boot animation in place of the text messages
