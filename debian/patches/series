@@ -3,3 +3,4 @@
 03-awk.patch
 04-stderr.patch
 05-default-theme.patch
+06-tty.patch

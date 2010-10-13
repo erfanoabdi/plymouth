@@ -1,3 +1,12 @@
+plymouth (0.8.3-17) unstable; urgency=medium
+
+  [ Julien Cristau ]
+  * Cherry-pick "[terminal] don't stomp over original tty lock
+    settings". Prevents setting tty1 in 'echo' mode after boot (Closes:
+    595178).
+
+ -- Daniel Baumann <daniel@debian.org>  Wed, 13 Oct 2010 18:01:24 +0200
+
 plymouth (0.8.3-16) unstable; urgency=low
 
   * Correcting themes depends (Closes: #599411).
