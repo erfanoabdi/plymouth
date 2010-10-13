@@ -1,3 +1,13 @@
+plymouth (0.8.3-9.1) testing; urgency=low
+
+  * Non-maintainer upload.
+  * Cherry-pick "[terminal] don't stomp over original tty lock settings".
+    Prevents setting tty1 in 'echo' mode after boot (closes: 595178).
+  * Set myself as maintainer for squeeze, Daniel doesn't want to support this
+    package there.
+
+ -- Julien Cristau <jcristau@debian.org>  Wed, 13 Oct 2010 17:20:32 +0200
+
 plymouth (0.8.3-9) unstable; urgency=high
 
   * Removing superfluous reference to intel_agp and drm in
