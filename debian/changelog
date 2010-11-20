@@ -1,3 +1,12 @@
+plymouth (0.8.3-18) unstable; urgency=low
+
+  * Switching to source format 3.0 (quilt).
+  * Replacing debian logo with a swirl (Closes: #603286).
+  * Rediffing set-default-framebuffer-device-to-dev-fb0.patch.
+  * Adding debian-logo.png to source/include-binaries.
+
+ -- Daniel Baumann <daniel@debian.org>  Sat, 20 Nov 2010 16:27:22 +0100
+
 plymouth (0.8.3-17) unstable; urgency=medium
 
   [ Julien Cristau ]

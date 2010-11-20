@@ -1,7 +1,7 @@
 #!/usr/bin/make -f
 
 %:
-	dh ${@} --with quilt
+	dh ${@}
 
 override_dh_auto_clean:
 	dh_auto_clean
@@ -35,7 +35,7 @@ override_dh_install:
 	install -D -m 0755 debian/local/plymouth.init-bottom debian/plymouth/usr/share/initramfs-tools/scripts/init-bottom/plymouth
 
 	# Adding other debian specific files
-	uudecode debian/local/debian-logo.png.uue -o debian/plymouth/usr/share/plymouth/debian-logo.png
+	install -D -m 0644 debian/local/debian-logo.png debian/plymouth/usr/share/plymouth/debian-logo.png
 	install -D -m 0755 debian/local/plymouth-update-initrd debian/plymouth/usr/lib/plymouth/plymouth/plymouth-update-initrd
 
 override_dh_makeshlibs:

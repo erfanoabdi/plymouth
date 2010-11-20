@@ -5,7 +5,7 @@ Maintainer: Daniel Baumann <daniel@lists.debian-maintainers.org>
 Uploaders: Daniel Baumann <daniel@debian.org>
 Build-Depends:
  debhelper (>= 8), autotools-dev, libdrm-dev, libgtk2.0-dev, libpango1.0-dev,
- libpng-dev, pkg-config, sharutils, quilt (>= 0.46-7)
+ libpng-dev, pkg-config
 Standards-Version: 3.9.1
 Homepage: http://www.freedesktop.org/wiki/Software/Plymouth
 Vcs-Browser: http://git.debian-maintainers.org/?p=daniel/plymouth.git
