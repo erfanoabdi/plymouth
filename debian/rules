@@ -1,5 +1,7 @@
 #!/usr/bin/make -f
 
+DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
+
 %:
 	dh ${@}
 
@@ -31,6 +33,7 @@ override_dh_install:
 
 	# Adding initramfs-tools integration
 	install -D -m 0755 debian/local/plymouth.hook debian/plymouth/usr/share/initramfs-tools/hooks/plymouth
+	sed -i -e's/#DEB_HOST_MULTIARCH#/$(DEB_HOST_MULTIARCH)/g' debian/plymouth/usr/share/initramfs-tools/hooks/plymouth
 	install -D -m 0755 debian/local/plymouth.init-premount debian/plymouth/usr/share/initramfs-tools/scripts/init-premount/plymouth
 	install -D -m 0755 debian/local/plymouth.init-bottom debian/plymouth/usr/share/initramfs-tools/scripts/init-bottom/plymouth
 

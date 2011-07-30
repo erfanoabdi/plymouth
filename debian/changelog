@@ -1,3 +1,10 @@
+plymouth (0.8.3-19) unstable; urgency=low
+
+  * Applying patch from Steve Langasek <steve.langasek@ubuntu.com> to support
+    multiarch (Closes: #634253).
+
+ -- Daniel Baumann <daniel@debian.org>  Sat, 30 Jul 2011 20:55:29 +0200
+
 plymouth (0.8.3-18) unstable; urgency=low
 
   * Switching to source format 3.0 (quilt).

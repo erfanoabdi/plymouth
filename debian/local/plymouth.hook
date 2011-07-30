@@ -76,18 +76,23 @@ case "$(basename ${THEME} .plymouth)" in
 
 		# copy files for font rendering
 		mkdir -p "${DESTDIR}/usr/share/fonts/truetype/ttf-dejavu"
-		mkdir -p "${DESTDIR}/usr/lib/pango/1.6.0/modules"
 		mkdir -p "${DESTDIR}/etc/fonts/conf.d"
 		mkdir -p "${DESTDIR}/var/cache/fontconfig"
 		cp -a /usr/share/fonts/truetype/ttf-dejavu/DejaVuSerif.ttf "${DESTDIR}/usr/share/fonts/truetype/ttf-dejavu"
 		cp -a /usr/share/fonts/truetype/ttf-dejavu/DejaVuSans.ttf  "${DESTDIR}/usr/share/fonts/truetype/ttf-dejavu"
 		cp -a /etc/fonts/fonts.conf "${DESTDIR}/etc/fonts"
 		cp -rL /etc/fonts/conf.d/60-latin.conf "${DESTDIR}/etc/fonts/conf.d"
-		copy_exec /usr/lib/pango/1.6.0/modules/pango-basic-fc.so
-		copy_exec /usr/lib/pango/1.6.0/module-files.d/libpango1.0-0.modules
-		copy_exec /usr/lib/libpango-1.0.so.0
-		copy_exec /usr/lib/libpangoft2-1.0.so.0
-		copy_exec /usr/lib/libpangocairo-1.0.so.0
+		if [ -e /usr/lib/pango/1.6.0/module-files.d/libpango1.0-0.modules ]
+		then
+			# pre-multiarch fallback
+			PANGO_DIR=/usr/lib/pango/1.6.0
+		else
+			PANGO_DIR=/usr/lib/#DEB_HOST_MULTIARCH#/pango/1.6.0
+		fi
+		mkdir -p "${DESTDIR}${PANGO_DIR}/module-files.d"
+		mkdir -p "${DESTDIR}${PANGO_DIR}/modules"
+		cp ${PANGO_DIR}/module-files.d/libpango1.0-0.modules ${DESTDIR}${PANGO_DIR}/module-files.d/
+		copy_exec ${PANGO_DIR}/modules/pango-basic-fc.so
 
 		# copy renderers
 		copy_exec /usr/lib/plymouth/renderers/frame-buffer.so
