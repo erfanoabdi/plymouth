@@ -4,3 +4,4 @@
 04-stderr.patch
 05-default-theme.patch
 06-tty.patch
+07-return-code.patch

@@ -1,18 +1,15 @@
 Source: plymouth
 Section: misc
 Priority: optional
-Maintainer: Daniel Baumann <daniel@lists.debian-maintainers.org>
-Uploaders: Daniel Baumann <daniel@debian.org>
+Maintainer: Daniel Baumann <daniel.baumann@progress-technologies.net>
 Build-Depends:
  debhelper (>= 8), autotools-dev, libdrm-dev, libgtk2.0-dev, libpango1.0-dev,
  libpng-dev, pkg-config, dpkg-dev (>= 1.16.0)
-Standards-Version: 3.9.1
+Standards-Version: 3.9.2
 Homepage: http://www.freedesktop.org/wiki/Software/Plymouth
-Vcs-Browser: http://git.debian-maintainers.org/?p=daniel/plymouth.git
-Vcs-Git: git://git.debian-maintainers.org/git/daniel/plymouth.git
 
 Package: plymouth
-Architecture: amd64 i386
+Architecture: linux-any
 Depends: ${misc:Depends}, ${shlibs:Depends}, initramfs-tools
 Description: Graphical Boot Animation and Logger
  Plymouth provides an attractive boot animation in place of the text messages
@@ -20,7 +17,7 @@ Description: Graphical Boot Animation and Logger
  viewing after boot.
 
 Package: plymouth-drm
-Architecture: amd64 i386
+Architecture: linux-any
 Depends:
  ${misc:Depends}, ${shlibs:Depends}, plymouth (= ${binary:Version}),
  fontconfig-config, ttf-dejavu-core
@@ -36,7 +33,7 @@ Description: Graphical Boot Animation and Logger (DRM)
  Setting (KMS).
 
 Package: plymouth-x11
-Architecture: amd64 i386
+Architecture: linux-any
 Depends: ${misc:Depends}, ${shlibs:Depends}, plymouth-drm (= ${binary:Version})
 Conflicts: plymouth (<< 0.8.3-10)
 Replaces: plymouth
@@ -49,7 +46,7 @@ Description: Graphical Boot Animation and Logger
  This package contains the x11 renderer and the log viewer.
 
 Package: plymouth-dev
-Architecture: amd64 i386
+Architecture: linux-any
 Depends:
  ${misc:Depends}, plymouth (= ${binary:Version}),
  plymouth-drm (= ${binary:Version}), plymouth-x11 (= ${binary:Version})
