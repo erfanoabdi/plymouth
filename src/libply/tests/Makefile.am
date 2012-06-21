@@ -19,4 +19,7 @@ endif
 
 noinst_PROGRAMS = $(TESTS)
 
+# Our tests aren't unit tests so clear for now
+TESTS =
+
 MAINTAINERCLEANFILES = Makefile.in

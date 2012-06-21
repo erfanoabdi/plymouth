@@ -224,6 +224,7 @@ create_window (GtkTextBuffer *buffer)
   GtkWidget *terminal;
   GtkWidget *bbox;
   GtkWidget *close_button;
+  PangoFontDescription *description;
   PangoTabArray *tabs;
   int width, height;
 
@@ -244,6 +245,11 @@ create_window (GtkTextBuffer *buffer)
                                        GTK_SHADOW_IN);
   terminal = gtk_text_view_new_with_buffer (buffer);
   gtk_text_view_set_editable (GTK_TEXT_VIEW (terminal), FALSE);
+
+  description = pango_font_description_from_string ("monospace");
+  gtk_widget_modify_font (terminal, description);
+  pango_font_description_free (description);
+
   tabs = pango_tab_array_new_with_positions (1, TRUE, PANGO_TAB_LEFT, width - 130);
   gtk_text_view_set_tabs (GTK_TEXT_VIEW (terminal), tabs);
   gtk_text_view_set_left_margin (GTK_TEXT_VIEW (terminal), 12);
@@ -305,6 +311,11 @@ main (int argc, char *argv[])
 
   window = create_window (buffer);
 
+  if (seen_errors == 2)
+    gtk_window_set_icon_name (GTK_WINDOW (window), GTK_STOCK_DIALOG_WARNING);
+  else
+    gtk_window_set_icon_name (GTK_WINDOW (window), GTK_STOCK_INFO);
+
   if (show_icon)
     {
       menu = gtk_menu_new ();
@@ -321,7 +332,8 @@ main (int argc, char *argv[])
       else
         exit (0);
 
-      gtk_status_icon_set_tooltip (icon, _("Boot messages"));
+      gtk_status_icon_set_tooltip (icon, _("Console output from services during system startup"));
+      gtk_status_icon_set_title (icon, _("Boot messages"));
 
       g_signal_connect (icon, "activate", G_CALLBACK (activate_icon), window);
       g_signal_connect (icon, "popup-menu", G_CALLBACK (popup_menu), menu);

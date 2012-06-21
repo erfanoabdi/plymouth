@@ -55,6 +55,9 @@ void ply_command_parser_add_command (ply_command_parser_t *parser,
                                      const char *option_description,
                                      ply_option_argument_type_t option_type */
                                      ...);
+void ply_command_parser_add_command_alias (ply_command_parser_t *parser,
+                                           const char           *name,
+                                           const char           *alias);
 void ply_command_parser_get_options (ply_command_parser_t *parser,
                                      const char *option_name, /*
                                      void *      option_result */

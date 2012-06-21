@@ -225,12 +225,12 @@ static bool
 ply_key_file_load_groups (ply_key_file_t *key_file)
 {
   int items_matched;
-  char *group_name;
   bool added_group = false;
   bool has_comments = false;
-  
+
   do
     {
+      char *group_name;
       int first_byte;
 
       ply_key_file_group_t *group;
@@ -253,6 +253,7 @@ ply_key_file_load_groups (ply_key_file_t *key_file)
         }
       ungetc (first_byte, key_file->fp);
 
+      group_name = NULL;
       items_matched = fscanf (key_file->fp, " [ %a[^]] ] ", &group_name);
 
       if (items_matched <= 0)
@@ -262,6 +263,7 @@ ply_key_file_load_groups (ply_key_file_t *key_file)
           break;
         }
 
+      assert (group_name != NULL);
       group = ply_key_file_load_group (key_file, group_name);
 
       free (group_name);

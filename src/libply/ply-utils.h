@@ -25,6 +25,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <unistd.h>
+#include <sys/types.h>
 
 #ifndef MIN
 #define MIN(a,b) ((a) <= (b)? (a) : (b))
@@ -45,16 +46,23 @@ typedef void (* ply_module_function_t) (void);
 
 typedef intptr_t ply_daemon_handle_t;
 
+typedef enum
+{
+  PLY_UNIX_SOCKET_TYPE_CONCRETE = 0,
+  PLY_UNIX_SOCKET_TYPE_ABSTRACT,
+  PLY_UNIX_SOCKET_TYPE_TRIMMED_ABSTRACT
+} ply_unix_socket_type_t;
+
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
 
 #define ply_round_to_multiple(n, m) (((n) + (((m) - 1))) & ~((m) - 1))
 
 bool ply_open_unidirectional_pipe (int *sender_fd,
                                    int *receiver_fd);
-int ply_connect_to_unix_socket (const char *path,
-                                bool        is_abstract);
+int ply_connect_to_unix_socket (const char             *path,
+                                ply_unix_socket_type_t  type);
 int ply_listen_to_unix_socket (const char *path,
-                               bool        is_abstract);
+                                ply_unix_socket_type_t  type);
 bool ply_get_credentials_from_fd (int    fd,
                                   pid_t *pid,
                                   uid_t *uid,
@@ -86,9 +94,11 @@ void ply_restore_errno (void);
 
 bool ply_directory_exists (const char *dir);
 bool ply_file_exists (const char *file);
-void ply_list_directory (const char *dir);
+bool ply_character_device_exists (const char *device);
 
 ply_module_handle_t *ply_open_module (const char *module_path);
+ply_module_handle_t *ply_open_built_in_module (void);
+
 ply_module_function_t ply_module_look_up_function (ply_module_handle_t *handle,
                                                    const char  *function_name);
 void ply_close_module (ply_module_handle_t *handle);
@@ -98,7 +108,7 @@ bool ply_create_file_link (const char *source,
                            const char *destination);
 void ply_show_new_kernel_messages (bool should_show);
 
-ply_daemon_handle_t *ply_create_daemon (const char *pid_file);
+ply_daemon_handle_t *ply_create_daemon (void);
 bool ply_detach_daemon (ply_daemon_handle_t *handle,
                         int                  exit_code);
 
@@ -106,6 +116,9 @@ int ply_utf8_character_get_size (const char   *string,
                                  size_t        n);
 int ply_utf8_string_get_length (const char   *string,
                                 size_t        n);
+
+char *ply_get_process_command_line (pid_t pid);
+pid_t ply_get_process_parent_pid (pid_t pid);
 
 #endif
 

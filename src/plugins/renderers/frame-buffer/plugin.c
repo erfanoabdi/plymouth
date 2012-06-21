@@ -56,7 +56,7 @@
 #include "ply-renderer-plugin.h"
 
 #ifndef PLY_FRAME_BUFFER_DEFAULT_FB_DEVICE_NAME
-#define PLY_FRAME_BUFFER_DEFAULT_FB_DEVICE_NAME "/dev/fb"
+#define PLY_FRAME_BUFFER_DEFAULT_FB_DEVICE_NAME "/dev/fb0"
 #endif
 
 struct _ply_renderer_head
@@ -173,7 +173,6 @@ flush_area_to_any_device (ply_renderer_backend_t *backend,
   unsigned long row, column;
   uint32_t *shadow_buffer;
   char *row_backend;
-  size_t bytes_per_row;
   unsigned long x1, y1, x2, y2;
 
   x1 = area_to_flush->x;
@@ -181,7 +180,6 @@ flush_area_to_any_device (ply_renderer_backend_t *backend,
   x2 = x1 + area_to_flush->width;
   y2 = y1 + area_to_flush->height;
 
-  bytes_per_row = area_to_flush->width * backend->bytes_per_pixel;
   row_backend = malloc (backend->row_stride);
   shadow_buffer = ply_pixel_buffer_get_argb32_data (backend->head.pixel_buffer);
   for (row = y1; row < y2; row++)
@@ -214,19 +212,18 @@ flush_area_to_xrgb32_device (ply_renderer_backend_t *backend,
                              ply_renderer_head_t    *head,
                              ply_rectangle_t        *area_to_flush)
 {
-  unsigned long x1, y1, x2, y2, y;
+  unsigned long x, y, y1, y2;
   uint32_t *shadow_buffer;
   char *dst, *src;
 
-  x1 = area_to_flush->x;
+  x = area_to_flush->x;
   y1 = area_to_flush->y;
-  x2 = x1 + area_to_flush->width;
   y2 = y1 + area_to_flush->height;
 
   shadow_buffer = ply_pixel_buffer_get_argb32_data (backend->head.pixel_buffer);
 
-  dst = &head->map_address[y1 * backend->row_stride + x1 * backend->bytes_per_pixel];
-  src = (char *) &shadow_buffer[y1 * head->area.width + x1];
+  dst = &head->map_address[y1 * backend->row_stride + x * backend->bytes_per_pixel];
+  src = (char *) &shadow_buffer[y1 * head->area.width + x];
 
   if (area_to_flush->width == backend->row_stride)
     {

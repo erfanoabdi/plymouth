@@ -12,4 +12,7 @@ include $(srcdir)/ply-boot-splash-test.am
 endif
 
 noinst_PROGRAMS = $(TESTS)
+
+# our tests aren't unit tests, so clear for now
+TESTS =
 MAINTAINERCLEANFILES = Makefile.in

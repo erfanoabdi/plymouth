@@ -84,7 +84,7 @@ ply_animation_new (const char *image_dir,
 
   animation = calloc (1, sizeof (ply_animation_t));
 
-  animation->frames = ply_array_new ();
+  animation->frames = ply_array_new (PLY_ARRAY_ELEMENT_TYPE_POINTER);
   animation->frames_prefix = strdup (frames_prefix);
   animation->image_dir = strdup (image_dir);
   animation->frame_number = 0;
@@ -106,7 +106,7 @@ ply_animation_remove_frames (ply_animation_t *animation)
   int i;
   ply_pixel_buffer_t **frames;
 
-  frames = (ply_pixel_buffer_t **) ply_array_steal_elements (animation->frames);
+  frames = (ply_pixel_buffer_t **) ply_array_steal_pointer_elements (animation->frames);
   for (i = 0; frames[i] != NULL; i++)
     ply_pixel_buffer_free (frames[i]);
   free (frames);
@@ -142,12 +142,18 @@ animate_at_time (ply_animation_t *animation,
   should_continue = true;
 
   if (animation->frame_number > number_of_frames - 1)
-    return false;
+    {
+      ply_trace ("reached last frame of animation");
+      return false;
+    }
 
   if (animation->stop_requested)
-    should_continue = false;
+    {
+      ply_trace ("stopping animation in the middle of sequence");
+      should_continue = false;
+    }
 
-  frames = (ply_pixel_buffer_t * const *) ply_array_get_elements (animation->frames);
+  frames = (ply_pixel_buffer_t * const *) ply_array_get_pointer_elements (animation->frames);
   ply_pixel_buffer_get_size (frames[animation->frame_number], &animation->frame_area);
   animation->frame_area.x = animation->x;
   animation->frame_area.y = animation->y;
@@ -187,6 +193,7 @@ on_timeout (ply_animation_t *animation)
     {
       if (animation->stop_trigger != NULL)
         {
+          ply_trace ("firing off stop trigger");
           ply_trigger_pull (animation->stop_trigger, NULL);
           animation->stop_trigger = NULL;
         }
@@ -217,10 +224,10 @@ ply_animation_add_frame (ply_animation_t *animation,
 
   frame = ply_image_convert_to_pixel_buffer (image);
 
-  ply_array_add_element (animation->frames, frame);
+  ply_array_add_pointer_element (animation->frames, frame);
 
-  animation->width = MAX (animation->width, ply_pixel_buffer_get_width (frame));
-  animation->height = MAX (animation->height, ply_pixel_buffer_get_height (frame));
+  animation->width = MAX (animation->width, (long) ply_pixel_buffer_get_width (frame));
+  animation->height = MAX (animation->height,  (long) ply_pixel_buffer_get_height (frame));
 
   return true;
 }
@@ -230,6 +237,7 @@ ply_animation_add_frames (ply_animation_t *animation)
 {
   struct dirent **entries;
   int number_of_entries;
+  int number_of_frames;
   int i;
   bool load_finished;
 
@@ -237,7 +245,7 @@ ply_animation_add_frames (ply_animation_t *animation)
 
   number_of_entries = scandir (animation->image_dir, &entries, NULL, versionsort);
 
-  if (number_of_entries < 0)
+  if (number_of_entries <= 0)
     return false;
 
   load_finished = false;
@@ -263,6 +271,19 @@ ply_animation_add_frames (ply_animation_t *animation)
       free (entries[i]);
       entries[i] = NULL;
     }
+
+  number_of_frames = ply_array_get_size (animation->frames);
+  if (number_of_frames == 0)
+    {
+      ply_trace ("%s directory had no files starting with %s\n",
+                 animation->image_dir, animation->frames_prefix);
+      goto out;
+    }
+  else
+    {
+      ply_trace ("animation has %d frames\n", number_of_frames);
+    }
+
   load_finished = true;
 
 out:
@@ -270,7 +291,7 @@ out:
     {
       ply_animation_remove_frames (animation);
 
-      while (entries[i] != NULL)
+      while (i < number_of_entries)
         {
           free (entries[i]);
           i++;
@@ -285,7 +306,14 @@ bool
 ply_animation_load (ply_animation_t *animation)
 {
   if (ply_array_get_size (animation->frames) != 0)
-    ply_animation_remove_frames (animation);
+    {
+      ply_animation_remove_frames (animation);
+      ply_trace ("reloading animation with new set of frames");
+    }
+  else
+    {
+      ply_trace ("loading frames for animation");
+    }
 
   if (!ply_animation_add_frames (animation))
     return false;
@@ -304,6 +332,8 @@ ply_animation_start (ply_animation_t    *animation,
 
   if (!animation->is_stopped)
     return true;
+
+  ply_trace ("starting animation");
 
   animation->loop = ply_event_loop_get_default ();
   animation->display = display;
@@ -329,6 +359,8 @@ ply_animation_stop_now (ply_animation_t *animation)
 {
   animation->is_stopped = true;
 
+  ply_trace ("stopping animation now");
+
   if (animation->loop != NULL)
     {
       ply_event_loop_stop_watching_for_timeout (animation->loop,
@@ -349,6 +381,7 @@ ply_animation_stop (ply_animation_t *animation)
       return;
     }
 
+  ply_trace ("stopping animation next time through the loop");
   animation->stop_requested = true;
 }
 
@@ -367,7 +400,6 @@ ply_animation_draw_area (ply_animation_t    *animation,
                          unsigned long       height)
 {
   ply_pixel_buffer_t * const * frames;
-  uint32_t *frame_data;
   int number_of_frames;
   int frame_index;
   
@@ -377,7 +409,7 @@ ply_animation_draw_area (ply_animation_t    *animation,
   number_of_frames = ply_array_get_size (animation->frames);
   frame_index = MIN(animation->frame_number, number_of_frames - 1);
 
-  frames = (ply_pixel_buffer_t * const *) ply_array_get_elements (animation->frames);
+  frames = (ply_pixel_buffer_t * const *) ply_array_get_pointer_elements (animation->frames);
   ply_pixel_buffer_fill_with_buffer (buffer,
                                      frames[frame_index],
                                      animation->frame_area.x,

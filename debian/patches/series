@@ -1,7 +1,5 @@
-01-parse-etc-debian_version.patch
-02-set-default-framebuffer-device-to-dev-fb0.patch
-03-awk.patch
-04-stderr.patch
-05-default-theme.patch
-06-tty.patch
-07-return-code.patch
+01-awk.patch
+02-stderr.patch
+03-default-theme.patch
+04-return-code.patch
+05-default-osrelease.patch

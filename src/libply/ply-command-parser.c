@@ -52,6 +52,7 @@ typedef struct
 typedef struct
 {
   char *name;
+  ply_list_t *aliases;
   char *description;
   ply_list_t *options;
 
@@ -114,6 +115,7 @@ ply_command_new (const char *name,
 
   command->options = ply_list_new ();
   command->name = strdup (name);
+  command->aliases = ply_list_new ();
   command->description = strdup (description);
   command->handler = handler;
   command->handler_data = data;
@@ -125,9 +127,16 @@ static void
 ply_command_free (ply_command_t *command)
 {
   ply_list_node_t *option_node;
+  ply_list_node_t *alias_node;
 
   if (command == NULL)
     return;
+
+  while ((alias_node = ply_list_get_first_node (command->aliases)) != NULL)
+    {
+      free (ply_list_node_get_data (alias_node));
+      ply_list_remove_node (command->aliases, alias_node);
+    }
 
   option_node = ply_list_get_first_node (command->options);
   while (option_node != NULL)
@@ -463,7 +472,7 @@ ply_command_parser_set_arguments (ply_command_parser_t *parser,
 
 static ply_command_t *
 ply_command_parser_get_command (ply_command_parser_t *parser,
-                                const char *command_name)
+                                const char           *command_name)
 {
   ply_command_t *command;
   ply_list_node_t *node;
@@ -473,17 +482,42 @@ ply_command_parser_get_command (ply_command_parser_t *parser,
   while (node != NULL)
     {
       ply_list_node_t *next_node;
+      ply_list_node_t *alias_node;
+      char *alias_name;
 
       command = (ply_command_t *) ply_list_node_get_data (node);
       next_node = ply_list_get_next_node (parser->available_subcommands, node);
 
       if (strcmp (command_name, command->name) == 0)
         return command;
+      alias_node = ply_list_get_first_node (command->aliases);
+      while (alias_node)
+        {
+          alias_name = (char *) ply_list_node_get_data (alias_node);
+          if (strcmp (command_name, alias_name) == 0)
+            return command;
+          
+          alias_node = ply_list_get_next_node (command->aliases, alias_node);
+        }
 
       node = next_node;
     }
 
   return NULL;
+}
+
+void ply_command_parser_add_command_alias (ply_command_parser_t *parser,
+                                           const char           *name,
+                                           const char           *alias)
+{
+  ply_command_t *command;
+
+  assert (parser != NULL);
+  assert (name != NULL);
+  assert (alias != NULL);
+
+  command = ply_command_parser_get_command (parser, name);
+  ply_list_append_data (command->aliases, strdup(alias));
 }
 
 static void

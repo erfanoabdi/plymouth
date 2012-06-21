@@ -17,8 +17,9 @@ override_dh_auto_configure:
 	dh_auto_configure -- --prefix=/usr --localstatedir=/var --enable-pango \
 		--enable-tracing --disable-tests --disable-gdm-transition \
 		--with-system-root-install --without-rhgb-compat-link \
+		--with-log-viewer \
 		--with-gdm-autostart-file \
-		--with-release-file=/etc/debian_version \
+		--with-release-file=/etc/os-release \
 		--with-logo=/usr/share/plymouth/debian-logo.png \
 		--with-background-color=0x005a8a
 
@@ -47,3 +48,6 @@ override_dh_makeshlibs:
 
 override_dh_installinit:
 	dh_installinit --no-start -- start 21 2 3 4 5 . stop 02 0 6 .
+
+override_dh_builddeb:
+	dh_builddeb -- -Zgzip -z9

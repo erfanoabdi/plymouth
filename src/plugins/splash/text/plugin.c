@@ -85,6 +85,8 @@ typedef struct
 
 } view_t;
 
+ply_boot_splash_plugin_interface_t *ply_boot_splash_plugin_get_interface (void);
+
 static void hide_splash_screen (ply_boot_splash_plugin_t *plugin,
                                 ply_event_loop_t         *loop);
 
@@ -139,11 +141,8 @@ view_show_prompt (view_t     *view,
                   const char *entered_text)
 {
 
-  ply_boot_splash_plugin_t *plugin;
   int display_width, display_height;
   int i;
-
-  plugin = view->plugin;
 
   display_width = ply_text_display_get_number_of_columns (view->display);
   display_height = ply_text_display_get_number_of_rows (view->display);

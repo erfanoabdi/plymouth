@@ -14,9 +14,9 @@ Image.Scale = fun (width, height)
   return Image.Adopt (this._Scale(width, height));
 };
 
-Image.Text = fun (text, red, green, blue, alpha)
+Image.Text = fun (text, red, green, blue, alpha, font)
 {
-  return Image.Adopt (Image._Text (text, red, green, blue, alpha));
+  return Image.Adopt (Image._Text (text, red, green, blue, alpha, font));
 };
 
 Image |= fun (filename)

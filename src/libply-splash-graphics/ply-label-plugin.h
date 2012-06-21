@@ -29,6 +29,7 @@
 #include "ply-event-loop.h"
 #include "ply-pixel-buffer.h"
 #include "ply-pixel-display.h"
+#include "ply-label.h"
 
 typedef struct _ply_label_plugin ply_label_plugin_t;
 typedef struct _ply_label_plugin_control ply_label_plugin_control_t;
@@ -52,6 +53,8 @@ typedef struct
 
   void (* set_text_for_control) (ply_label_plugin_control_t *label,
                                  const char                 *text);
+  void (* set_font_for_control) (ply_label_plugin_control_t *label,
+                                 const char                 *fontdesc);
   void (* set_color_for_control) (ply_label_plugin_control_t *label,
                                   float                       red,
                                   float                       green,
@@ -60,6 +63,11 @@ typedef struct
 
   long (* get_width_of_control) (ply_label_plugin_control_t        *label);
   long (* get_height_of_control) (ply_label_plugin_control_t        *label);
+
+  void (* set_alignment_for_control) (ply_label_plugin_control_t  *label,
+                                      ply_label_alignment_t alignment);
+  void (* set_width_for_control) (ply_label_plugin_control_t  *label,
+                                  long                        width);
 } ply_label_plugin_interface_t;
 
 #endif /* PLY_LABEL_PLUGIN_H */

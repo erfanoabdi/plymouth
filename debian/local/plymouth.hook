@@ -42,6 +42,12 @@ esac
 
 MODULE="${PLUGIN_PATH}/$(sed -n 's/^ModuleName=\(.*\)/\1/p' ${THEME}).so"
 
+if [ ! -e "$MODULE" ]
+then
+	echo "W: plymouth module ($MODULE) missing, skipping plymouth."
+	exit 0
+fi
+
 # copy plugin and images for current theme
 copy_exec "${MODULE}"
 mkdir -p "${DESTDIR}/${THEMES}"
@@ -64,7 +70,11 @@ done
 # copy base themes and logo
 cp -a "${THEMES}/details" "${DESTDIR}/${THEMES}"
 cp -a "${THEMES}/text" "${DESTDIR}/${THEMES}"
-cp /etc/debian_version "${DESTDIR}/etc"
+
+if [ -f /etc/os-release ]
+then
+	cp /etc/os-release "${DESTDIR}/etc"
+fi
 
 case "$(basename ${THEME} .plymouth)" in
 	text)

@@ -9,5 +9,5 @@ Name: Plymouth
 Description: Graphics Utility Library for Boot Splash Plugins
 Version: @VERSION@
 Requires: ply-splash-core
-Libs: -L${libdir}
+Libs: -L${libdir} -lply-splash-graphics
 Cflags: -I${includedir}/plymouth-1/ply-splash-graphics

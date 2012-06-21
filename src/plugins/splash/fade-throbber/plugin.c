@@ -104,6 +104,8 @@ struct _ply_boot_splash_plugin
   uint32_t is_animating : 1;
 };
 
+ply_boot_splash_plugin_interface_t *ply_boot_splash_plugin_get_interface (void);
+
 static void
 view_show_prompt (view_t     *view,
                   const char *prompt)
@@ -140,11 +142,7 @@ view_show_prompt (view_t     *view,
 
   if (prompt != NULL)
     {
-      int label_width, label_height;
-
       ply_label_set_text (view->label, prompt);
-      label_width = ply_label_get_width (view->label);
-      label_height = ply_label_get_height (view->label);
 
       x = view->lock_area.x;
       y = view->lock_area.y + view->lock_area.height;
@@ -429,7 +427,6 @@ view_animate_at_time (view_t  *view,
   ply_boot_splash_plugin_t *plugin;
   ply_list_node_t *node;
   double logo_opacity;
-  uint32_t *logo_data, *star_data;
   long logo_x, logo_y;
   long logo_width, logo_height;
   unsigned long screen_width, screen_height;
@@ -439,7 +436,6 @@ view_animate_at_time (view_t  *view,
 
   logo_width = ply_image_get_width (plugin->logo_image);
   logo_height = ply_image_get_height (plugin->logo_image);
-  logo_data = ply_image_get_data (plugin->logo_image);
 
   screen_width = ply_pixel_display_get_width (view->display);
   screen_height = ply_pixel_display_get_height (view->display);
@@ -447,7 +443,6 @@ view_animate_at_time (view_t  *view,
   logo_x = (screen_width / 2) - (logo_width / 2);
   logo_y = (screen_height / 2) - (logo_height / 2);
 
-  star_data = ply_image_get_data (plugin->star_image);
   star_width = ply_image_get_width (plugin->star_image);
   star_height = ply_image_get_height (plugin->star_image);
 
@@ -636,10 +631,7 @@ draw_background (view_t             *view,
                  int                 width,
                  int                 height)
 {
-  ply_boot_splash_plugin_t *plugin;
   ply_rectangle_t area;
-
-  plugin = view->plugin;
 
   area.x = x;
   area.y = y;
@@ -744,14 +736,8 @@ on_draw (view_t                   *view,
          int                       height)
 {
   ply_boot_splash_plugin_t *plugin;
-  ply_rectangle_t area;
 
   plugin = view->plugin;
-
-  area.x = x;
-  area.y = y;
-  area.width = width;
-  area.height = height;
 
   draw_background (view, pixel_buffer, x, y, width, height);
 

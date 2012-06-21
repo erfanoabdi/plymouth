@@ -1,3 +1,38 @@
+plymouth (0.8.5.1-1) unstable; urgency=low
+
+  [ Daniel Baumann ]
+  * Using compression level 9 also for binary packages.
+  * Merging upstream version 0.8.5.1 (Closes: #670197):
+  * Dropping parse-etc-debian_version.patch in favour of using /etc/os-
+    release.
+  * Dropping set-default-framebuffer-device-to-dev-fb0.patch, included
+    upstream.
+  * Dropping tty.patch, included upstream.
+  * Rediffing stderr.patch.
+  * Rediffing return-code.patch.
+  * Renumbering patches.
+
+  [ Andreas Henriksson ]
+  * Using /etc/os-release from base-files 6.8 as release file.
+
+  [ Michael Biebl ]
+  * Creating pid file /run/plymouth/pid (Closes: #659438).
+  * Stopping to to load non-existing modules i8042.ko and atkbd.ko
+    (Closes: #659436).
+
+  [ Andreas Henriksson ]
+  * Using x-display-manager variable in LSB header of initscript
+    (Closes: #669032).
+  * Adding --enable-log-viewer configure flag to continue building it.
+  * Add new plymouth-themes-spinner package
+  * Adding patch patch to fix upstream error handling code when os-
+    release is missing.
+  * Including /etc/os-release in initramfs-tools hook if existing.
+  * Exit early in initramfs-tools hook if the plymouth module is not
+    existing (Closes: #629416).
+
+ -- Daniel Baumann <daniel.baumann@progress-technologies.net>  Thu, 21 Jun 2012 12:37:05 +0200
+
 plymouth (0.8.3-20) unstable; urgency=low
 
   * Updating maintainer and uploaders fields.

@@ -202,7 +202,7 @@ struct _ply_boot_splash_plugin
   uint32_t is_animating : 1;
 };
 
-
+ply_boot_splash_plugin_interface_t *ply_boot_splash_plugin_get_interface (void);
 static void detach_from_event_loop (ply_boot_splash_plugin_t *plugin);
 
 static view_t *
@@ -453,11 +453,7 @@ view_show_prompt (view_t     *view,
 
   if (prompt != NULL)
     {
-      int label_width, label_height;
-
       ply_label_set_text (view->label, prompt);
-      label_width = ply_label_get_width (view->label);
-      label_height = ply_label_get_height (view->label);
 
       x = view->box_area.x + view->lock_area.width / 2;
       y = view->box_area.y + view->box_area.height;
@@ -642,7 +638,8 @@ free_sprite (sprite_t* sprite)
  return;
 }
 
-int sprite_compare_z(void *data_a, void *data_b)
+static int
+sprite_compare_z (void *data_a, void *data_b)
 {
  sprite_t *sprite_a = data_a;
  sprite_t *sprite_b = data_b;
@@ -703,7 +700,7 @@ progress_update (view_t *view, sprite_t* sprite, double time)
 }
 
 
-inline uint32_t 
+static inline uint32_t 
 star_bg_gradient_colour (int x, int y, int width, int height, bool star, float time)
 {
   int full_dist =  sqrt(width*width+height*height);
@@ -869,7 +866,9 @@ satellite_move (view_t *view, sprite_t* sprite, double time)
           for (x=1; x<width-1; x++)
             {
                uint32_t pixel;
-               if (x>0)pixel = (image_data[(x)+(y-1)*width]>>24)*2 + (image_data[(x-1)+(y-1)*width]>>24) + (image_data[(x+1)+(y-1)*width]>>24);
+               pixel = 2 * (image_data[x + (y - 1) * width] >> 24)
+                       + (image_data[(x - 1) + (y - 1) * width] >> 24)
+                       + (image_data[(x + 1) + (y - 1) * width] >> 24);
                pixel /= 4.05;
                pixel |= pixel<<8;
                pixel |= pixel<<16;
@@ -1180,7 +1179,7 @@ on_timeout (ply_boot_splash_plugin_t *plugin)
                                     on_timeout, plugin);
 }
 
-void
+static void
 on_boot_progress (ply_boot_splash_plugin_t *plugin,
                   double                    duration,
                   double                    percent_done)
@@ -1283,7 +1282,7 @@ draw_background (view_t             *view,
                  int                 y,
                  int                 width,
                  int                 height);
-void
+static void
 on_draw (view_t                   *view,
          ply_pixel_buffer_t       *pixel_buffer,
          int                       x,
@@ -1467,45 +1466,7 @@ remove_pixel_display (ply_boot_splash_plugin_t *plugin,
     }
 }
 
-
-void highlight_image (ply_image_t *highlighted_image, ply_image_t *orig_image, int distance)
-{
- int x, y;
- int orig_width = ply_image_get_width(orig_image);
- int orig_height = ply_image_get_height(orig_image);
- int width = ply_image_get_width(highlighted_image);
- int height = ply_image_get_height(highlighted_image);
- 
- int x_offset = (orig_width- width)/2;
- int y_offset = (orig_height-height)/2;
- uint32_t *highlighted_image_data = ply_image_get_data (highlighted_image);
- uint32_t *orig_image_data = ply_image_get_data (orig_image);
- 
- for (x=0; x<width; x++)
- for (y=0; y<height; y++){
-    int best=0;
-    int subx, suby;
-    int min_x= MAX(-distance, -x-x_offset);
-    int max_x= MIN(distance, orig_width-x-x_offset);
-    int min_y= MAX(-distance, -y-y_offset);
-    int max_y= MIN(distance, orig_height-y-y_offset);
-    for (subx=min_x; subx<max_x; subx++){
-    for (suby=min_y; suby<max_y; suby++){
-        uint32_t pixel = orig_image_data[x+subx+x_offset + (y+suby+y_offset) * orig_width];
-        float current = 1-(sqrt((subx*subx)+(suby*suby))+1)/(distance+2);
-        current*=pixel>>24;
-        if (current>best) best=current;
-        }
-        if (best >=255) break;
-    }
-    uint32_t val = best<<24|best<<16|best<<8|best;
-    highlighted_image_data[x + y * width] = val;
-    }
- 
- 
-}
-
-static void 
+static void
 view_setup_scene (view_t *view)
 {
   ply_boot_splash_plugin_t *plugin;

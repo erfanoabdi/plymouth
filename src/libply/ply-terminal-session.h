@@ -36,7 +36,7 @@ typedef void (* ply_terminal_session_begin_handler_t)
 
 typedef void (* ply_terminal_session_output_handler_t)
     (void *user_data, const uint8_t *output, size_t size, ply_terminal_session_t *session);
-typedef void (* ply_terminal_session_done_handler_t) 
+typedef void (* ply_terminal_session_hangup_handler_t) 
     (void *user_data, ply_terminal_session_t *session);
 
 typedef enum
@@ -56,13 +56,13 @@ bool ply_terminal_session_run (ply_terminal_session_t       *session,
                                ply_terminal_session_flags_t  flags,
                                ply_terminal_session_begin_handler_t begin_handler,
                                ply_terminal_session_output_handler_t output_handler,
-                               ply_terminal_session_done_handler_t  done_handler,
+                               ply_terminal_session_hangup_handler_t  done_handler,
                                void                                *user_data);
 
 bool ply_terminal_session_attach (ply_terminal_session_t       *session,
                                   ply_terminal_session_flags_t  flags,
                                   ply_terminal_session_output_handler_t output_handler,
-                                  ply_terminal_session_done_handler_t  done_handler,
+                                  ply_terminal_session_hangup_handler_t hangup_handler,
                                   int                                  ptmx,
                                   void                                *user_data);
 

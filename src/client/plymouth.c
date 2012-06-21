@@ -363,6 +363,13 @@ on_key_answer (key_answer_state_t *answer_state,
                const char         *answer,
                ply_boot_client_t  *client)
 {
+
+  if (answer == NULL)
+    {
+      ply_event_loop_exit (answer_state->state->loop, 1);
+      return;
+    }
+
   if (answer_state->command != NULL)
     {
       answer_via_command (answer_state->command, answer, NULL);
@@ -373,9 +380,7 @@ on_key_answer (key_answer_state_t *answer_state,
         write (STDOUT_FILENO, answer, strlen (answer));
     }
 
-  if (answer != NULL)
-    ply_event_loop_exit (answer_state->state->loop, 0);
-  ply_event_loop_exit (answer_state->state->loop, 1);
+  ply_event_loop_exit (answer_state->state->loop, 0);
 }
 
 static void
@@ -543,13 +548,11 @@ on_question_request (state_t    *state,
 {
   char *prompt;
   char *program;
-  int number_of_tries;
   bool dont_pause;
   question_answer_state_t *question_answer_state;
 
   prompt = NULL;
   program = NULL;
-  number_of_tries = 0;
   dont_pause = false;
   
   ply_command_parser_get_command_options (state->command_parser,
@@ -580,8 +583,8 @@ on_question_request (state_t    *state,
 }
 
 static void
-on_message_request (state_t    *state,
-                    const char *command)
+on_display_message_request (state_t    *state,
+                            const char *command)
 {
   char *text;
 
@@ -603,16 +606,37 @@ on_message_request (state_t    *state,
 }
 
 static void
+on_hide_message_request (state_t    *state,
+                         const char *command)
+{
+  char *text;
+
+  text = NULL;
+  ply_command_parser_get_command_options (state->command_parser,
+                                          command,
+                                          "text", &text,
+                                          NULL);
+  if (text != NULL)
+    {
+      ply_boot_client_tell_daemon_to_hide_message (state->client,
+                                                   text,
+                                                   (ply_boot_client_response_handler_t)
+                                                   on_success,
+                                                   (ply_boot_client_response_handler_t)
+                                                   on_failure, state);
+      free (text);
+    }
+}
+
+static void
 on_keystroke_request (state_t    *state,
                      const char *command)
 {
   char *keys;
   char *program;
-  bool remove;
 
   keys = NULL;
   program = NULL;
-  remove = false;
   
   ply_command_parser_get_command_options (state->command_parser,
                                           command,
@@ -631,6 +655,27 @@ on_keystroke_request (state_t    *state,
                                                      (ply_boot_client_response_handler_t)
                                                      on_key_answer_failure,
                                                      key_answer_state);
+}
+
+static void
+on_keystroke_ignore (state_t    *state,
+                     const char *command)
+{
+  char *keys;
+
+  keys = NULL;
+  
+  ply_command_parser_get_command_options (state->command_parser,
+                                          command,
+                                          "keys", &keys,
+                                          NULL);
+
+  ply_boot_client_ask_daemon_to_ignore_keystroke (state->client,
+                                                  keys,
+                                                  (ply_boot_client_answer_handler_t)
+                                                  on_success,
+                                                  (ply_boot_client_response_handler_t)
+                                                  on_failure, state);
 }
 
 static void
@@ -716,7 +761,7 @@ get_kernel_command_line (state_t *state)
   int fd;
 
   ply_trace ("opening /proc/cmdline");
-  fd = open ("proc/cmdline", O_RDONLY);
+  fd = open ("/proc/cmdline", O_RDONLY);
 
   if (fd < 0)
     {
@@ -728,6 +773,7 @@ get_kernel_command_line (state_t *state)
   if (read (fd, state->kernel_command_line, sizeof (state->kernel_command_line)) < 0)
     {
       ply_trace ("couldn't read it: %m");
+      close (fd);
       return false;
     }
 
@@ -833,7 +879,7 @@ main (int    argc,
 
   state.loop = ply_event_loop_new ();
   state.client = ply_boot_client_new ();
-  state.command_parser = ply_command_parser_new ("plymouth", "Boot splash control client");
+  state.command_parser = ply_command_parser_new ("plymouth", "Splash control client");
 
   ply_command_parser_add_options (state.command_parser,
                                   "help", "This help message", PLY_COMMAND_OPTION_TYPE_FLAG,
@@ -910,9 +956,19 @@ main (int    argc,
                                   NULL);
 
   ply_command_parser_add_command (state.command_parser,
-                                  "message", "Display a message",
+                                  "display-message", "Display a message",
                                   (ply_command_handler_t)
-                                  on_message_request, &state,
+                                  on_display_message_request, &state,
+                                  "text", "The message text",
+                                  PLY_COMMAND_OPTION_TYPE_STRING,
+                                  NULL);
+  ply_command_parser_add_command_alias (state.command_parser,
+                                        "display-message",
+                                        "message");
+  ply_command_parser_add_command (state.command_parser,
+                                  "hide-message", "Hide a message",
+                                  (ply_command_handler_t)
+                                  on_hide_message_request, &state,
                                   "text", "The message text",
                                   PLY_COMMAND_OPTION_TYPE_STRING,
                                   NULL);
@@ -924,6 +980,14 @@ main (int    argc,
                                   "command", "Command to send keystroke to via standard input",
                                   PLY_COMMAND_OPTION_TYPE_STRING,
                                   "keys", "Keys to become sensitive to",
+                                  PLY_COMMAND_OPTION_TYPE_STRING,
+                                  NULL);
+
+  ply_command_parser_add_command (state.command_parser,
+                                  "ignore-keystroke", "Remove sensitivity to a keystroke",
+                                  (ply_command_handler_t)
+                                  on_keystroke_ignore, &state,
+                                  "keys", "Keys to remove sensitivity to",
                                   PLY_COMMAND_OPTION_TYPE_STRING,
                                   NULL);
 
@@ -1039,6 +1103,11 @@ main (int    argc,
         {
           ply_trace ("has active vt? failed");
           return 1;
+        }
+      if (should_wait)
+        {
+          ply_trace("no need to wait");
+          return 0;
         }
     }
 

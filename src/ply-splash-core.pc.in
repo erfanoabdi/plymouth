@@ -10,5 +10,5 @@ policydir=@PLYMOUTH_POLICY_DIR@
 Name: Plymouth
 Description: Utility Library for Boot Splash Plugins
 Version: @VERSION@
-Libs: -L${libdir} -lply -lply-splash-core
+Libs: -L${libdir} -lply-splash-core -lply -ldl
 Cflags: -I${includedir}/plymouth-1/ply -I${includedir}/plymouth-1/ply-splash-core

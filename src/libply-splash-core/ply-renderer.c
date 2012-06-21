@@ -49,6 +49,7 @@ struct _ply_renderer
   const ply_renderer_plugin_interface_t *plugin_interface;
   ply_renderer_backend_t *backend;
 
+  char *plugin_path;
   char *device_name;
   ply_terminal_t *terminal;
 
@@ -62,12 +63,16 @@ typedef const ply_renderer_plugin_interface_t *
 static void ply_renderer_unload_plugin (ply_renderer_t *renderer);
 
 ply_renderer_t *
-ply_renderer_new (const char    * device_name,
+ply_renderer_new (const char     *plugin_path,
+                  const char     *device_name,
                   ply_terminal_t *terminal)
 {
   ply_renderer_t *renderer;
 
   renderer = calloc (1, sizeof (struct _ply_renderer));
+
+  if (plugin_path != NULL)
+    renderer->plugin_path = strdup (plugin_path);
 
   if (device_name != NULL)
     renderer->device_name = strdup (device_name);
@@ -90,6 +95,7 @@ ply_renderer_free (ply_renderer_t *renderer)
     }
 
   free (renderer->device_name);
+  free (renderer->plugin_path);
   free (renderer);
 }
 
@@ -217,6 +223,36 @@ ply_renderer_unmap_from_device (ply_renderer_t *renderer)
   renderer->is_mapped = false;
 }
 
+static bool
+ply_renderer_open_plugin (ply_renderer_t *renderer,
+                          const char     *plugin_path)
+{
+  ply_trace ("trying to open renderer plugin %s", plugin_path);
+
+  if (!ply_renderer_load_plugin (renderer, plugin_path))
+    return false;
+
+  if (!ply_renderer_open_device (renderer))
+    {
+      ply_trace ("could not open rendering device for plugin %s",
+                 plugin_path);
+      ply_renderer_unload_plugin (renderer);
+      return false;
+    }
+
+  if (!ply_renderer_query_device (renderer))
+    {
+      ply_trace ("could not query rendering device for plugin %s",
+                 plugin_path);
+      ply_renderer_close_device (renderer);
+      ply_renderer_unload_plugin (renderer);
+      return false;
+    }
+
+  ply_trace ("opened renderer plugin %s", plugin_path);
+  return true;
+}
+
 bool
 ply_renderer_open (ply_renderer_t *renderer)
 {
@@ -234,33 +270,15 @@ ply_renderer_open (ply_renderer_t *renderer)
       NULL
     };
 
+  if (renderer->plugin_path != NULL)
+    {
+      return ply_renderer_open_plugin (renderer, renderer->plugin_path);
+    }
+
   for (i = 0; known_plugins[i] != NULL; i++)
     {
-      const char *plugin_path;
-
-      plugin_path = known_plugins[i];
-
-      if (!ply_renderer_load_plugin (renderer, plugin_path))
-        continue;
-
-      if (!ply_renderer_open_device (renderer))
-        {
-          ply_trace ("could not open rendering device for plugin %s",
-                     plugin_path);
-          ply_renderer_unload_plugin (renderer);
-          continue;
-        }
-
-      if (!ply_renderer_query_device (renderer))
-        {
-          ply_trace ("could not query rendering device for plugin %s",
-                     plugin_path);
-          ply_renderer_close_device (renderer);
-          ply_renderer_unload_plugin (renderer);
-          continue;
-        }
-
-      return true;
+      if (ply_renderer_open_plugin (renderer, known_plugins[i]))
+        return true;
   }
 
   ply_trace ("could not find suitable rendering plugin");

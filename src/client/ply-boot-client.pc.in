@@ -6,5 +6,5 @@ includedir=@includedir@
 Name: Plymouth
 Description: Client Library for Boot Splash
 Version: @VERSION@
-Libs: -L${libdir} -lply -lply-boot-client
+Libs: -L${libdir} -lply-boot-client -lply -ldl
 Cflags: -I${includedir}/plymouth-1/ply -I${includedir}/plymouth-1/ply-boot-client

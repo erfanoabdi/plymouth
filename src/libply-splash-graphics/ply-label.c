@@ -46,6 +46,9 @@ struct _ply_label
   ply_label_plugin_control_t *control;
 
   char *text;
+  ply_label_alignment_t alignment;
+  long width;
+  char *fontdesc;
   float red;
   float green;
   float blue;
@@ -67,6 +70,8 @@ ply_label_new (void)
   label->green = 1;
   label->blue = 1;
   label->alpha = 1;
+  label->alignment = PLY_LABEL_ALIGN_LEFT;
+  label->width = -1;
   return label;
 }
 
@@ -127,6 +132,13 @@ ply_label_load_plugin (ply_label_t *label)
   if (label->text != NULL)
     label->plugin_interface->set_text_for_control (label->control,
                                                    label->text);
+  label->plugin_interface->set_alignment_for_control (label->control,
+                                                      label->alignment);
+  label->plugin_interface->set_width_for_control (label->control,
+                                                  label->width);
+  if (label->fontdesc != NULL)
+    label->plugin_interface->set_font_for_control (label->control,
+                                                   label->fontdesc);
 
   label->plugin_interface->set_color_for_control (label->control,
                                                   label->red,
@@ -218,6 +230,55 @@ ply_label_set_text (ply_label_t *label,
 
   label->plugin_interface->set_text_for_control (label->control,
                                                  text);
+}
+
+void
+ply_label_set_alignment (ply_label_t           *label,
+                         ply_label_alignment_t  alignment)
+{
+  label->alignment = alignment;
+
+  if (label->plugin_interface == NULL)
+    return;
+
+  label->plugin_interface->set_alignment_for_control (label->control,
+                                                      alignment);
+}
+
+void
+ply_label_set_width (ply_label_t  *label,
+                     long          width)
+{
+  label->width = width;
+
+  if (label->plugin_interface == NULL)
+    return;
+
+  label->plugin_interface->set_width_for_control (label->control,
+                                                  width);
+}
+
+/*
+ * Please see pango documentation, for fontdesc format:
+ * http://library.gnome.org/devel/pango/stable/pango-Fonts.html#pango-font-description-from-string
+ * If you pass NULL, it will use default font.
+ */
+void
+ply_label_set_font (ply_label_t *label,
+                    const char  *fontdesc)
+{
+
+  free (label->fontdesc);
+  if (fontdesc)
+    label->fontdesc = strdup (fontdesc);
+  else
+    label->fontdesc = NULL;
+
+  if (label->plugin_interface == NULL)
+    return;
+
+  label->plugin_interface->set_font_for_control (label->control,
+                                                 fontdesc);
 }
 
 void

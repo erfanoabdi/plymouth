@@ -45,7 +45,7 @@
 #define KEY_CTRL_W ('\100' ^'W')
 #define KEY_CTRL_V ('\100' ^'V')
 #define KEY_ESCAPE ('\100' ^'[')
-#define KEY_RETURN '\r'
+#define KEY_RETURN '\n'
 #define KEY_BACKSPACE '\177'
 
 typedef void (* ply_keyboard_handler_t) (void *);
@@ -65,7 +65,6 @@ typedef enum
 typedef struct
 {
   ply_terminal_t *terminal;
-  ply_fd_watch_t *input_watch;
   ply_buffer_t   *key_buffer;
 } ply_keyboard_terminal_provider_t;
 
@@ -342,15 +341,6 @@ on_terminal_data (ply_keyboard_t *keyboard)
   on_key_event (keyboard, keyboard->provider.if_terminal->key_buffer);
 }
 
-static void
-on_terminal_disconnected (ply_keyboard_t *keyboard)
-{
-  ply_trace ("keyboard input terminal watch invalidated, rewatching");
-  keyboard->provider.if_terminal->input_watch = NULL;
-
-  ply_keyboard_watch_for_terminal_input (keyboard);
-}
-
 static bool
 ply_keyboard_watch_for_terminal_input (ply_keyboard_t *keyboard)
 {
@@ -359,10 +349,16 @@ ply_keyboard_watch_for_terminal_input (ply_keyboard_t *keyboard)
   assert (keyboard != NULL);
 
   terminal_fd = ply_terminal_get_fd (keyboard->provider.if_terminal->terminal);
-  keyboard->provider.if_terminal->input_watch = ply_event_loop_watch_fd (keyboard->loop, terminal_fd, PLY_EVENT_LOOP_FD_STATUS_HAS_DATA,
-                                                                         (ply_event_handler_t) on_terminal_data,
-                                                                         (ply_event_handler_t) on_terminal_disconnected,
-                                                                         keyboard);
+
+  if (terminal_fd < 0 || !ply_terminal_is_open (keyboard->provider.if_terminal->terminal))
+    {
+      ply_trace ("terminal associated with keyboard isn't open");
+      return false;
+    }
+
+  ply_terminal_watch_for_input (keyboard->provider.if_terminal->terminal,
+                                (ply_terminal_input_handler_t) on_terminal_data,
+                                keyboard);
 
   return true;
 }
@@ -370,12 +366,10 @@ ply_keyboard_watch_for_terminal_input (ply_keyboard_t *keyboard)
 static void
 ply_keyboard_stop_watching_for_terminal_input (ply_keyboard_t *keyboard)
 {
-  if (keyboard->provider.if_terminal->input_watch == NULL)
-    return;
-
-  ply_event_loop_stop_watching_fd (keyboard->loop,
-                                   keyboard->provider.if_terminal->input_watch);
-  keyboard->provider.if_terminal->input_watch = NULL;
+  ply_terminal_stop_watching_for_input (keyboard->provider.if_terminal->terminal,
+                                        (ply_terminal_input_handler_t)
+                                        on_terminal_data,
+                                        keyboard);
 }
 
 bool

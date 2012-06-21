@@ -56,6 +56,10 @@ struct _ply_label_plugin_control
   ply_rectangle_t     area;
 
   char               *text;
+  char               *fontdesc;
+
+  PangoAlignment      alignment;
+  long                width;
   float               red;
   float               green;
   float               blue;
@@ -64,7 +68,9 @@ struct _ply_label_plugin_control
   uint32_t is_hidden : 1;
 };
 
-ply_label_plugin_control_t *
+ply_label_plugin_interface_t * ply_label_plugin_get_interface (void);
+
+static ply_label_plugin_control_t *
 create_control (void)
 {
   ply_label_plugin_control_t *label;
@@ -72,11 +78,13 @@ create_control (void)
   label = calloc (1, sizeof (ply_label_plugin_control_t));
 
   label->is_hidden = true;
+  label->alignment = PANGO_ALIGN_LEFT;
+  label->width     = -1;
 
   return label;
 }
 
-void
+static void
 destroy_control (ply_label_plugin_control_t *label)
 {
   if (label == NULL)
@@ -85,13 +93,13 @@ destroy_control (ply_label_plugin_control_t *label)
   free (label);
 }
 
-long
+static long
 get_width_of_control (ply_label_plugin_control_t *label)
 {
   return label->area.width;
 }
 
-long
+static long
 get_height_of_control (ply_label_plugin_control_t *label)
 {
   return label->area.height;
@@ -133,12 +141,41 @@ get_cairo_context_for_sizing (ply_label_plugin_control_t *label)
   return cairo_context;
 }
 
+static PangoLayout*
+init_pango_text_layout (cairo_t *cairo_context,
+			char *text,
+                        char *font_description,
+                        PangoAlignment alignment,
+                        long width)
+{
+  PangoLayout          *pango_layout;
+  PangoFontDescription *description;
+
+  pango_layout = pango_cairo_create_layout (cairo_context);
+
+  if (!font_description)
+    description = pango_font_description_from_string ("Sans 12");
+  else
+    description = pango_font_description_from_string (font_description);
+
+  pango_layout_set_font_description (pango_layout, description);
+  pango_font_description_free (description);
+
+  pango_layout_set_alignment(pango_layout, alignment);
+  if (width >= 0)
+    pango_layout_set_width(pango_layout, width * PANGO_SCALE);
+
+  pango_layout_set_text (pango_layout, text, -1);
+  pango_cairo_update_layout (cairo_context, pango_layout);
+
+  return pango_layout;
+}
+
 static void
 size_control (ply_label_plugin_control_t *label)
 {
   cairo_t              *cairo_context;
   PangoLayout          *pango_layout;
-  PangoFontDescription *description;
   int                   text_width;
   int                   text_height;
 
@@ -147,14 +184,8 @@ size_control (ply_label_plugin_control_t *label)
 
   cairo_context = get_cairo_context_for_sizing (label);
 
-  pango_layout = pango_cairo_create_layout (cairo_context);
+  pango_layout = init_pango_text_layout(cairo_context, label->text, label->fontdesc, label->alignment, label->width);
 
-  description = pango_font_description_from_string ("Sans 12");
-  pango_layout_set_font_description (pango_layout, description);
-  pango_font_description_free (description);
-
-  pango_layout_set_text (pango_layout, label->text, -1);
-  pango_cairo_update_layout (cairo_context, pango_layout);
   pango_layout_get_size (pango_layout, &text_width, &text_height);
   label->area.width = (long) ((double) text_width / PANGO_SCALE);
   label->area.height = (long) ((double) text_height / PANGO_SCALE);
@@ -163,7 +194,7 @@ size_control (ply_label_plugin_control_t *label)
   cairo_destroy (cairo_context);
 }
 
-void
+static void
 draw_control (ply_label_plugin_control_t *label,
               ply_pixel_buffer_t         *pixel_buffer,
               long                        x,
@@ -173,7 +204,6 @@ draw_control (ply_label_plugin_control_t *label,
 {
   cairo_t              *cairo_context;
   PangoLayout          *pango_layout;
-  PangoFontDescription *description;
   int                   text_width;
   int                   text_height;
 
@@ -182,14 +212,8 @@ draw_control (ply_label_plugin_control_t *label,
 
   cairo_context = get_cairo_context_for_pixel_buffer (label, pixel_buffer);
 
-  pango_layout = pango_cairo_create_layout (cairo_context);
+  pango_layout = init_pango_text_layout(cairo_context, label->text, label->fontdesc, label->alignment, label->width);
 
-  description = pango_font_description_from_string ("Sans 12");
-  pango_layout_set_font_description (pango_layout, description);
-  pango_font_description_free (description);
-
-  pango_layout_set_text (pango_layout, label->text, -1);
-  pango_cairo_update_layout (cairo_context, pango_layout);
   pango_layout_get_size (pango_layout, &text_width, &text_height);
   label->area.width = (long) ((double) text_width / PANGO_SCALE);
   label->area.height = (long) ((double) text_height / PANGO_SCALE);
@@ -211,7 +235,60 @@ draw_control (ply_label_plugin_control_t *label,
   cairo_destroy (cairo_context);
 }
 
-void
+static void
+set_alignment_for_control (ply_label_plugin_control_t *label,
+                           ply_label_alignment_t alignment)
+{
+  ply_rectangle_t dirty_area;
+  PangoAlignment pango_alignment;
+
+  switch(alignment)
+    {
+    case PLY_LABEL_ALIGN_CENTER:
+      pango_alignment = PANGO_ALIGN_CENTER;
+      break;
+    case PLY_LABEL_ALIGN_RIGHT:
+      pango_alignment = PANGO_ALIGN_RIGHT;
+      break;
+    case PLY_LABEL_ALIGN_LEFT:
+    default:
+      pango_alignment = PANGO_ALIGN_LEFT;
+      break;
+    }
+
+  if (label->alignment != pango_alignment)
+    {
+      dirty_area = label->area;
+      label->alignment = pango_alignment;
+      size_control (label);
+      if (!label->is_hidden && label->display != NULL)
+        ply_pixel_display_draw_area (label->display,
+                                     dirty_area.x, dirty_area.y,
+                                     dirty_area.width, dirty_area.height);
+
+    }
+}
+
+static void
+set_width_for_control (ply_label_plugin_control_t *label,
+                       long                        width)
+{
+  ply_rectangle_t dirty_area;
+
+  if (label->width != width)
+    {
+      dirty_area = label->area;
+      label->width = width;
+      size_control (label);
+      if (!label->is_hidden && label->display != NULL)
+        ply_pixel_display_draw_area (label->display,
+                                     dirty_area.x, dirty_area.y,
+                                     dirty_area.width, dirty_area.height);
+
+    }
+}
+
+static void
 set_text_for_control (ply_label_plugin_control_t *label,
                       const char                 *text)
 {
@@ -231,7 +308,30 @@ set_text_for_control (ply_label_plugin_control_t *label,
     }
 }
 
-void
+static void
+set_font_for_control (ply_label_plugin_control_t *label,
+                      const char                 *fontdesc)
+{
+  ply_rectangle_t dirty_area;
+
+  if (label->fontdesc != fontdesc)
+    {
+      dirty_area = label->area;
+      free (label->fontdesc);
+      if (fontdesc)
+        label->fontdesc = strdup (fontdesc);
+      else
+        label->fontdesc = NULL;
+      size_control (label);
+      if (!label->is_hidden && label->display != NULL)
+        ply_pixel_display_draw_area (label->display,
+                                     dirty_area.x, dirty_area.y,
+                                     dirty_area.width, dirty_area.height);
+
+    }
+}
+
+static void
 set_color_for_control (ply_label_plugin_control_t *label,
                        float                       red,
                        float                       green,
@@ -249,14 +349,14 @@ set_color_for_control (ply_label_plugin_control_t *label,
                                  label->area.width, label->area.height);
 }
 
-bool
+static bool
 show_control (ply_label_plugin_control_t *label,
               ply_pixel_display_t        *display,
               long                        x,
               long                        y)
 {
   ply_rectangle_t dirty_area;
-  
+
   dirty_area = label->area;
   label->display = display;
   label->area.x = x;
@@ -276,7 +376,7 @@ show_control (ply_label_plugin_control_t *label,
   return true;
 }
 
-void
+static void
 hide_control (ply_label_plugin_control_t *label)
 {
   label->is_hidden = true;
@@ -289,7 +389,7 @@ hide_control (ply_label_plugin_control_t *label)
   label->loop = NULL;
 }
 
-bool
+static bool
 is_control_hidden (ply_label_plugin_control_t *label)
 {
   return label->is_hidden;
@@ -307,6 +407,9 @@ ply_label_plugin_get_interface (void)
       .draw_control = draw_control,
       .is_control_hidden = is_control_hidden,
       .set_text_for_control = set_text_for_control,
+      .set_alignment_for_control = set_alignment_for_control,
+      .set_width_for_control = set_width_for_control,
+      .set_font_for_control = set_font_for_control,
       .set_color_for_control = set_color_for_control,
       .get_width_of_control = get_width_of_control,
       .get_height_of_control = get_height_of_control

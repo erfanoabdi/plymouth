@@ -158,8 +158,9 @@ static script_return_t image_text (script_state_t *state,
   script_lib_image_data_t *data = user_data;
   ply_pixel_buffer_t *image;
   ply_label_t *label;
-  script_obj_t *alpha_obj;
+  script_obj_t *alpha_obj, *font_obj;
   int width, height;
+  char *font;
   
   char *text = script_obj_hash_get_string (state->local, "text");
   
@@ -178,10 +179,21 @@ static script_return_t image_text (script_state_t *state,
     alpha = 1;
   script_obj_unref(alpha_obj);
 
+  font_obj = script_obj_hash_peek_element (state->local, "font");
+
+  if (script_obj_is_string (font_obj))
+    font = script_obj_as_string (font_obj);
+  else
+    font = NULL;
+
+  script_obj_unref(font_obj);
+
   if (!text) return script_return_obj_null ();
 
   label = ply_label_new ();
   ply_label_set_text (label, text);
+  if (font)
+    ply_label_set_font (label, font);
   ply_label_set_color (label, red, green, blue, alpha);
   ply_label_show (label, NULL, 0, 0);
   
@@ -192,6 +204,7 @@ static script_return_t image_text (script_state_t *state,
   ply_label_draw_area (label, image, 0, 0, width, height);
   
   free (text);
+  free (font);
   ply_label_free (label);
   
   return script_return_obj (script_obj_new_native (image, data->class));
@@ -245,6 +258,7 @@ script_lib_image_data_t *script_lib_image_setup (script_state_t *state,
                               "green",
                               "blue",
                               "alpha",
+                              "font",
                               NULL);
 
   script_obj_unref (image_hash);

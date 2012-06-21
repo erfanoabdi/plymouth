@@ -58,7 +58,6 @@ struct _ply_boot_splash
   ply_module_handle_t *module_handle;
   const ply_boot_splash_plugin_interface_t *plugin_interface;
   ply_boot_splash_plugin_t *plugin;
-  ply_terminal_t *terminal;
   ply_keyboard_t *keyboard;
   ply_buffer_t *boot_buffer;
   ply_trigger_t *idle_trigger;
@@ -87,8 +86,7 @@ static void ply_boot_splash_detach_from_event_loop (ply_boot_splash_t *splash);
 ply_boot_splash_t *
 ply_boot_splash_new (const char     *theme_path,
                      const char     *plugin_dir,
-                     ply_buffer_t   *boot_buffer,
-                     ply_terminal_t *terminal)
+                     ply_buffer_t   *boot_buffer)
 {
   ply_boot_splash_t *splash;
 
@@ -102,7 +100,6 @@ ply_boot_splash_new (const char     *theme_path,
   splash->is_shown = false;
 
   splash->boot_buffer = boot_buffer;
-  splash->terminal = terminal;
   splash->pixel_displays = ply_list_new ();
   splash->text_displays = ply_list_new ();
 
@@ -151,6 +148,32 @@ refresh_displays (ply_boot_splash_t *splash)
     }
 }
 
+static ply_terminal_t *
+find_local_console_terminal (ply_boot_splash_t *splash)
+{
+  ply_list_node_t *node;
+  node = ply_list_get_first_node (splash->text_displays);
+
+  while (node != NULL)
+    {
+      ply_text_display_t *display;
+      ply_terminal_t *terminal;
+      ply_list_node_t *next_node;
+
+      display = ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (splash->text_displays, node);
+
+      terminal = ply_text_display_get_terminal (display);
+
+      if (terminal != NULL && ply_terminal_is_vt (terminal))
+        return terminal;
+
+      node = next_node;
+    }
+
+  return NULL;
+}
+
 static void
 on_keyboard_input (ply_boot_splash_t *splash,
                    const char        *keyboard_input,
@@ -170,13 +193,23 @@ on_keyboard_input (ply_boot_splash_t *splash,
             ply_trace ("toggle text mode!");
             splash->should_force_text_mode = !splash->should_force_text_mode;
 
-            if (splash->should_force_text_mode)
+            if (ply_list_get_length (splash->pixel_displays) >= 1)
               {
-                ply_terminal_set_mode (splash->terminal, PLY_TERMINAL_MODE_TEXT);
-                ply_terminal_ignore_mode_changes (splash->terminal, true);
+                ply_terminal_t *terminal;
+
+                terminal = find_local_console_terminal (splash);
+
+                if (terminal != NULL)
+                  {
+                    if (splash->should_force_text_mode)
+                      {
+                        ply_terminal_set_mode (terminal, PLY_TERMINAL_MODE_TEXT);
+                        ply_terminal_ignore_mode_changes (terminal, true);
+                      }
+                    else
+                      ply_terminal_ignore_mode_changes (terminal, false);
+                  }
               }
-            else
-              ply_terminal_ignore_mode_changes (splash->terminal, false);
             ply_trace ("text mode toggled!");
           return;
 
@@ -327,6 +360,51 @@ ply_boot_splash_load (ply_boot_splash_t *splash)
   splash->plugin = splash->plugin_interface->create_plugin (key_file);
 
   ply_key_file_free (key_file);
+
+  assert (splash->plugin != NULL);
+
+  splash->is_loaded = true;
+
+  return true;
+}
+
+bool
+ply_boot_splash_load_built_in (ply_boot_splash_t *splash)
+{
+  get_plugin_interface_function_t get_boot_splash_plugin_interface;
+
+  assert (splash != NULL);
+
+  splash->module_handle = ply_open_built_in_module ();
+
+  if (splash->module_handle == NULL)
+    return false;
+
+  get_boot_splash_plugin_interface = (get_plugin_interface_function_t)
+      ply_module_look_up_function (splash->module_handle,
+                                   "ply_boot_splash_plugin_get_interface");
+
+  if (get_boot_splash_plugin_interface == NULL)
+    {
+      ply_save_errno ();
+      ply_close_module (splash->module_handle);
+      splash->module_handle = NULL;
+      ply_restore_errno ();
+      return false;
+    }
+
+  splash->plugin_interface = get_boot_splash_plugin_interface ();
+
+  if (splash->plugin_interface == NULL)
+    {
+      ply_save_errno ();
+      ply_close_module (splash->module_handle);
+      splash->module_handle = NULL;
+      ply_restore_errno ();
+      return false;
+    }
+
+  splash->plugin = splash->plugin_interface->create_plugin (NULL);
 
   assert (splash->plugin != NULL);
 
@@ -571,7 +649,15 @@ ply_boot_splash_hide (ply_boot_splash_t *splash)
   splash->plugin_interface->hide_splash_screen (splash->plugin,
                                                 splash->loop);
 
-  ply_terminal_set_mode (splash->terminal, PLY_TERMINAL_MODE_TEXT);
+  if (ply_list_get_length (splash->pixel_displays) >= 1)
+    {
+      ply_terminal_t *terminal;
+
+      terminal = find_local_console_terminal (splash);
+
+      if (terminal != NULL)
+        ply_terminal_set_mode (terminal, PLY_TERMINAL_MODE_TEXT);
+    }
 
   splash->is_shown = false;
 
@@ -590,14 +676,6 @@ ply_boot_splash_hide (ply_boot_splash_t *splash)
     }
 }
 
-void ply_boot_splash_display_normal  (ply_boot_splash_t              *splash)
-{
-  assert (splash != NULL);
-  assert (splash->plugin_interface != NULL);
-  assert (splash->plugin != NULL);
-  if (splash->plugin_interface->display_normal != NULL)
-      splash->plugin_interface->display_normal (splash->plugin);
-}
 void ply_boot_splash_display_message (ply_boot_splash_t             *splash,
                                       const char                    *message)
 {
@@ -607,6 +685,26 @@ void ply_boot_splash_display_message (ply_boot_splash_t             *splash,
   if (splash->plugin_interface->display_message != NULL)
     splash->plugin_interface->display_message (splash->plugin, message);
 }
+
+void ply_boot_splash_hide_message (ply_boot_splash_t             *splash,
+                                      const char                 *message)
+{
+  assert (splash != NULL);
+  assert (splash->plugin_interface != NULL);
+  assert (splash->plugin != NULL);
+  if (splash->plugin_interface->hide_message != NULL)
+    splash->plugin_interface->hide_message (splash->plugin, message);
+}
+
+void ply_boot_splash_display_normal  (ply_boot_splash_t              *splash)
+{
+  assert (splash != NULL);
+  assert (splash->plugin_interface != NULL);
+  assert (splash->plugin != NULL);
+  if (splash->plugin_interface->display_normal != NULL)
+    splash->plugin_interface->display_normal (splash->plugin);
+}
+
 void ply_boot_splash_display_password (ply_boot_splash_t             *splash,
                                        const char                    *prompt,
                                        int                            bullets)
@@ -615,8 +713,9 @@ void ply_boot_splash_display_password (ply_boot_splash_t             *splash,
   assert (splash->plugin_interface != NULL);
   assert (splash->plugin != NULL);
   if (splash->plugin_interface->display_password != NULL)
-      splash->plugin_interface->display_password (splash->plugin, prompt, bullets);
+    splash->plugin_interface->display_password (splash->plugin, prompt, bullets);
 }
+
 void ply_boot_splash_display_question (ply_boot_splash_t             *splash,
                                        const char                    *prompt,
                                        const char                    *entry_text)
@@ -625,7 +724,7 @@ void ply_boot_splash_display_question (ply_boot_splash_t             *splash,
   assert (splash->plugin_interface != NULL);
   assert (splash->plugin != NULL);
   if (splash->plugin_interface->display_question != NULL)
-      splash->plugin_interface->display_question (splash->plugin, prompt, entry_text);
+    splash->plugin_interface->display_question (splash->plugin, prompt, entry_text);
 }
 
 
@@ -802,7 +901,7 @@ main (int    argc,
                                    (ply_keyboard_escape_handler_t) on_quit, &state);
 
   state.buffer = ply_buffer_new ();
-  state.splash = ply_boot_splash_new (theme_path, PLYMOUTH_PLUGIN_PATH, state.buffer, terminal);
+  state.splash = ply_boot_splash_new (theme_path, PLYMOUTH_PLUGIN_PATH, state.buffer);
 
   if (!ply_boot_splash_load (state.splash))
     {

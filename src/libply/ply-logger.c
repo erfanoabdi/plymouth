@@ -338,8 +338,10 @@ ply_logger_open_file (ply_logger_t    *logger,
   if (fd < 0)
     return false;
 
-  if (fchmod (fd, mode) < 0)
+  if (fchmod (fd, mode) < 0) {
+    close (fd);
     return false;
+  }
 
   ply_logger_set_output_fd (logger, fd);
 
