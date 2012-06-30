@@ -14,27 +14,42 @@ override_dh_auto_configure:
 	cp -f /usr/share/misc/config.guess build-tools
 	cp -f /usr/share/misc/config.sub build-tools
 
-	dh_auto_configure -- --prefix=/usr --localstatedir=/var --enable-pango \
-		--enable-tracing --disable-tests --disable-gdm-transition \
-		--with-system-root-install --without-rhgb-compat-link \
-		--with-log-viewer \
+	dh_auto_configure -- \
+		--prefix=/usr --localstatedir=/var \
+		--enable-pango --enable-systemd --enable-tracing \
+		--disable-gdm-transition --disable-tests \
+		--with-background-color=0x005a8a \
 		--with-gdm-autostart-file \
-		--with-release-file=/etc/os-release \
+		--with-log-viewer \
 		--with-logo=/usr/share/plymouth/debian-logo.png \
-		--with-background-color=0x005a8a
+		--with-release-file=/etc/os-release \
+		--with-system-root-install \
+		--without-rhgb-compat-link \
+		--with-boot-tty=tty7 \
+		--with-shutdown-tty=tty7
+
+override_dh_builddeb:
+	dh_builddeb -- -Zxz -z9
+
+override_dh_gencontrol:
+ifeq ($(DEB_HOST_MULTIARCH),)
+	dh_gencontrol
+else
+	dh_gencontrol -- -Vmisc:Pre-Depends="multiarch-support"
+endif
 
 override_dh_install:
 	# Removing useless files
-	rm -f debian/tmp/lib/*.la
-	rm -f debian/tmp/usr/lib/*.la
-	rm -f debian/tmp/usr/lib/plymouth/*.la
-	rm -f debian/tmp/usr/lib/plymouth/*/*.la
+	rm -f debian/tmp/lib/$(DEB_HOST_MULTIARCH)/*.la
+	rm -f debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)/*.la
+	rm -f debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)/plymouth/*.la
+	rm -f debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)/plymouth/*/*.la
 
 	dh_install --fail-missing
 
 	# Adding initramfs-tools integration
 	install -D -m 0755 debian/local/plymouth.hook debian/plymouth/usr/share/initramfs-tools/hooks/plymouth
-	sed -i -e's/#DEB_HOST_MULTIARCH#/$(DEB_HOST_MULTIARCH)/g' debian/plymouth/usr/share/initramfs-tools/hooks/plymouth
+	sed -i -e 's|@DEB_HOST_MULTIARCH@|$(DEB_HOST_MULTIARCH)|g' debian/plymouth/usr/share/initramfs-tools/hooks/plymouth
 	install -D -m 0755 debian/local/plymouth.init-premount debian/plymouth/usr/share/initramfs-tools/scripts/init-premount/plymouth
 	install -D -m 0755 debian/local/plymouth.init-bottom debian/plymouth/usr/share/initramfs-tools/scripts/init-bottom/plymouth
 
@@ -42,12 +57,10 @@ override_dh_install:
 	install -D -m 0644 debian/local/debian-logo.png debian/plymouth/usr/share/plymouth/debian-logo.png
 	install -D -m 0755 debian/local/plymouth-update-initrd debian/plymouth/usr/lib/plymouth/plymouth/plymouth-update-initrd
 
+override_dh_installinit:
+	dh_installinit --no-start -- start 21 2 3 4 5 . stop 02 0 6 .
+	dh_installinit --no-start --name=plymouth-log -- start 37 S .
+
 override_dh_makeshlibs:
 	dh_makeshlibs -p plymouth
 	dh_makeshlibs -p plymouth-drm
-
-override_dh_installinit:
-	dh_installinit --no-start -- start 21 2 3 4 5 . stop 02 0 6 .
-
-override_dh_builddeb:
-	dh_builddeb -- -Zgzip -z9

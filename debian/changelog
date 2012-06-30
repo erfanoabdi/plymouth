@@ -1,3 +1,25 @@
+plymouth (0.8.5.1-2) unstable; urgency=low
+
+  * Switching to xz compression.
+  * Enabling systemd support (Closes: #679324).
+  * Sorting configure flags in rules.
+  * Removing old dpkg trigger for update-initramfs.
+  * Updating to standards version 3.9.3.
+  * Updating to debhelper version 9.
+  * Updating copyright file to format version 1.0.
+  * Setting boot and shutdown tty to 7 (Closes: #606077).
+  * Updating debhelper install files for multiarch.
+  * Applying slightly modified patch from Laurent Bigonville
+    <bigon@debian.org> to issue a /bin/plymouth update-root-fs --read-
+    write in order to write the logfiles to the disk (Closes: #678982).
+  * Simplyfing initscripts.
+  * Adding conditional pre-depends on multiarch-support.
+  * Sorting overrides in rules alphabetically.
+  * Updating lintian overrides.
+  * Adding missing dependency to remote_fs in plymouth-log initscript.
+
+ -- Daniel Baumann <daniel.baumann@progress-technologies.net>  Sat, 30 Jun 2012 12:44:56 +0200
+
 plymouth (0.8.5.1-1) unstable; urgency=low
 
   [ Daniel Baumann ]

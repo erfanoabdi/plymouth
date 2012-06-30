@@ -97,7 +97,7 @@ case "$(basename ${THEME} .plymouth)" in
 			# pre-multiarch fallback
 			PANGO_DIR=/usr/lib/pango/1.6.0
 		else
-			PANGO_DIR=/usr/lib/#DEB_HOST_MULTIARCH#/pango/1.6.0
+			PANGO_DIR=/usr/lib/@DEB_HOST_MULTIARCH@/pango/1.6.0
 		fi
 		mkdir -p "${DESTDIR}${PANGO_DIR}/module-files.d"
 		mkdir -p "${DESTDIR}${PANGO_DIR}/modules"
