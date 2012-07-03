@@ -25,8 +25,8 @@ override_dh_auto_configure:
 		--with-release-file=/etc/os-release \
 		--with-system-root-install \
 		--without-rhgb-compat-link \
-		--with-boot-tty=tty7 \
-		--with-shutdown-tty=tty7
+		--with-boot-tty=/dev/tty7 \
+		--with-shutdown-tty=/dev/tty7
 
 override_dh_builddeb:
 	dh_builddeb -- -Zxz -z9

@@ -1,3 +1,12 @@
+plymouth (0.8.5.1-3) unstable; urgency=low
+
+  * Using multiarch paths for plymouth renderer in initramfs-tools hook
+    (Closes: #679687, #679938, #679971).
+  * Correcting --with-boot-tty and --with-shutdown-tty configure call in
+    rules with full device name (Closes: #680124).
+
+ -- Daniel Baumann <daniel.baumann@progress-technologies.net>  Wed, 04 Jul 2012 00:07:16 +0200
+
 plymouth (0.8.5.1-2) unstable; urgency=low
 
   * Switching to xz compression.
