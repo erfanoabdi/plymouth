@@ -16,7 +16,8 @@ override_dh_auto_configure:
 
 	dh_auto_configure -- \
 		--prefix=/usr --localstatedir=/var \
-		--enable-pango --enable-systemd --enable-tracing \
+		--enable-libkms --enable-pango \
+		--enable-systemd-integration --enable-tracing \
 		--disable-gdm-transition --disable-tests \
 		--with-background-color=0x005a8a \
 		--with-gdm-autostart-file \
@@ -55,7 +56,7 @@ override_dh_install:
 
 	# Adding other debian specific files
 	install -D -m 0644 debian/local/debian-logo.png debian/plymouth/usr/share/plymouth/debian-logo.png
-	install -D -m 0755 debian/local/plymouth-update-initrd debian/plymouth/usr/lib/plymouth/plymouth/plymouth-update-initrd
+	install -D -m 0755 debian/local/plymouth-update-initrd debian/plymouth/usr/lib/$(DEB_HOST_MULTIARCH)/plymouth/plymouth-update-initrd
 
 override_dh_installinit:
 	dh_installinit --no-start -- start 21 2 3 4 5 . stop 02 0 6 .

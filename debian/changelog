@@ -1,3 +1,20 @@
+plymouth (0.8.5.1-4) unstable; urgency=low
+
+  * Correcting systemd configure option in rules (Closes: #679324).
+  * Including systemd files in plymouth package.
+  * Adding desktop-base and plymouth-drm to suggests for plymouth,
+    recommends would have been even nicer but defeats the initial
+    package split.
+  * Also update initramfs for both plymouth-drm and plymouth-x11.
+  * Including all available drm modules in initramfs hook rather than
+    ati and intel only.
+  * Explicitly enable libkms support.
+  * Updating default-theme.patch to not set the theme in
+    /etc/plymouthd.conf as active.
+  * Correcting path for plymouth-update-initrd installation in rules.
+
+ -- Daniel Baumann <daniel.baumann@progress-technologies.net>  Wed, 04 Jul 2012 17:09:37 +0200
+
 plymouth (0.8.5.1-3) unstable; urgency=low
 
   * Using multiarch paths for plymouth renderer in initramfs-tools hook

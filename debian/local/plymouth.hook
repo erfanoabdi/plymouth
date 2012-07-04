@@ -108,11 +108,8 @@ case "$(basename ${THEME} .plymouth)" in
 		copy_exec /usr/lib/@DEB_HOST_MULTIARCH@/plymouth/renderers/frame-buffer.so
 		copy_exec /usr/lib/@DEB_HOST_MULTIARCH@/plymouth/renderers/drm.so
 
-		# add drm/fb modules
-		manual_add_modules intel-agp
-		manual_add_modules ati-agp
-		manual_add_modules i915
-		manual_add_modules radeon
+		# add drm modules
+		copy_modules_dir kernel/drivers/gpu/drm mga r128 savage sis tdfx via
 		;;
 esac
 

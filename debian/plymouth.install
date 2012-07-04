@@ -13,6 +13,7 @@ usr/lib/${DEB_HOST_MULTIARCH}/libply-boot-client.so.*
 usr/lib/${DEB_HOST_MULTIARCH}/plymouth/details.so
 usr/lib/${DEB_HOST_MULTIARCH}/plymouth/text.so
 usr/lib/${DEB_HOST_MULTIARCH}/plymouth/*-initrd
+lib/systemd
 usr/sbin
 usr/share/man/man8/plymouth.8
 usr/share/plymouth/plymouthd.defaults
