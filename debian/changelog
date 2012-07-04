@@ -1,3 +1,10 @@
+plymouth (0.8.3-9.2) squeeze; urgency=low
+
+  * Fix the init script to not do anything if the plymouth package is removed
+    (closes: #617857).
+
+ -- Julien Cristau <jcristau@debian.org>  Wed, 04 Jul 2012 20:51:56 +0200
+
 plymouth (0.8.3-9.1) testing; urgency=low
 
   * Non-maintainer upload.
