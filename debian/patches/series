@@ -3,3 +3,4 @@
 03-default-theme.patch
 04-return-code.patch
 05-default-osrelease.patch
+06-cmdline.patch

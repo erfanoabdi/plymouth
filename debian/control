@@ -12,6 +12,7 @@ Package: plymouth
 Architecture: linux-any
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}, initramfs-tools
+Conflicts: console-tools
 Suggests: desktop-base, plymouth-drm
 Description: Graphical Boot Animation and Logger
  Plymouth provides an attractive boot animation in place of the text messages

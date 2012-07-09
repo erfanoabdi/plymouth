@@ -23,6 +23,7 @@ THEMES="/usr/share/plymouth/themes"
 
 if [ -n "${THEME}" ]
 then
+	THEME_NAME="${THEME}"
 	THEME="${THEMES}/${THEME}/${THEME}.plymouth"
 else
 	exit 0
@@ -30,13 +31,17 @@ fi
 
 PLUGIN_PATH="$(plymouth --get-splash-plugin-path)"
 
-case "$(basename ${THEME} .plymouth)" in
+case "${THEME_NAME}" in
 	text)
-		PLUGINS="details.so text.so"
+		PLUGINS="text.so"
+		;;
+
+	details)
+		PLUGINS="text.so details.so"
 		;;
 
 	*)
-		PLUGINS="details.so text.so label.so"
+		PLUGINS="text.so details.so label.so"
 		;;
 esac
 
@@ -76,8 +81,8 @@ then
 	cp /etc/os-release "${DESTDIR}/etc"
 fi
 
-case "$(basename ${THEME} .plymouth)" in
-	text)
+case "${THEME_NAME}" in
+	text|details)
 
 		;;
 

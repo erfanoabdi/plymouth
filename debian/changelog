@@ -1,3 +1,17 @@
+plymouth (0.8.5.1-5) unstable; urgency=low
+
+  * Adding a conflict against console-tools which is about to be removed
+    from the archive and which is apparently to be incompatible with
+    plymouth (Closes: #606132).
+  * Adding modified patch from Luca Capello <luca@pca.it> to allow
+    plymouth details plugin without plymouth-dkms (Closes: #680700,
+    #680689).
+  * Using 'splash' instead of 'plymouth.enable' boot parameter in
+    systemd unit files, thanks to Laurent Bigonville <bigon@debian.org>
+    (Closes: #680517).
+
+ -- Daniel Baumann <daniel.baumann@progress-technologies.net>  Mon, 09 Jul 2012 02:10:16 +0200
+
 plymouth (0.8.5.1-4) unstable; urgency=low
 
   * Correcting systemd configure option in rules (Closes: #679324).

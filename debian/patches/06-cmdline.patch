@@ -1,0 +1,65 @@
+Author: Daniel Baumann <daniel.baumann@progress-technologies.net>
+Description:
+ Using 'splash' as boot parameter instead of 'plymouth.enable' in system unit
+ files (Closes: #680517).
+
+diff -Naurp plymouth.orig/systemd-units/plymouth-halt.service.in plymouth/systemd-units/plymouth-halt.service.in
+--- plymouth.orig/systemd-units/plymouth-halt.service.in	2012-06-27 16:06:31.638913312 +0200
++++ plymouth/systemd-units/plymouth-halt.service.in	2012-07-09 01:43:36.098458141 +0200
+@@ -3,7 +3,7 @@ Description=Show Plymouth Halt Screen
+ After=getty@tty1.service prefdm.service plymouth-start.service
+ Before=halt.service
+ DefaultDependencies=no
+-ConditionKernelCommandLine=!plymouth.enable=0
++ConditionKernelCommandLine=splash
+ 
+ [Service]
+ ExecStart=@PLYMOUTH_DAEMON_DIR@/plymouthd --mode=shutdown --attach-to-session
+diff -Naurp plymouth.orig/systemd-units/plymouth-kexec.service.in plymouth/systemd-units/plymouth-kexec.service.in
+--- plymouth.orig/systemd-units/plymouth-kexec.service.in	2012-06-27 16:06:31.638913312 +0200
++++ plymouth/systemd-units/plymouth-kexec.service.in	2012-07-09 01:43:38.154474533 +0200
+@@ -3,7 +3,7 @@ Description=Show Plymouth Reboot with ke
+ After=getty@tty1.service prefdm.service plymouth-start.service
+ Before=kexec.service
+ DefaultDependencies=no
+-ConditionKernelCommandLine=!plymouth.enable=0
++ConditionKernelCommandLine=splash
+ 
+ [Service]
+ ExecStart=@PLYMOUTH_DAEMON_DIR@/plymouthd --mode=shutdown --attach-to-session
+diff -Naurp plymouth.orig/systemd-units/plymouth-poweroff.service.in plymouth/systemd-units/plymouth-poweroff.service.in
+--- plymouth.orig/systemd-units/plymouth-poweroff.service.in	2012-06-27 16:06:31.638913312 +0200
++++ plymouth/systemd-units/plymouth-poweroff.service.in	2012-07-09 01:43:39.950488849 +0200
+@@ -3,7 +3,7 @@ Description=Show Plymouth Power Off Scre
+ After=getty@tty1.service prefdm.service plymouth-start.service
+ Before=poweroff.service
+ DefaultDependencies=no
+-ConditionKernelCommandLine=!plymouth.enable=0
++ConditionKernelCommandLine=splash
+ 
+ [Service]
+ ExecStart=@PLYMOUTH_DAEMON_DIR@/plymouthd --mode=shutdown --attach-to-session
+diff -Naurp plymouth.orig/systemd-units/plymouth-reboot.service.in plymouth/systemd-units/plymouth-reboot.service.in
+--- plymouth.orig/systemd-units/plymouth-reboot.service.in	2012-06-27 16:06:31.650913425 +0200
++++ plymouth/systemd-units/plymouth-reboot.service.in	2012-07-09 01:43:46.130538119 +0200
+@@ -3,7 +3,7 @@ Description=Show Plymouth Reboot Screen
+ After=getty@tty1.service prefdm.service plymouth-start.service
+ Before=reboot.service
+ DefaultDependencies=no
+-ConditionKernelCommandLine=!plymouth.enable=0
++ConditionKernelCommandLine=splash
+ 
+ [Service]
+ ExecStart=@PLYMOUTH_DAEMON_DIR@/plymouthd --mode=shutdown --attach-to-session
+diff -Naurp plymouth.orig/systemd-units/plymouth-start.service.in plymouth/systemd-units/plymouth-start.service.in
+--- plymouth.orig/systemd-units/plymouth-start.service.in	2012-06-27 16:06:31.650913425 +0200
++++ plymouth/systemd-units/plymouth-start.service.in	2012-07-09 01:43:51.506580979 +0200
+@@ -4,7 +4,7 @@ DefaultDependencies=no
+ Wants=systemd-ask-password-plymouth.path
+ After=systemd-vconsole-setup.service systemd-udev-settle.service
+ Before=systemd-ask-password-plymouth.service
+-ConditionKernelCommandLine=!plymouth.enable=0
++ConditionKernelCommandLine=splash
+ ConditionPathExists=!@plymouthruntimedir@/pid
+ 
+ [Service]
