@@ -57,6 +57,7 @@ override_dh_install:
 	# Adding other debian specific files
 	install -D -m 0644 debian/local/debian-logo.png debian/plymouth/usr/share/plymouth/debian-logo.png
 	install -D -m 0755 debian/local/plymouth-update-initrd debian/plymouth/usr/lib/$(DEB_HOST_MULTIARCH)/plymouth/plymouth-update-initrd
+	install -D -m 0644 debian/local/plymouth.lsb debian/plymouth/lib/lsb/init-functions.d/99-plymouth
 
 override_dh_installinit:
 	dh_installinit --no-start -- start 21 2 3 4 5 . stop 02 0 6 .

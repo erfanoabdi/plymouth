@@ -1,3 +1,13 @@
+plymouth (0.8.5.1-6) unstable; urgency=low
+
+  * Using --retain-splash when stopping plymouth on startup, avoids
+    showing console before display manager is up, thanks to Benjamin
+    Stark <benny_stark@live.de> (Closes: #683764).
+  * Adding plymouth specific configuration for lsb msg functions, thanks
+    to Benjamin Stark <benny_stark@live.de> (Closes: #683763).
+
+ -- Daniel Baumann <daniel.baumann@progress-technologies.net>  Fri, 03 Aug 2012 18:51:33 +0200
+
 plymouth (0.8.5.1-5) unstable; urgency=low
 
   * Adding a conflict against console-tools which is about to be removed

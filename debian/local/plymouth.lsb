@@ -1,0 +1,43 @@
+# /lib/lsb/init-functions.d/99-plymouth
+
+log_begin_msg_pre ()
+{
+	if plymouth --ping > /dev/null 2>&1
+	then
+		/bin/plymouth update --status="${@}" || true
+	fi
+ }
+
+log_end_msg_pre ()
+{
+	:
+}
+
+log_action_begin_msg_pre ()
+{
+	if plymouth --ping > /dev/null 2>&1
+	then
+		/bin/plymouth update --status="${@}" || true
+	fi
+}
+
+log_action_end_msg_pre ()
+{
+	:
+}
+
+log_action_msg_pre ()
+{
+	if plymouth --ping > /dev/null 2>&1
+	then
+		/bin/plymouth update --status="${@}" || true
+	fi
+}
+
+log_daemon_msg_pre ()
+{
+	if plymouth --ping > /dev/null 2>&1
+	then
+		/bin/plymouth update --status="${@}" || true
+	fi
+}
