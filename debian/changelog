@@ -1,3 +1,12 @@
+plymouth (0.8.5.1-7) unstable; urgency=low
+
+  * Abort early when sourcing /lib/lsb/init-functions.d/99-plymouth and
+    plymouth isn't active (Closes: #685437).
+  * Protecting multiarch queries since install files are run with set -
+    e.
+
+ -- Daniel Baumann <daniel.baumann@progress-technologies.net>  Tue, 21 Aug 2012 12:06:58 +0200
+
 plymouth (0.8.5.1-6) unstable; urgency=low
 
   * Using --retain-splash when stopping plymouth on startup, avoids

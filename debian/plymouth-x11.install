@@ -2,7 +2,7 @@
 
 set -e
 
-DEB_HOST_MULTIARCH="$(dpkg-architecture -qDEB_HOST_MULTIARCH)"
+DEB_HOST_MULTIARCH="$(dpkg-architecture -qDEB_HOST_MULTIARCH || true)"
 
 cat << EOF
 usr/bin/plymouth-log-viewer
