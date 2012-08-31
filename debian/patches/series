@@ -4,3 +4,4 @@
 04-return-code.patch
 05-default-osrelease.patch
 06-cmdline.patch
+07-os-release-quotes.patch

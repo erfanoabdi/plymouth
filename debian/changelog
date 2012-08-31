@@ -1,3 +1,9 @@
+plymouth (0.8.5.1-8) unstable; urgency=low
+
+  * Adding patch from upstream to strip quotes from /etc/os-release.
+
+ -- Daniel Baumann <daniel.baumann@progress-technologies.net>  Fri, 31 Aug 2012 07:44:25 +0200
+
 plymouth (0.8.5.1-7) unstable; urgency=low
 
   * Abort early when sourcing /lib/lsb/init-functions.d/99-plymouth and
