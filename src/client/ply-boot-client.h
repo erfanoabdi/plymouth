@@ -58,6 +58,16 @@ void ply_boot_client_update_daemon (ply_boot_client_t                  *client,
                                     ply_boot_client_response_handler_t  handler,
                                     ply_boot_client_response_handler_t  failed_handler,
                                     void                               *user_data);
+void ply_boot_client_change_mode (ply_boot_client_t                  *client,
+                                  const char                         *new_mode,
+                                  ply_boot_client_response_handler_t  handler,
+                                  ply_boot_client_response_handler_t  failed_handler,
+                                  void                               *user_data);
+void ply_boot_client_system_update (ply_boot_client_t                  *client,
+                                    const char                         *progress,
+                                    ply_boot_client_response_handler_t  handler,
+                                    ply_boot_client_response_handler_t  failed_handler,
+                                    void                               *user_data);
 void ply_boot_client_tell_daemon_to_change_root (ply_boot_client_t                  *client,
                                                  const char                         *chroot_dir,
                                                  ply_boot_client_response_handler_t  handler,

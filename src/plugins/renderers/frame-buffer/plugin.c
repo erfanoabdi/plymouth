@@ -225,7 +225,8 @@ flush_area_to_xrgb32_device (ply_renderer_backend_t *backend,
   dst = &head->map_address[y1 * backend->row_stride + x * backend->bytes_per_pixel];
   src = (char *) &shadow_buffer[y1 * head->area.width + x];
 
-  if (area_to_flush->width == backend->row_stride)
+  if (area_to_flush->width * 4 == backend->row_stride &&
+      head->area.width * 4 == backend->row_stride)
     {
       memcpy (dst, src, area_to_flush->width * area_to_flush->height * 4);
       return;

@@ -2,6 +2,5 @@
 02-stderr.patch
 03-default-theme.patch
 04-return-code.patch
-05-default-osrelease.patch
-06-cmdline.patch
-07-os-release-quotes.patch
+05-cmdline.patch
+06-os-release-quotes.patch

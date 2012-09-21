@@ -6,11 +6,13 @@ systemd_unit_templates =                                                     \
         plymouth-reboot.service.in                                           \
         plymouth-kexec.service.in                                            \
         plymouth-poweroff.service.in                                         \
-        plymouth-halt.service.in
+        plymouth-halt.service.in                                             \
+        systemd-ask-password-plymouth.path.in                                \
+        systemd-ask-password-plymouth.service.in
 
 if ENABLE_SYSTEMD_INTEGRATION
 systemdunitdir=$(SYSTEMD_UNIT_DIR)
-systemdunit_DATA = $(systemd_unit_templates:.service.in=.service)
+systemdunit_DATA = $(systemd_unit_templates:.in=)
 endif
 
 EXTRA_DIST = $(systemd_unit_templates) $(systemdunit_DATA)

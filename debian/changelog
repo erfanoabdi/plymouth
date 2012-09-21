@@ -1,3 +1,11 @@
+plymouth (0.8.6.1-1) unstable; urgency=low
+
+  * Merging upstream version 0.8.6.1.
+  * Removing default-osrelease.patch, included upstream.
+  * Renumbering patches.
+
+ -- Daniel Baumann <daniel.baumann@progress-technologies.net>  Fri, 21 Sep 2012 18:43:51 +0200
+
 plymouth (0.8.5.1-8) unstable; urgency=low
 
   * Adding patch from upstream to strip quotes from /etc/os-release.

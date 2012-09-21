@@ -58,6 +58,7 @@ struct _ply_boot_splash
   ply_module_handle_t *module_handle;
   const ply_boot_splash_plugin_interface_t *plugin_interface;
   ply_boot_splash_plugin_t *plugin;
+  ply_boot_splash_mode_t mode;
   ply_keyboard_t *keyboard;
   ply_buffer_t *boot_buffer;
   ply_trigger_t *idle_trigger;
@@ -73,7 +74,6 @@ struct _ply_boot_splash
   void *idle_handler_user_data;
 
   uint32_t is_loaded : 1;
-  uint32_t is_shown : 1;
   uint32_t should_force_text_mode : 1;
 };
 
@@ -97,7 +97,7 @@ ply_boot_splash_new (const char     *theme_path,
   splash->theme_path = strdup (theme_path);
   splash->plugin_dir = strdup (plugin_dir);
   splash->module_handle = NULL;
-  splash->is_shown = false;
+  splash->mode = PLY_BOOT_SPLASH_MODE_INVALID;
 
   splash->boot_buffer = boot_buffer;
   splash->pixel_displays = ply_list_new ();
@@ -564,17 +564,25 @@ ply_boot_splash_show (ply_boot_splash_t *splash,
                       ply_boot_splash_mode_t mode)
 {
   assert (splash != NULL);
+  assert (mode != PLY_BOOT_SPLASH_MODE_INVALID);
   assert (splash->module_handle != NULL);
   assert (splash->loop != NULL);
-
-  if (splash->is_shown)
-    return true;
-
   assert (splash->plugin_interface != NULL);
   assert (splash->plugin != NULL);
   assert (splash->plugin_interface->show_splash_screen != NULL);
 
-  ply_trace ("showing splash screen\n");
+  if (splash->mode == mode)
+    {
+      ply_trace ("already set same splash screen mode");
+      return true;
+    }
+  else if (splash->mode != PLY_BOOT_SPLASH_MODE_INVALID)
+    {
+      splash->plugin_interface->hide_splash_screen (splash->plugin,
+                                                    splash->loop);
+    }
+
+  ply_trace ("showing splash screen");
   if (!splash->plugin_interface->show_splash_screen (splash->plugin,
                                                      splash->loop,
                                                      splash->boot_buffer,
@@ -592,7 +600,24 @@ ply_boot_splash_show (ply_boot_splash_t *splash,
       ply_boot_splash_update_progress (splash);
     }
 
-  splash->is_shown = true;
+  splash->mode = mode;
+  return true;
+}
+
+bool
+ply_boot_splash_system_update (ply_boot_splash_t *splash,
+                               int                progress)
+{
+  assert (splash != NULL);
+  assert (splash->module_handle != NULL);
+  assert (splash->loop != NULL);
+  assert (splash->plugin_interface != NULL);
+  assert (splash->plugin != NULL);
+  assert (splash->plugin_interface->system_update != NULL);
+
+  ply_trace ("updating system %i%%", progress);
+  splash->plugin_interface->system_update (splash->plugin,
+                                           progress);
   return true;
 }
 
@@ -605,7 +630,7 @@ ply_boot_splash_update_status (ply_boot_splash_t *splash,
   assert (splash->plugin_interface != NULL);
   assert (splash->plugin != NULL);
   assert (splash->plugin_interface->update_status != NULL);
-  assert (splash->is_shown);
+  assert (splash->mode != PLY_BOOT_SPLASH_MODE_INVALID);
 
   splash->plugin_interface->update_status (splash->plugin, status);
 }
@@ -659,7 +684,7 @@ ply_boot_splash_hide (ply_boot_splash_t *splash)
         ply_terminal_set_mode (terminal, PLY_TERMINAL_MODE_TEXT);
     }
 
-  splash->is_shown = false;
+  splash->mode = PLY_BOOT_SPLASH_MODE_INVALID;
 
   if (splash->loop != NULL)
     {
@@ -682,6 +707,7 @@ void ply_boot_splash_display_message (ply_boot_splash_t             *splash,
   assert (splash != NULL);
   assert (splash->plugin_interface != NULL);
   assert (splash->plugin != NULL);
+
   if (splash->plugin_interface->display_message != NULL)
     splash->plugin_interface->display_message (splash->plugin, message);
 }

@@ -38,8 +38,8 @@ typedef enum
 {
   PLY_BOOT_SPLASH_MODE_BOOT_UP,
   PLY_BOOT_SPLASH_MODE_SHUTDOWN,
-  PLY_BOOT_SPLASH_MODE_SUSPEND,
-  PLY_BOOT_SPLASH_MODE_RESUME,
+  PLY_BOOT_SPLASH_MODE_UPDATES,
+  PLY_BOOT_SPLASH_MODE_INVALID
 } ply_boot_splash_mode_t;
 
 typedef struct _ply_boot_splash_plugin ply_boot_splash_plugin_t;
@@ -65,6 +65,8 @@ typedef struct
                                ply_event_loop_t         *loop,
                                ply_buffer_t             *boot_buffer,
                                ply_boot_splash_mode_t    mode);
+  void (* system_update) (ply_boot_splash_plugin_t *plugin,
+                          int                       progress);
   void (* update_status) (ply_boot_splash_plugin_t *plugin,
                           const char               *status);
   void (* on_boot_output) (ply_boot_splash_plugin_t *plugin,

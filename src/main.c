@@ -61,7 +61,8 @@
 
 typedef enum {
   PLY_MODE_BOOT,
-  PLY_MODE_SHUTDOWN
+  PLY_MODE_SHUTDOWN,
+  PLY_MODE_UPDATES
 } ply_mode_t;
 
 typedef struct 
@@ -178,6 +179,51 @@ on_update (state_t     *state,
   if (state->boot_splash != NULL)
     ply_boot_splash_update_status (state->boot_splash,
                                    status);
+}
+
+static void
+on_change_mode (state_t     *state,
+                const char  *mode)
+{
+  if (state->boot_splash == NULL)
+    {
+      ply_trace ("no splash set");
+      return;
+    }
+
+  ply_trace ("updating mode to '%s'", mode);
+  if (strcmp (mode, "boot-up") == 0)
+    state->mode = PLY_BOOT_SPLASH_MODE_BOOT_UP;
+  else if (strcmp (mode, "shutdown") == 0)
+    state->mode = PLY_BOOT_SPLASH_MODE_SHUTDOWN;
+  else if (strcmp (mode, "updates") == 0)
+    state->mode = PLY_BOOT_SPLASH_MODE_UPDATES;
+  else
+    return;
+
+  if (!ply_boot_splash_show (state->boot_splash, state->mode))
+    {
+      ply_trace ("failed to update splash");
+      return;
+    }
+}
+
+static void
+on_system_update (state_t     *state,
+                  int          progress)
+{
+  if (state->boot_splash == NULL)
+    {
+      ply_trace ("no splash set");
+      return;
+    }
+
+  ply_trace ("setting system update to '%i'", progress);
+  if (!ply_boot_splash_system_update (state->boot_splash, progress))
+    {
+      ply_trace ("failed to update splash");
+      return;
+    }
 }
 
 static void
@@ -451,9 +497,13 @@ static void
 on_display_message (state_t       *state,
                     const char    *message)
 {
-  ply_trace ("displaying message %s", message);
   if (state->boot_splash != NULL)
-    ply_boot_splash_display_message (state->boot_splash, message);
+    {
+        ply_trace ("displaying message %s", message);
+        ply_boot_splash_display_message (state->boot_splash, message);
+    }
+  else
+    ply_trace ("not displaying message %s as no splash", message);
   ply_list_append_data (state->messages, strdup(message));
 }
 
@@ -565,6 +615,9 @@ get_cache_file_for_mode (ply_mode_t mode)
     case PLY_MODE_SHUTDOWN:
       filename = SHUTDOWN_DURATION_FILE;
       break;
+    case PLY_MODE_UPDATES:
+      filename = NULL;
+      break;
     default:
       fprintf (stderr, "Unhandled case in %s line %d\n", __FILE__, __LINE__);
       abort ();
@@ -586,6 +639,7 @@ get_log_file_for_mode (ply_mode_t mode)
       filename = PLYMOUTH_LOG_DIRECTORY "/boot.log";
       break;
     case PLY_MODE_SHUTDOWN:
+    case PLY_MODE_UPDATES:
       filename = _PATH_DEVNULL;
       break;
     default:
@@ -609,6 +663,7 @@ get_log_spool_file_for_mode (ply_mode_t mode)
       filename = PLYMOUTH_SPOOL_DIRECTORY "/boot.log";
       break;
     case PLY_MODE_SHUTDOWN:
+    case PLY_MODE_UPDATES:
       filename = NULL;
       break;
     default:
@@ -1218,6 +1273,8 @@ start_boot_server (state_t *state)
   ply_boot_server_t *server;
 
   server = ply_boot_server_new ((ply_boot_server_update_handler_t) on_update,
+                                (ply_boot_server_change_mode_handler_t) on_change_mode,
+                                (ply_boot_server_system_update_handler_t) on_system_update,
                                 (ply_boot_server_ask_for_password_handler_t) on_ask_for_password,
                                 (ply_boot_server_ask_question_handler_t) on_ask_question,
                                 (ply_boot_server_display_message_handler_t) on_display_message,
@@ -2350,6 +2407,8 @@ main (int    argc,
     {
       if (strcmp (mode_string, "shutdown") == 0)
         state.mode = PLY_MODE_SHUTDOWN;
+      else if (strcmp (mode_string, "updates") == 0)
+        state.mode = PLY_MODE_UPDATES;
       else
         state.mode = PLY_MODE_BOOT;
 

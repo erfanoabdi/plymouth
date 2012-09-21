@@ -61,11 +61,8 @@ static script_return_t plymouth_get_mode (script_state_t *state,
       case PLY_BOOT_SPLASH_MODE_SHUTDOWN:
         obj = script_obj_new_string ("shutdown");
         break;
-      case PLY_BOOT_SPLASH_MODE_SUSPEND:
-        obj = script_obj_new_string ("suspend");
-        break;
-      case PLY_BOOT_SPLASH_MODE_RESUME:
-        obj = script_obj_new_string ("resume");
+      case PLY_BOOT_SPLASH_MODE_UPDATES:
+        obj = script_obj_new_string ("updates");
         break;
       default:
         obj = script_obj_new_string ("unknown");
