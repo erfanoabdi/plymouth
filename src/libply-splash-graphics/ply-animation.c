@@ -73,6 +73,9 @@ struct _ply_animation
   uint32_t stop_requested : 1;
 };
 
+static void ply_animation_stop_now (ply_animation_t *animation);
+
+
 ply_animation_t *
 ply_animation_new (const char *image_dir,
                    const char *frames_prefix)
@@ -117,6 +120,9 @@ ply_animation_free (ply_animation_t *animation)
 {
   if (animation == NULL)
     return;
+
+  if (!animation->is_stopped)
+    ply_animation_stop_now (animation);
 
   ply_animation_remove_frames (animation);
   ply_array_free (animation->frames);

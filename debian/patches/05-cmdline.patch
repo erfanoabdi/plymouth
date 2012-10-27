@@ -4,8 +4,8 @@ Description:
  files (Closes: #680517).
 
 diff -Naurp plymouth.orig/systemd-units/plymouth-halt.service.in plymouth/systemd-units/plymouth-halt.service.in
---- plymouth.orig/systemd-units/plymouth-halt.service.in	2012-06-27 16:06:31.638913312 +0200
-+++ plymouth/systemd-units/plymouth-halt.service.in	2012-07-09 01:43:36.098458141 +0200
+--- plymouth.orig/systemd-units/plymouth-halt.service.in	2012-10-27 19:40:51.955834294 +0200
++++ plymouth/systemd-units/plymouth-halt.service.in	2012-10-27 19:45:10.089643013 +0200
 @@ -3,7 +3,7 @@ Description=Show Plymouth Halt Screen
  After=getty@tty1.service prefdm.service plymouth-start.service
  Before=halt.service
@@ -16,8 +16,8 @@ diff -Naurp plymouth.orig/systemd-units/plymouth-halt.service.in plymouth/system
  [Service]
  ExecStart=@PLYMOUTH_DAEMON_DIR@/plymouthd --mode=shutdown --attach-to-session
 diff -Naurp plymouth.orig/systemd-units/plymouth-kexec.service.in plymouth/systemd-units/plymouth-kexec.service.in
---- plymouth.orig/systemd-units/plymouth-kexec.service.in	2012-06-27 16:06:31.638913312 +0200
-+++ plymouth/systemd-units/plymouth-kexec.service.in	2012-07-09 01:43:38.154474533 +0200
+--- plymouth.orig/systemd-units/plymouth-kexec.service.in	2012-10-27 19:40:51.955834294 +0200
++++ plymouth/systemd-units/plymouth-kexec.service.in	2012-10-27 19:45:11.153650127 +0200
 @@ -3,7 +3,7 @@ Description=Show Plymouth Reboot with ke
  After=getty@tty1.service prefdm.service plymouth-start.service
  Before=kexec.service
@@ -28,8 +28,8 @@ diff -Naurp plymouth.orig/systemd-units/plymouth-kexec.service.in plymouth/syste
  [Service]
  ExecStart=@PLYMOUTH_DAEMON_DIR@/plymouthd --mode=shutdown --attach-to-session
 diff -Naurp plymouth.orig/systemd-units/plymouth-poweroff.service.in plymouth/systemd-units/plymouth-poweroff.service.in
---- plymouth.orig/systemd-units/plymouth-poweroff.service.in	2012-06-27 16:06:31.638913312 +0200
-+++ plymouth/systemd-units/plymouth-poweroff.service.in	2012-07-09 01:43:39.950488849 +0200
+--- plymouth.orig/systemd-units/plymouth-poweroff.service.in	2012-10-27 19:40:51.955834294 +0200
++++ plymouth/systemd-units/plymouth-poweroff.service.in	2012-10-27 19:45:12.185657429 +0200
 @@ -3,7 +3,7 @@ Description=Show Plymouth Power Off Scre
  After=getty@tty1.service prefdm.service plymouth-start.service
  Before=poweroff.service
@@ -40,8 +40,8 @@ diff -Naurp plymouth.orig/systemd-units/plymouth-poweroff.service.in plymouth/sy
  [Service]
  ExecStart=@PLYMOUTH_DAEMON_DIR@/plymouthd --mode=shutdown --attach-to-session
 diff -Naurp plymouth.orig/systemd-units/plymouth-reboot.service.in plymouth/systemd-units/plymouth-reboot.service.in
---- plymouth.orig/systemd-units/plymouth-reboot.service.in	2012-06-27 16:06:31.650913425 +0200
-+++ plymouth/systemd-units/plymouth-reboot.service.in	2012-07-09 01:43:46.130538119 +0200
+--- plymouth.orig/systemd-units/plymouth-reboot.service.in	2012-10-27 19:40:51.955834294 +0200
++++ plymouth/systemd-units/plymouth-reboot.service.in	2012-10-27 19:45:13.293665081 +0200
 @@ -3,7 +3,7 @@ Description=Show Plymouth Reboot Screen
  After=getty@tty1.service prefdm.service plymouth-start.service
  Before=reboot.service
@@ -52,14 +52,38 @@ diff -Naurp plymouth.orig/systemd-units/plymouth-reboot.service.in plymouth/syst
  [Service]
  ExecStart=@PLYMOUTH_DAEMON_DIR@/plymouthd --mode=shutdown --attach-to-session
 diff -Naurp plymouth.orig/systemd-units/plymouth-start.service.in plymouth/systemd-units/plymouth-start.service.in
---- plymouth.orig/systemd-units/plymouth-start.service.in	2012-06-27 16:06:31.650913425 +0200
-+++ plymouth/systemd-units/plymouth-start.service.in	2012-07-09 01:43:51.506580979 +0200
+--- plymouth.orig/systemd-units/plymouth-start.service.in	2012-10-27 19:40:51.955834294 +0200
++++ plymouth/systemd-units/plymouth-start.service.in	2012-10-27 19:45:14.493673718 +0200
 @@ -4,7 +4,7 @@ DefaultDependencies=no
  Wants=systemd-ask-password-plymouth.path
- After=systemd-vconsole-setup.service systemd-udev-settle.service
+ After=systemd-vconsole-setup.service systemd-udev-trigger.service
  Before=systemd-ask-password-plymouth.service
 -ConditionKernelCommandLine=!plymouth.enable=0
 +ConditionKernelCommandLine=splash
- ConditionPathExists=!@plymouthruntimedir@/pid
+ 
+ [Service]
+ ExecStart=@PLYMOUTH_DAEMON_DIR@/plymouthd --mode=boot --pid-file=@plymouthruntimedir@/pid --attach-to-session
+diff -Naurp plymouth.orig/systemd-units/systemd-ask-password-plymouth.path.in plymouth/systemd-units/systemd-ask-password-plymouth.path.in
+--- plymouth.orig/systemd-units/systemd-ask-password-plymouth.path.in	2012-10-27 19:40:51.955834294 +0200
++++ plymouth/systemd-units/systemd-ask-password-plymouth.path.in	2012-10-27 19:45:15.553680856 +0200
+@@ -5,7 +5,7 @@ DefaultDependencies=no
+ Conflicts=shutdown.target
+ After=plymouth-start.service
+ Before=basic.target shutdown.target
+-ConditionKernelCommandLine=!plymouth.enable=0
++ConditionKernelCommandLine=splash
+ ConditionPathExists=/run/plymouth/pid
+ 
+ [Path]
+diff -Naurp plymouth.orig/systemd-units/systemd-ask-password-plymouth.service.in plymouth/systemd-units/systemd-ask-password-plymouth.service.in
+--- plymouth.orig/systemd-units/systemd-ask-password-plymouth.service.in	2012-10-27 19:40:51.955834294 +0200
++++ plymouth/systemd-units/systemd-ask-password-plymouth.service.in	2012-10-27 19:45:20.021714679 +0200
+@@ -5,7 +5,7 @@ DefaultDependencies=no
+ Conflicts=shutdown.target
+ After=plymouth-start.service
+ Before=shutdown.target
+-ConditionKernelCommandLine=!plymouth.enable=0
++ConditionKernelCommandLine=splash
+ ConditionPathExists=/run/plymouth/pid
  
  [Service]

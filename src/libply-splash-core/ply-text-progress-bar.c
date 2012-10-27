@@ -137,6 +137,14 @@ get_os_string (void)
           if (pos2 != NULL)
             *pos2 = '\0';
 
+          if ((*pos == '\"' && pos2[-1] == '\"') ||
+              (*pos == '\'' && pos2[-1] == '\''))
+            {
+              pos++;
+              pos2--;
+
+              *pos2 = '\0';
+            }
           asprintf (&os_string, " %s", pos);
         }
       goto out;

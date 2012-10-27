@@ -161,8 +161,6 @@ view_new (ply_boot_splash_plugin_t *plugin,
 
   view->label = ply_label_new ();
   view->message_label = ply_label_new ();
-  ply_label_set_text (view->message_label, "");
-  ply_label_show (view->message_label, view->display, 10, 10);
 
   return view;
 }
@@ -1249,6 +1247,7 @@ show_message (ply_boot_splash_plugin_t *plugin,
       next_node = ply_list_get_next_node (plugin->views, node);
       
       ply_label_set_text (view->message_label, message);
+      ply_label_show (view->message_label, view->display, 10, 10);
       
       ply_pixel_display_draw_area (view->display, 10, 10,
                                    ply_label_get_width (view->message_label),

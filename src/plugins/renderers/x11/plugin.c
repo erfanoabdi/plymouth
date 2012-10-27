@@ -68,6 +68,7 @@ struct _ply_renderer_head
   GtkWidget              *window;
   GdkPixmap              *pixmap;
   cairo_surface_t        *image;
+  uint32_t                is_fullscreen : 1;
 };
 
 struct _ply_renderer_input_source
@@ -172,43 +173,78 @@ close_device (ply_renderer_backend_t *backend)
   return;
 }
 
+static void
+create_fake_multi_head_setup (ply_renderer_backend_t *backend)
+{
+  ply_renderer_head_t *head;
+
+  head = calloc (1, sizeof (ply_renderer_head_t));
+
+  head->backend = backend;
+  head->area.x = 0;
+  head->area.y = 0;
+  head->area.width = 800;         /* FIXME hardcoded */
+  head->area.height = 600;
+  head->pixmap = gdk_pixmap_new (NULL,
+                                 head->area.width,
+                                 head->area.height,
+                                 24);
+  head->pixel_buffer = ply_pixel_buffer_new (head->area.width, head->area.height);
+
+  ply_list_append_data (backend->heads, head);
+
+  head = calloc (1, sizeof (ply_renderer_head_t));
+
+  head->backend = backend;
+  head->area.x = 800;
+  head->area.y = 0;
+  head->area.width = 640;         /* FIXME hardcoded */
+  head->area.height = 480;
+  head->pixmap = gdk_pixmap_new (NULL,
+                                 head->area.width,
+                                 head->area.height,
+                                 24);
+  head->pixel_buffer = ply_pixel_buffer_new (head->area.width, head->area.height);
+
+  ply_list_append_data (backend->heads, head);
+}
+
+static void
+create_fullscreen_single_head_setup (ply_renderer_backend_t *backend)
+{
+  ply_renderer_head_t *head;
+  GdkRectangle         monitor_geometry;
+
+  gdk_screen_get_monitor_geometry (gdk_screen_get_default (), 0, &monitor_geometry);
+
+  head = calloc (1, sizeof (ply_renderer_head_t));
+
+  head->backend = backend;
+  head->area.x = monitor_geometry.x;
+  head->area.y = monitor_geometry.y;
+  head->area.width = monitor_geometry.width;
+  head->area.height = monitor_geometry.height;
+  head->is_fullscreen = true;
+  head->pixmap = gdk_pixmap_new (NULL,
+                                 head->area.width,
+                                 head->area.height,
+                                 24);
+  head->pixel_buffer = ply_pixel_buffer_new (head->area.width, head->area.height);
+
+  ply_list_append_data (backend->heads, head);
+}
+
 static bool
 query_device (ply_renderer_backend_t *backend)
 {
-  ply_renderer_head_t *head;
   assert (backend != NULL);
 
   if (ply_list_get_first_node (backend->heads) == NULL)
     {
-      head = calloc (1, sizeof (ply_renderer_head_t));
-
-      head->backend = backend;
-      head->area.x = 0;
-      head->area.y = 0;
-      head->area.width = 800;         /* FIXME hardcoded */
-      head->area.height = 600;
-      head->pixmap = gdk_pixmap_new (NULL,
-                                     head->area.width,
-                                     head->area.height,
-                                     24);
-      head->pixel_buffer = ply_pixel_buffer_new (head->area.width, head->area.height);
-
-      ply_list_append_data (backend->heads, head);
-
-      head = calloc (1, sizeof (ply_renderer_head_t));
-
-      head->backend = backend;
-      head->area.x = 800;
-      head->area.y = 0;
-      head->area.width = 640;         /* FIXME hardcoded */
-      head->area.height = 480;
-      head->pixmap = gdk_pixmap_new (NULL,
-                                     head->area.width,
-                                     head->area.height,
-                                     24);
-      head->pixel_buffer = ply_pixel_buffer_new (head->area.width, head->area.height);
-
-      ply_list_append_data (backend->heads, head);
+      if (getenv ("PLY_CREATE_FAKE_MULTI_HEAD_SETUP") != NULL)
+        create_fake_multi_head_setup (backend);
+      else
+        create_fullscreen_single_head_setup (backend);
     }
 
   return true;
@@ -238,34 +274,41 @@ map_to_device (ply_renderer_backend_t *backend)
       head = (ply_renderer_head_t *) ply_list_node_get_data (node);
       next_node = ply_list_get_next_node (backend->heads, node);
 
-      head->window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
-      gtk_window_set_resizable (GTK_WINDOW (head->window), FALSE);
-      gtk_widget_set_size_request (head->window,
-                                   head->area.width,
-                                   head->area.height);
-      shadow_buffer = ply_pixel_buffer_get_argb32_data (head->pixel_buffer);
-      head->image = cairo_image_surface_create_for_data ((unsigned char *) shadow_buffer,
-                                                         CAIRO_FORMAT_ARGB32,
-                                                         head->area.width, head->area.height,
-                                                         head->area.width * 4);
-      gtk_widget_set_app_paintable (head->window, TRUE);
-      gtk_widget_show_all (head->window);
-      gdk_window_set_back_pixmap (head->window->window, head->pixmap, FALSE);
-      gdk_window_set_decorations (head->window->window, GDK_DECOR_BORDER);
-      gtk_window_move (GTK_WINDOW (head->window), head->area.x, head->area.y);
+      if (head->window == NULL)
+        {
+          head->window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+          gtk_window_set_resizable (GTK_WINDOW (head->window), FALSE);
+          gtk_widget_set_size_request (head->window,
+                                       head->area.width,
+                                       head->area.height);
+          shadow_buffer = ply_pixel_buffer_get_argb32_data (head->pixel_buffer);
+          head->image = cairo_image_surface_create_for_data ((unsigned char *) shadow_buffer,
+                                                             CAIRO_FORMAT_ARGB32,
+                                                             head->area.width, head->area.height,
+                                                             head->area.width * 4);
+          gtk_widget_set_app_paintable (head->window, TRUE);
+          gtk_widget_show_all (head->window);
+          gdk_window_set_back_pixmap (head->window->window, head->pixmap, FALSE);
+          gdk_window_set_decorations (head->window->window, GDK_DECOR_BORDER);
+          gtk_window_move (GTK_WINDOW (head->window), head->area.x, head->area.y);
 
-      gtk_widget_add_events (head->window, GDK_BUTTON1_MOTION_MASK);
+          gtk_window_set_type_hint (GTK_WINDOW (head->window), GDK_WINDOW_TYPE_HINT_DOCK);
 
-      g_signal_connect (head->window, "motion-notify-event",
-                        G_CALLBACK (on_motion_notify_event),
-                        head);
-      g_signal_connect (head->window, "key-press-event",
-                        G_CALLBACK (on_key_event),
-                        &backend->input_source);
-      g_signal_connect (head->window, "delete-event",
-                        G_CALLBACK (on_window_destroy),
-                        NULL);
+          if (head->is_fullscreen)
+            gtk_window_fullscreen (GTK_WINDOW (head->window));
 
+          gtk_widget_add_events (head->window, GDK_BUTTON1_MOTION_MASK);
+
+          g_signal_connect (head->window, "motion-notify-event",
+                            G_CALLBACK (on_motion_notify_event),
+                            head);
+          g_signal_connect (head->window, "key-press-event",
+                            G_CALLBACK (on_key_event),
+                            &backend->input_source);
+          g_signal_connect (head->window, "delete-event",
+                            G_CALLBACK (on_window_destroy),
+                            NULL);
+        }
       ply_renderer_head_redraw (backend, head);
       node = next_node;
     }

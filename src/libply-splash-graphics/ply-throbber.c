@@ -78,6 +78,8 @@ struct _ply_throbber
   uint32_t is_stopped : 1;
 };
 
+static void ply_throbber_stop_now (ply_throbber_t *throbber);
+
 ply_throbber_t *
 ply_throbber_new (const char *image_dir,
               const char *frames_prefix)
@@ -121,6 +123,9 @@ ply_throbber_free (ply_throbber_t *throbber)
 {
   if (throbber == NULL)
     return;
+
+  if (!throbber->is_stopped)
+    ply_throbber_stop_now (throbber);
 
   ply_throbber_remove_frames (throbber);
   ply_array_free (throbber->frames);

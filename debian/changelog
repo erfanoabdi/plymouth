@@ -1,3 +1,12 @@
+plymouth (0.8.8-1) unstable; urgency=low
+
+  * Merging upstream version 0.8.8.
+  * Rediffing default-theme.patch.
+  * Updating cmdline.patch.
+  * Removing os-release-quotes.patch, included upstream.
+
+ -- Daniel Baumann <daniel.baumann@progress-technologies.net>  Sat, 27 Oct 2012 19:30:18 +0200
+
 plymouth (0.8.6.1-1) unstable; urgency=low
 
   * Merging upstream version 0.8.6.1.
