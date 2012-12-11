@@ -97,17 +97,11 @@ case "${THEME_NAME}" in
 		cp -a /usr/share/fonts/truetype/ttf-dejavu/DejaVuSans.ttf  "${DESTDIR}/usr/share/fonts/truetype/ttf-dejavu"
 		cp -a /etc/fonts/fonts.conf "${DESTDIR}/etc/fonts"
 		cp -rL /etc/fonts/conf.d/60-latin.conf "${DESTDIR}/etc/fonts/conf.d"
-		if [ -e /usr/lib/pango/1.6.0/module-files.d/libpango1.0-0.modules ]
-		then
-			# pre-multiarch fallback
-			PANGO_DIR=/usr/lib/pango/1.6.0
-		else
-			PANGO_DIR=/usr/lib/@DEB_HOST_MULTIARCH@/pango/1.6.0
-		fi
-		mkdir -p "${DESTDIR}${PANGO_DIR}/module-files.d"
-		mkdir -p "${DESTDIR}${PANGO_DIR}/modules"
-		cp ${PANGO_DIR}/module-files.d/libpango1.0-0.modules ${DESTDIR}${PANGO_DIR}/module-files.d/
-		copy_exec ${PANGO_DIR}/modules/pango-basic-fc.so
+
+		mkdir -p "${DESTDIR}/usr/lib/@DEB_HOST_MULTIARCH@/pango/1.6.0/module-files.d"
+		mkdir -p "${DESTDIR}/usr/lib/@DEB_HOST_MULTIARCH@/pango/1.6.0/modules"
+		cp /usr/lib/@DEB_HOST_MULTIARCH@/pango/1.6.0/module-files.d/libpango1.0-0.modules ${DESTDIR}/usr/lib/@DEB_HOST_MULTIARCH@/pango/1.6.0/module-files.d/
+		copy_exec /usr/lib/@DEB_HOST_MULTIARCH@/pango/1.6.0/modules/pango-basic-fc.so
 
 		# copy renderers
 		copy_exec /usr/lib/@DEB_HOST_MULTIARCH@/plymouth/renderers/frame-buffer.so
@@ -127,3 +121,22 @@ then
 fi
 
 cp -a /usr/share/plymouth/plymouthd.defaults "${DESTDIR}/usr/share/plymouth/"
+
+# temporarily include dummy root account lookup (#691598)
+if ! grep -qs '^root:' "${DESTDIR}/etc/passwd"
+then
+	echo "root:x:0:0:root:/root:/bin/sh" >> "${DESTDIR}/etc/passwd"
+fi
+
+if ! grep -qs '^passwd: files' "${DESTDIR}/etc/nsswitch.conf"
+then
+	echo "passwd: files" >> "${DESTDIR}/etc/nsswitch.conf"
+fi
+
+for _LIBRARY in /lib/@DEB_HOST_MULTIARCH@/libnss_files*
+do
+	if [ -e "${_LIBRARY}" ]
+	then
+		copy_exec ${_LIBRARY} /lib
+	fi
+done

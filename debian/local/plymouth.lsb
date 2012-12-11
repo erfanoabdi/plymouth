@@ -6,32 +6,32 @@ then
 	return
 fi
 
-log_begin_msg_pre ()
+log_begin_msg_post ()
 {
 	/bin/plymouth update --status="${@}" || true
  }
 
-log_end_msg_pre ()
+log_end_msg_post ()
 {
 	:
 }
 
-log_action_begin_msg_pre ()
+log_action_begin_msg_post ()
 {
 	/bin/plymouth update --status="${@}" || true
 }
 
-log_action_end_msg_pre ()
+log_action_end_msg_post ()
 {
 	:
 }
 
-log_action_msg_pre ()
+log_action_msg_post ()
 {
 	/bin/plymouth update --status="${@}" || true
 }
 
-log_daemon_msg_pre ()
+log_daemon_msg_post ()
 {
 	/bin/plymouth update --status="${@}" || true
 }

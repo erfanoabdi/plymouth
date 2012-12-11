@@ -1,16 +1,8 @@
-#!/bin/sh
-
-set -e
-
-DEB_HOST_MULTIARCH="$(dpkg-architecture -qDEB_HOST_MULTIARCH || true)"
-
-cat << EOF
-lib/${DEB_HOST_MULTIARCH}/*.a
-lib/${DEB_HOST_MULTIARCH}/*.so
+lib/*/*.a
+lib/*/*.so
 usr/include
-usr/lib/${DEB_HOST_MULTIARCH}/*.a
-usr/lib/${DEB_HOST_MULTIARCH}/*.so
-usr/lib/${DEB_HOST_MULTIARCH}/pkgconfig
-usr/lib/${DEB_HOST_MULTIARCH}/plymouth/*.a
-usr/lib/${DEB_HOST_MULTIARCH}/plymouth/*/*.a
-EOF
+usr/lib/*/*.a
+usr/lib/*/*.so
+usr/lib/*/pkgconfig
+usr/lib/*/plymouth/*.a
+usr/lib/*/plymouth/*/*.a

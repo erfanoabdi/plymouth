@@ -1,3 +1,15 @@
+plymouth (0.8.8-2) unstable; urgency=low
+
+  * Correcting mistaken conflicts against console-tools instead of
+    console-common.
+  * Using lsb post functions instead of pre functions (Closes: #691794).
+  * Adding dpkg-source local options.
+  * Temporarily including dummy root account lookup (Closes: #691598).
+  * Dropping conditional multiarch support, not needed anymore for jessie
+    and wheezy backports.
+
+ -- Daniel Baumann <daniel.baumann@progress-technologies.net>  Tue, 11 Dec 2012 06:42:10 +0100
+
 plymouth (0.8.8-1) unstable; urgency=low
 
   * Merging upstream version 0.8.8.

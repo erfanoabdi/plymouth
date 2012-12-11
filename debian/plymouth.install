@@ -1,22 +1,14 @@
-#!/bin/sh
-
-set -e
-
-DEB_HOST_MULTIARCH="$(dpkg-architecture -qDEB_HOST_MULTIARCH || true)"
-
-cat << EOF
 bin
 etc/plymouth
-lib/${DEB_HOST_MULTIARCH}/*.so.*
+lib/*/*.so.*
 sbin
-usr/lib/${DEB_HOST_MULTIARCH}/libply-boot-client.so.*
-usr/lib/${DEB_HOST_MULTIARCH}/plymouth/details.so
-usr/lib/${DEB_HOST_MULTIARCH}/plymouth/text.so
-usr/lib/${DEB_HOST_MULTIARCH}/plymouth/*-initrd
+usr/lib/*/libply-boot-client.so.*
+usr/lib/*/plymouth/details.so
+usr/lib/*/plymouth/text.so
+usr/lib/*/plymouth/*-initrd
 lib/systemd
 usr/sbin
 usr/share/man/man8/plymouth.8
 usr/share/plymouth/plymouthd.defaults
 usr/share/plymouth/themes/text
 usr/share/plymouth/themes/details
-EOF

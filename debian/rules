@@ -32,13 +32,6 @@ override_dh_auto_configure:
 override_dh_builddeb:
 	dh_builddeb -- -Zxz -z9
 
-override_dh_gencontrol:
-ifeq ($(DEB_HOST_MULTIARCH),)
-	dh_gencontrol
-else
-	dh_gencontrol -- -Vmisc:Pre-Depends="multiarch-support"
-endif
-
 override_dh_install:
 	# Removing useless files
 	rm -f debian/tmp/lib/$(DEB_HOST_MULTIARCH)/*.la
