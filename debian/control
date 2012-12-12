@@ -4,8 +4,8 @@ Priority: optional
 Maintainer: Daniel Baumann <daniel.baumann@progress-technologies.net>
 Build-Depends:
  debhelper (>= 9), autotools-dev, libdrm-dev, libgtk2.0-dev, libpango1.0-dev,
- libpng-dev, pkg-config, dpkg-dev (>= 1.16.0)
-Standards-Version: 3.9.3
+ libpng-dev, pkg-config
+Standards-Version: 3.9.4
 Homepage: http://www.freedesktop.org/wiki/Software/Plymouth
 
 Package: plymouth
@@ -25,8 +25,6 @@ Pre-Depends: multiarch-support
 Depends:
  ${misc:Depends}, ${shlibs:Depends}, plymouth (= ${binary:Version}),
  fontconfig-config, ttf-dejavu-core
-Conflicts: plymouth (<< 0.8.3-10)
-Replaces: plymouth
 Recommends: plymouth-themes-all
 Description: Graphical Boot Animation and Logger (DRM)
  Plymouth provides an attractive boot animation in place of the text messages
@@ -39,8 +37,6 @@ Description: Graphical Boot Animation and Logger (DRM)
 Package: plymouth-x11
 Architecture: linux-any
 Depends: ${misc:Depends}, ${shlibs:Depends}, plymouth-drm (= ${binary:Version})
-Conflicts: plymouth (<< 0.8.3-10)
-Replaces: plymouth
 Suggests: gdm
 Description: Graphical Boot Animation and Logger
  Plymouth provides an attractive boot animation in place of the text messages

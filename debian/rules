@@ -39,6 +39,9 @@ override_dh_install:
 	rm -f debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)/plymouth/*.la
 	rm -f debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)/plymouth/*/*.la
 
+	# Moving /usr/lib to /lib
+	mv debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)/*.so.* debian/tmp/lib/$(DEB_HOST_MULTIARCH)
+
 	dh_install --fail-missing
 
 	# Adding initramfs-tools integration
@@ -55,6 +58,15 @@ override_dh_install:
 override_dh_installinit:
 	dh_installinit --no-start -- start 21 2 3 4 5 . stop 02 0 6 .
 	dh_installinit --no-start --name=plymouth-log -- start 37 S .
+
+override_dh_link:
+	# correcting symlink targets
+	for LIB in debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)/*.so; \
+	do \
+		dh_link -pplymouth-dev lib/$(DEB_HOST_MULTIARCH)/$$(basename $$(readlink $${LIB})) usr/lib/$(DEB_HOST_MULTIARCH)/$$(basename $${LIB}); \
+	done
+
+	dh_link --remaining-packages
 
 override_dh_makeshlibs:
 	dh_makeshlibs -p plymouth

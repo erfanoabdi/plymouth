@@ -12,7 +12,7 @@ The following steps are required in order to enable the plymouth bootsplash:
     # for KMS with Intel graphic cards
     i915 modeset=1
 
-    # for KMS with NVidia graphic cards
+    # for KMS with NVIDIA graphic cards
     nouveau modeset=1
 
     # for KMS with AMD (ATI) graphic cards

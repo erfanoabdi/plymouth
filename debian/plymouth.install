@@ -1,8 +1,9 @@
 bin
 etc/plymouth
-lib/*/*.so.*
+lib/*/libply.so.*
+lib/*/libply-boot-client.so.*
+lib/*/libply-splash-core.so.*
 sbin
-usr/lib/*/libply-boot-client.so.*
 usr/lib/*/plymouth/details.so
 usr/lib/*/plymouth/text.so
 usr/lib/*/plymouth/*-initrd

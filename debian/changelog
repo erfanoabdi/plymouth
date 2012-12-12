@@ -1,3 +1,13 @@
+plymouth (0.8.8-3) unstable; urgency=low
+
+  * Moving /usr/lib to /lib (Closes: #695706).
+  * Dropping pre-wheezy versioned build-depends on dpkg-dev.
+  * Dropping pre-wheezy conflicts and replaces.
+  * Updating to standards version 3.9.4.
+  * Correcting spelling ov NVIDIA in readme.
+
+ -- Daniel Baumann <daniel.baumann@progress-technologies.net>  Wed, 12 Dec 2012 09:54:32 +0100
+
 plymouth (0.8.8-2) unstable; urgency=low
 
   * Correcting mistaken conflicts against console-tools instead of

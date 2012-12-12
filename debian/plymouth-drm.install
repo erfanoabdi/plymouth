@@ -1,4 +1,4 @@
-usr/lib/*/libply-splash-graphics.so.*
+lib/*/libply-splash-graphics.so.*
 usr/lib/*/plymouth/fade-throbber.so
 usr/lib/*/plymouth/label.so
 usr/lib/*/plymouth/script.so
