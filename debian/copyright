@@ -11,7 +11,7 @@ Copyright: 2006-2008 Red Hat, Inc.
 License: GPL-2+
 
 Files: debian/*
-Copyright: 2009-2012 Daniel Baumann <daniel.baumann@progress-technologies.net>
+Copyright: 2009-2013 Daniel Baumann <daniel.baumann@progress-technologies.net>
 License: GPL-2+
 
 Files: debian/local/debian-logo.png

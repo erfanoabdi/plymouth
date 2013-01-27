@@ -1,3 +1,10 @@
+plymouth (0.8.8-4) unstable; urgency=low
+
+  * Updating year in copyright file.
+  * Dropping dpkg compression levels.
+
+ -- Daniel Baumann <daniel.baumann@progress-technologies.net>  Sun, 27 Jan 2013 10:13:29 +0100
+
 plymouth (0.8.8-3) unstable; urgency=low
 
   * Moving /usr/lib to /lib (Closes: #695706).
