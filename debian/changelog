@@ -1,3 +1,12 @@
+plymouth (0.8.8-5) unstable; urgency=low
+
+  * Prefixing patches with four digits.
+  * Trimming diff headers in patches.
+  * Adding patch to update udevadm paths for Debian based systems when
+    using systemd (Closes: #701524).
+
+ -- Daniel Baumann <daniel.baumann@progress-technologies.net>  Wed, 27 Feb 2013 18:00:36 +0100
+
 plymouth (0.8.8-4) unstable; urgency=low
 
   * Updating year in copyright file.

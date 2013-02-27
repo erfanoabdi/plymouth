@@ -4,8 +4,8 @@ Description:
  e.g. in chroots (Closes: #581649).
 
 diff -Naurp plymouth.orig/scripts/plymouth-populate-initrd.in plymouth/scripts/plymouth-populate-initrd.in
---- plymouth.orig/scripts/plymouth-populate-initrd.in	2012-06-21 11:40:44.083940363 +0200
-+++ plymouth/scripts/plymouth-populate-initrd.in	2012-06-21 12:08:49.196381229 +0200
+--- plymouth.orig/scripts/plymouth-populate-initrd.in
++++ plymouth/scripts/plymouth-populate-initrd.in
 @@ -338,7 +338,7 @@ function usage() {
      local output="/dev/stdout"
      local rc=0
@@ -33,8 +33,8 @@ diff -Naurp plymouth.orig/scripts/plymouth-populate-initrd.in plymouth/scripts/p
  fi
  
 diff -Naurp plymouth.orig/scripts/plymouth-set-default-theme.in plymouth/scripts/plymouth-set-default-theme.in
---- plymouth.orig/scripts/plymouth-set-default-theme.in	2012-06-21 11:40:44.083940363 +0200
-+++ plymouth/scripts/plymouth-set-default-theme.in	2012-06-21 12:08:49.196381229 +0200
+--- plymouth.orig/scripts/plymouth-set-default-theme.in
++++ plymouth/scripts/plymouth-set-default-theme.in
 @@ -84,14 +84,14 @@ while [ $# -gt 0 ]; do
  
          -l|--list)

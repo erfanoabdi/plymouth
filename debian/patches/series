@@ -1,5 +1,6 @@
-01-awk.patch
-02-stderr.patch
-03-default-theme.patch
-04-return-code.patch
-05-cmdline.patch
+0001-awk.patch
+0002-stderr.patch
+0003-default-theme.patch
+0004-return-code.patch
+0005-cmdline.patch
+0006-udevadm.patch
