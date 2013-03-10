@@ -1,4 +1,4 @@
-Author: Daniel Baumann <daniel.baumann@progress-technologies.net>
+Author: Daniel Baumann <mail@daniel-baumann.ch>
 Description:
  Using 'splash' as boot parameter instead of 'plymouth.enable' in system unit
  files (Closes: #680517).

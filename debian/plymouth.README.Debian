@@ -28,4 +28,4 @@ The following steps are required in order to enable the plymouth bootsplash:
   * Optionally switch to a different theme by running
     plymouth-set-default-theme (and rebuilding the initrd again).
 
- -- Daniel Baumann <daniel.baumann@progress-technologies.net>  Mon, 06 Sep 2010 12:11:20 +0200
+ -- Daniel Baumann <mail@daniel-baumann.ch>  Mon, 06 Sep 2010 12:11:20 +0200

@@ -1,7 +1,7 @@
 Source: plymouth
 Section: misc
 Priority: optional
-Maintainer: Daniel Baumann <daniel.baumann@progress-technologies.net>
+Maintainer: Daniel Baumann <mail@daniel-baumann.ch>
 Build-Depends:
  debhelper (>= 9), autotools-dev, libdrm-dev, libgtk2.0-dev, libpango1.0-dev,
  libpng-dev, pkg-config

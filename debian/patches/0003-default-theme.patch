@@ -1,4 +1,4 @@
-Author: Daniel Baumann <daniel.baumann@progress-technologies.net>
+Author: Daniel Baumann <mail@daniel-baumann.ch>
 Description: Ship configuration file with default theme set (Closes: #594999).
 
 diff -Naurp plymouth.orig/src/plymouthd.conf plymouth/src/plymouthd.conf

@@ -1,4 +1,4 @@
-Author: Daniel Baumann <daniel.baumann@progress-technologies.net>
+Author: Daniel Baumann <mail@daniel-baumann.ch>
 Description: Hack to fix awk call.
 
 diff -Naurp plymouth.orig/scripts/plymouth-set-default-theme.in plymouth/scripts/plymouth-set-default-theme.in
