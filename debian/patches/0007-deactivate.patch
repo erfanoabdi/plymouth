@@ -1,0 +1,27 @@
+Author: Ray Strode <rstrode@redhat.com>
+Description: if deactivate when already deactivated return immediately
+ We were trying to ignore second deactivate requests, but
+ were instead crashing because we're trying to use a nullified
+ trigger.
+ .
+ This commit makes sure things don't go crashy when a user
+ does "plymouth deactivate" on an already deactivated plymouthd.
+
+diff -Naurp plymouth.orig/src/main.c plymouth/src/main.c
+--- plymouth.orig/src/main.c
++++ plymouth/src/main.c
+@@ -1135,7 +1135,13 @@ static void
+ on_deactivate (state_t       *state,
+                ply_trigger_t *deactivate_trigger)
+ {
+-  if ((state->deactivate_trigger != NULL) || state->is_inactive)
++  if (state->is_inactive)
++    {
++      ply_trigger_pull (deactivate_trigger, NULL);
++      return;
++    }
++
++  if (state->deactivate_trigger != NULL)
+     {
+       ply_trigger_add_handler (state->deactivate_trigger,
+                                (ply_trigger_handler_t)

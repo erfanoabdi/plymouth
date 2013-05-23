@@ -1,22 +1,14 @@
-plymouth (0.8.8-6+deb8u3) unstable; urgency=low
+plymouth (0.8.8-7) experimental; urgency=low
 
-  * Correcting email address in previous changelog.
   * Updating initramfs inclusion of font-dejavu for jessie and newer
     (Closes: #707765).
+  * Ordering fontconfig inclusion in initramfs hook.
+  * Updating initramfs inclusion of pango for jessie and newer (Closes:
+    #702040, #702900, #704872).
+  * Adding patch from upstream to return directly when deactivated
+    (Closes: #632737).
 
- -- Daniel Baumann <mail@daniel-baumann.ch>  Wed, 16 Oct 2013 07:04:12 +0000
-
-plymouth (0.8.8-6+deb8u2) unstable; urgency=low
-
-  * Building without libkms support (Closes: #720560).
-
- -- Daniel Baumann <mail@daniel-baumann.ch>  Wed, 09 Oct 2013 23:26:09 +0200
-
-plymouth (0.8.8-6+deb8u1) unstable; urgency=low
-
-  * Updating initramfs inclusion of pango for jessie and newer.
-
- -- Daniel Baumann <mail@daniel-baumann.ch>  Tue, 18 Jun 2013 13:55:20 +0200
+ -- Daniel Baumann <mail@daniel-baumann.ch>  Thu, 23 May 2013 10:31:12 +0200
 
 plymouth (0.8.8-6) unstable; urgency=low
 
