@@ -1,3 +1,10 @@
+plymouth (0.8.8-8) experimental; urgency=low
+
+  * Updating again initramfs inclusion of pango for jessie and newer
+    (Closes: #702040, #702900, #704872).
+
+ -- Daniel Baumann <mail@daniel-baumann.ch>  Mon, 27 May 2013 19:12:35 +0200
+
 plymouth (0.8.8-7) experimental; urgency=low
 
   * Updating initramfs inclusion of font-dejavu for jessie and newer

@@ -110,12 +110,19 @@ case "${THEME_NAME}" in
 		fi
 
 		# pango
-		PANGO_VERSION="$(ls /usr/lib/@DEB_HOST_MULTIARCH@/pango)"
+		if ls /usr/lib/@DEB_HOST_MULTIARCH@/pango/1* > /dev/null 2>&1
+		then
+			# wheezy
+			PANGO_VERSION="$(ls /usr/lib/@DEB_HOST_MULTIARCH@/pango)"
 
-		mkdir -p "${DESTDIR}/usr/lib/@DEB_HOST_MULTIARCH@/pango/${PANGO_VERSION}/module-files.d"
-		mkdir -p "${DESTDIR}/usr/lib/@DEB_HOST_MULTIARCH@/pango/${PANGO_VERSION}/modules"
-		cp /usr/lib/@DEB_HOST_MULTIARCH@/pango/${PANGO_VERSION}/module-files.d/libpango1.0-0.modules ${DESTDIR}/usr/lib/@DEB_HOST_MULTIARCH@/pango/${PANGO_VERSION}/module-files.d/
-		copy_exec /usr/lib/@DEB_HOST_MULTIARCH@/pango/${PANGO_VERSION}/modules/pango-basic-fc.so
+			mkdir -p "${DESTDIR}/usr/lib/@DEB_HOST_MULTIARCH@/pango/${PANGO_VERSION}/module-files.d"
+			mkdir -p "${DESTDIR}/usr/lib/@DEB_HOST_MULTIARCH@/pango/${PANGO_VERSION}/modules"
+			cp /usr/lib/@DEB_HOST_MULTIARCH@/pango/${PANGO_VERSION}/module-files.d/libpango1.0-0.modules ${DESTDIR}/usr/lib/@DEB_HOST_MULTIARCH@/pango/${PANGO_VERSION}/module-files.d/
+			copy_exec /usr/lib/@DEB_HOST_MULTIARCH@/pango/${PANGO_VERSION}/modules/pango-basic-fc.so
+		else
+			# jessie
+			copy_exec /usr/lib/@DEB_HOST_MULTIARCH@/libpango-1.0.so.0
+		fi
 
 		# copy renderers
 		copy_exec /usr/lib/@DEB_HOST_MULTIARCH@/plymouth/renderers/frame-buffer.so
