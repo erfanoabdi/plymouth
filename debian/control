@@ -11,7 +11,7 @@ Homepage: http://www.freedesktop.org/wiki/Software/Plymouth
 Package: plymouth
 Architecture: linux-any
 Pre-Depends: multiarch-support
-Depends: ${misc:Depends}, ${shlibs:Depends}, initramfs-tools
+Depends: ${misc:Depends}, ${shlibs:Depends}, initramfs-tools | dracut
 Conflicts: console-common
 Suggests: desktop-base, plymouth-drm
 Description: Graphical Boot Animation and Logger
