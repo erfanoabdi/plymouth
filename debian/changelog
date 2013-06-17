@@ -1,3 +1,12 @@
+plymouth (0.8.8-10) experimental; urgency=low
+
+  * Rebuilding initrd on removal.
+  * Dropping obsolete sysvinit initscript start/stop numbers.
+  * Updating plymouth call on stop for proper shutdown (Closes: #610287,
+    #712543).
+
+ -- Daniel Baumann <mail@daniel-baumann.ch>  Mon, 17 Jun 2013 10:36:07 +0200
+
 plymouth (0.8.8-9) experimental; urgency=low
 
   * Adding alternative dependency to dracut, dracut backend still needs to

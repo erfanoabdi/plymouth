@@ -56,8 +56,8 @@ override_dh_install:
 	install -D -m 0644 debian/local/plymouth.lsb debian/plymouth/lib/lsb/init-functions.d/99-plymouth
 
 override_dh_installinit:
-	dh_installinit --no-start -- start 21 2 3 4 5 . stop 02 0 6 .
-	dh_installinit --no-start --name=plymouth-log -- start 37 S .
+	dh_installinit --no-start -- start . 2 3 4 5 . stop . 0 6 .
+	dh_installinit --no-start --name=plymouth-log -- start . S .
 
 override_dh_link:
 	# correcting symlink targets
