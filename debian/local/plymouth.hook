@@ -98,10 +98,19 @@ case "${THEME_NAME}" in
 		cp -a /etc/fonts/fonts.conf "${DESTDIR}/etc/fonts"
 		cp -rL /etc/fonts/conf.d/60-latin.conf "${DESTDIR}/etc/fonts/conf.d"
 
-		mkdir -p "${DESTDIR}/usr/lib/@DEB_HOST_MULTIARCH@/pango/1.6.0/module-files.d"
-		mkdir -p "${DESTDIR}/usr/lib/@DEB_HOST_MULTIARCH@/pango/1.6.0/modules"
-		cp /usr/lib/@DEB_HOST_MULTIARCH@/pango/1.6.0/module-files.d/libpango1.0-0.modules ${DESTDIR}/usr/lib/@DEB_HOST_MULTIARCH@/pango/1.6.0/module-files.d/
-		copy_exec /usr/lib/@DEB_HOST_MULTIARCH@/pango/1.6.0/modules/pango-basic-fc.so
+		if ls /usr/lib/@DEB_HOST_MULTIARCH@/pango/1* > /dev/null 2>&1
+		then
+			# wheezy
+			PANGO_VERSION="$(ls /usr/lib/@DEB_HOST_MULTIARCH@/pango)"
+
+			mkdir -p "${DESTDIR}/usr/lib/@DEB_HOST_MULTIARCH@/pango/${PANGO_VERSION}/module-files.d"
+			mkdir -p "${DESTDIR}/usr/lib/@DEB_HOST_MULTIARCH@/pango/${PANGO_VERSION}/modules"
+			cp /usr/lib/@DEB_HOST_MULTIARCH@/pango/${PANGO_VERSION}/module-files.d/libpango1.0-0.modules ${DESTDIR}/usr/lib/@DEB_HOST_MULTIARCH@/pango/${PANGO_VERSION}/module-files.d/
+			copy_exec /usr/lib/@DEB_HOST_MULTIARCH@/pango/${PANGO_VERSION}/modules/pango-basic-fc.so
+		else
+			# jessie
+			copy_exec /usr/lib/@DEB_HOST_MULTIARCH@/libpango-1.0.so.0
+		fi
 
 		# copy renderers
 		copy_exec /usr/lib/@DEB_HOST_MULTIARCH@/plymouth/renderers/frame-buffer.so
