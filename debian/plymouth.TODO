@@ -1,0 +1,2 @@
+merge themes-* into themes
+include gnome theme https://bugs.freedesktop.org/show_bug.cgi?id=55286
