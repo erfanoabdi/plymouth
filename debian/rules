@@ -3,7 +3,7 @@
 DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
 
 %:
-	dh ${@}
+	dh ${@} --with systemd
 
 override_dh_auto_clean:
 	dh_auto_clean
@@ -54,6 +54,9 @@ override_dh_install:
 	install -D -m 0644 debian/local/debian-logo.png debian/plymouth/usr/share/plymouth/debian-logo.png
 	install -D -m 0755 debian/local/plymouth-update-initrd debian/plymouth/usr/lib/$(DEB_HOST_MULTIARCH)/plymouth/plymouth-update-initrd
 	install -D -m 0644 debian/local/plymouth.lsb debian/plymouth/lib/lsb/init-functions.d/99-plymouth
+
+override_dh_systemd_start:
+	dh_systemd_start --no-start
 
 override_dh_installinit:
 	dh_installinit --no-start -- start . 2 3 4 5 . stop . 0 6 .

@@ -4,6 +4,7 @@ Priority: optional
 Maintainer: Daniel Baumann <mail@daniel-baumann.ch>
 Build-Depends:
  debhelper (>= 9),
+ dh-systemd,
  autotools-dev,
  libdrm-dev,
  libgtk2.0-dev,
@@ -12,8 +13,8 @@ Build-Depends:
  pkg-config,
 Standards-Version: 3.9.4
 Homepage: http://www.freedesktop.org/wiki/Software/Plymouth
-Vcs-Browser: http://daniel-baumann.ch/gitweb/?p=debian/plymouth.git
-Vcs-Git: git://daniel-baumann.ch/git/debian/plymouth.git
+Vcs-Browser: http://daniel-baumann.ch/gitweb/?p=debian/packages/plymouth.git
+Vcs-Git: git://daniel-baumann.ch/git/debian/packages/plymouth.git
 
 Package: plymouth
 Architecture: linux-any

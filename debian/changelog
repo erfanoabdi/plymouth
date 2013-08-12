@@ -1,3 +1,15 @@
+plymouth (0.8.8-12) experimental; urgency=low
+
+  * Updating todo file.
+  * Updating vcs fields.
+  * Applying slightly modified patch from Sjoerd Simons
+    <sjoerd@debian.org> to use dh-systemd (Closes: #719121).
+  * Applying slightly modified patch from Sjoerd Simons
+    <sjoerd@debian.org> to add aliases to the systemd service so they mask
+    the LSB init scripts.
+
+ -- Daniel Baumann <mail@daniel-baumann.ch>  Mon, 12 Aug 2013 10:08:14 +0200
+
 plymouth (0.8.8-11) experimental; urgency=low
 
   * Adding vcs fields.
