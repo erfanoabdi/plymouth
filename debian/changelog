@@ -1,3 +1,10 @@
+plymouth (0.8.8-13) experimental; urgency=low
+
+  * Updating todo file.
+  * Building without libkms support (Closes: #720560).
+
+ -- Daniel Baumann <mail@daniel-baumann.ch>  Fri, 23 Aug 2013 14:17:45 +0200
+
 plymouth (0.8.8-12) experimental; urgency=low
 
   * Updating todo file.
