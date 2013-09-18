@@ -74,3 +74,6 @@ override_dh_link:
 override_dh_makeshlibs:
 	dh_makeshlibs -p plymouth
 	dh_makeshlibs -p plymouth-drm
+
+override_dh_strip:
+	dh_strip --dbg-package=plymouth-dbg

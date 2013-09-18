@@ -1,3 +1,11 @@
+plymouth (0.8.8-14) experimental; urgency=low
+
+  * Merging drm themes into plymouth-themes package.
+  * Adding debug package.
+  * Sourcing init-functions in iniscripts.
+
+ -- Daniel Baumann <mail@daniel-baumann.ch>  Wed, 18 Sep 2013 10:18:16 +0200
+
 plymouth (0.8.8-13) experimental; urgency=low
 
   * Updating todo file.
