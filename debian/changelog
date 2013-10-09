@@ -1,3 +1,9 @@
+plymouth (0.8.8-6+deb8u2) unstable; urgency=low
+
+  * Building without libkms support (Closes: #720560).
+
+ -- Daniel Baumann <daniel@debian.org>  Wed, 09 Oct 2013 23:26:09 +0200
+
 plymouth (0.8.8-6+deb8u1) unstable; urgency=low
 
   * Updating initramfs inclusion of pango for jessie and newer.

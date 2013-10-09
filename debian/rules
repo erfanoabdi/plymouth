@@ -16,9 +16,9 @@ override_dh_auto_configure:
 
 	dh_auto_configure -- \
 		--prefix=/usr --localstatedir=/var \
-		--enable-libkms --enable-pango \
-		--enable-systemd-integration --enable-tracing \
-		--disable-gdm-transition --disable-tests \
+		--enable-pango --enable-systemd-integration \
+		--enable-tracing --disable-gdm-transition \
+		--disable-libkms --disable-tests \
 		--with-background-color=0x005a8a \
 		--with-gdm-autostart-file \
 		--with-log-viewer \
