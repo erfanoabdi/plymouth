@@ -90,13 +90,23 @@ case "${THEME_NAME}" in
 		cp /usr/share/plymouth/debian-logo.png "${DESTDIR}/usr/share/plymouth"
 
 		# copy files for font rendering
-		mkdir -p "${DESTDIR}/usr/share/fonts/truetype/ttf-dejavu"
 		mkdir -p "${DESTDIR}/etc/fonts/conf.d"
 		mkdir -p "${DESTDIR}/var/cache/fontconfig"
-		cp -a /usr/share/fonts/truetype/ttf-dejavu/DejaVuSerif.ttf "${DESTDIR}/usr/share/fonts/truetype/ttf-dejavu"
-		cp -a /usr/share/fonts/truetype/ttf-dejavu/DejaVuSans.ttf  "${DESTDIR}/usr/share/fonts/truetype/ttf-dejavu"
 		cp -a /etc/fonts/fonts.conf "${DESTDIR}/etc/fonts"
 		cp -rL /etc/fonts/conf.d/60-latin.conf "${DESTDIR}/etc/fonts/conf.d"
+
+		if [ -e /usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf ]
+		then
+			# jessie
+			mkdir -p "${DESTDIR}/usr/share/fonts/truetype/dejavu"
+			cp -a /usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf "${DESTDIR}/usr/share/fonts/truetype/dejavu"
+			cp -a /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf  "${DESTDIR}/usr/share/fonts/truetype/dejavu"
+		else
+			# wheezy
+			mkdir -p "${DESTDIR}/usr/share/fonts/truetype/ttf-dejavu"
+			cp -a /usr/share/fonts/truetype/ttf-dejavu/DejaVuSerif.ttf "${DESTDIR}/usr/share/fonts/truetype/ttf-dejavu"
+			cp -a /usr/share/fonts/truetype/ttf-dejavu/DejaVuSans.ttf  "${DESTDIR}/usr/share/fonts/truetype/ttf-dejavu"
+		fi
 
 		if ls /usr/lib/@DEB_HOST_MULTIARCH@/pango/1* > /dev/null 2>&1
 		then

@@ -1,8 +1,16 @@
+plymouth (0.8.8-6+deb8u3) unstable; urgency=low
+
+  * Correcting email address in previous changelog.
+  * Updating initramfs inclusion of font-dejavu for jessie and newer
+    (Closes: #707765).
+
+ -- Daniel Baumann <mail@daniel-baumann.ch>  Wed, 16 Oct 2013 07:04:12 +0000
+
 plymouth (0.8.8-6+deb8u2) unstable; urgency=low
 
   * Building without libkms support (Closes: #720560).
 
- -- Daniel Baumann <daniel@debian.org>  Wed, 09 Oct 2013 23:26:09 +0200
+ -- Daniel Baumann <mail@daniel-baumann.ch>  Wed, 09 Oct 2013 23:26:09 +0200
 
 plymouth (0.8.8-6+deb8u1) unstable; urgency=low
 
