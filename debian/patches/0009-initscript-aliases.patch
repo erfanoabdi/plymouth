@@ -1,5 +1,5 @@
-
-
+Author: Daniel Baumann <mail@daniel-baumann.ch>
+Description: Adding aliases to the systemd service so they mask the LSB init scripts.
 
 --- a/systemd-units/plymouth-quit.service.in
 +++ b/systemd-units/plymouth-quit.service.in

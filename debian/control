@@ -11,7 +11,7 @@ Build-Depends:
  libpango1.0-dev,
  libpng-dev,
  pkg-config,
-Standards-Version: 3.9.4
+Standards-Version: 3.9.5
 Homepage: http://www.freedesktop.org/wiki/Software/Plymouth
 Vcs-Browser: http://daniel-baumann.ch/gitweb/?p=debian/packages/plymouth.git
 Vcs-Git: git://daniel-baumann.ch/git/debian/packages/plymouth.git

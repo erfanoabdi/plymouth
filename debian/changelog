@@ -1,3 +1,12 @@
+plymouth (0.8.8-15) unstable; urgency=low
+
+  * Updating to standards version 3.9.5.
+  * Correcting initscript-aliases.patch description.
+  * Updating year in copyright file.
+  * Building with dh --parallel.
+
+ -- Daniel Baumann <mail@daniel-baumann.ch>  Mon, 31 Mar 2014 21:23:53 +0200
+
 plymouth (0.8.8-14) experimental; urgency=low
 
   * Merging drm themes into plymouth-themes package.
