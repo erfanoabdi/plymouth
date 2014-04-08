@@ -1,3 +1,10 @@
+plymouth (0.8.8-16) unstable; urgency=low
+
+  * Depending on fonts-dejavu-core alternatively to ttf-dejavu-core
+    (Closes: #743946).
+
+ -- Daniel Baumann <mail@daniel-baumann.ch>  Tue, 08 Apr 2014 22:50:39 +0200
+
 plymouth (0.8.8-15) unstable; urgency=low
 
   * Updating to standards version 3.9.5.

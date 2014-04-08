@@ -40,7 +40,7 @@ Depends:
  ${shlibs:Depends},
  plymouth (= ${binary:Version}),
  fontconfig-config,
- ttf-dejavu-core,
+ fonts-dejavu-core | ttf-dejavu-core,
 Recommends: plymouth-themes
 Description: Graphical Boot Animation and Logger (DRM)
  Plymouth provides an attractive boot animation in place of the text messages
