@@ -3,7 +3,7 @@
 DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
 
 %:
-	dh ${@} --parallel --with systemd
+	dh ${@} --parallel --with autoreconf,systemd
 
 override_dh_auto_clean:
 	dh_auto_clean

@@ -4,8 +4,8 @@ Priority: optional
 Maintainer: Daniel Baumann <mail@daniel-baumann.ch>
 Build-Depends:
  debhelper (>= 9),
+ dh-autoreconf,
  dh-systemd,
- autotools-dev,
  libdrm-dev,
  libgtk2.0-dev,
  libpango1.0-dev,
