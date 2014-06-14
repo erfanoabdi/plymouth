@@ -19,7 +19,11 @@
  *
  * Written by: Charlie Brej <cbrej@cs.man.ac.uk>
  */
-#define _GNU_SOURCE
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "ply-hashtable.h"
 #include "ply-list.h"
 #include "ply-bitarray.h"

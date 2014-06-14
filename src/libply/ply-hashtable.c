@@ -130,14 +130,6 @@ ply_hashtable_insert_internal (ply_hashtable_t *hashtable,
 {
   unsigned int hash_index;
   int step = 0;
-  
-#ifdef PLY_HASHTABLE_ENABLE_TEST
-    /* Make sure the counts are synchronised with bitmap */
-  assert (ply_bitarray_count (hashtable->dirty_node_bitmap, hashtable->total_node_count) ==
-          (int) hashtable->dirty_node_count);
-  assert (ply_bitarray_count (hashtable->live_node_bitmap, hashtable->total_node_count) ==
-          (int) hashtable->live_node_count);
-#endif /* PLY_HASHTABLE_ENABLE_TEST */
 
   hash_index = hashtable->hash_func (key);
   hash_index &= hashtable->total_node_count - 1;
@@ -281,56 +273,10 @@ ply_hashtable_foreach (ply_hashtable_t              *hashtable,
     }
 }
 
-
-#ifdef PLY_HASHTABLE_ENABLE_TEST
-#include <stdio.h>
-
-static void
-foreach_func (void *key,
-              void *data,
-              void *user_data)
-{
-  printf ("foreach key:%s data:%s\n", (char*) key, (char*) data);
-}
-
-
 int
-main (int    argc,
-      char **argv)
+ply_hashtable_get_size (ply_hashtable_t *hashtable)
 {
-  ply_hashtable_t *hashtable;
-  int i;
-  const char* key[10] =  {"k1", "k2", "k3", "k4", "k5", "k6", "k7", "k8", "k9", "k10"};
-  const char* data[10] = {"d1", "d2", "d3", "d4", "d5", "d6", "d7", "d8", "d9", "d10"};
-  char* reply_key = NULL;
-  char* reply_data = NULL;
-  
-  printf ("hashtable test start\n");
-  hashtable = ply_hashtable_new (ply_hashtable_string_hash, ply_hashtable_string_compare);
-  for (i=0; i<10; i++)
-    {
-      ply_hashtable_insert (hashtable, (void *) key[i], (void *) data[9-i]);
-    }
-  for (i=0; i<10; i++)
-    {
-      reply_data = ply_hashtable_lookup (hashtable, (void *) key[i]);
-      printf ("got:%s\n", reply_data);
-    }
-  for (i=0; i<10; i++)
-    {
-      ply_hashtable_remove (hashtable, (void *) key[i]);
-      ply_hashtable_insert (hashtable, (void *) key[i], (void *) data[i]);
-    }
-  for (i=0; i<10; i++)
-    {
-      if (ply_hashtable_lookup_full (hashtable, (void *) key[i], (void**) &reply_key, (void**) &reply_data))
-        printf ("got key:%s data:%s\n", reply_key, reply_data);
-    }
-  ply_hashtable_foreach (hashtable, foreach_func, NULL);
-  ply_hashtable_free(hashtable);
-  printf ("hashtable test end\n");
-  return 0;
+  return hashtable->live_node_count;
 }
 
-#endif
 /* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

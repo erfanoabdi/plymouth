@@ -123,7 +123,7 @@ ply_image_load (ply_image_t *image)
   
   assert (image != NULL);
   
-  fp = fopen (image->filename, "r");
+  fp = fopen (image->filename, "re");
   if (fp == NULL)
     return false;
   
@@ -251,6 +251,21 @@ ply_image_rotate (ply_image_t *image,
                                                center_x,
                                                center_y,
                                                theta_offset);
+  return new_image;
+}
+
+ply_image_t *
+ply_image_tile (ply_image_t *image,
+                long         width,
+                long         height)
+{
+  ply_image_t *new_image;
+
+  new_image = ply_image_new (image->filename);
+
+  new_image->buffer = ply_pixel_buffer_tile (image->buffer,
+                                             width,
+                                             height);
   return new_image;
 }
 

@@ -1173,7 +1173,8 @@ main (int    argc,
 
   if (get_kernel_command_line (&state))
     {
-      if (strstr (state.kernel_command_line, "plymouth:debug") != NULL
+      if ((strstr (state.kernel_command_line, "plymouth.debug") != NULL ||
+           strstr (state.kernel_command_line, "plymouth:debug") != NULL)
           && !ply_is_tracing ())
         ply_toggle_tracing ();
     }

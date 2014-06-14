@@ -22,6 +22,10 @@
  *             Charlie Brej <cbrej@cs.man.ac.uk>
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <assert.h>
 #include <errno.h>
 #include <math.h>
@@ -212,9 +216,14 @@ ply_progress_save_cache (ply_progress_t* progress,
   ply_list_node_t *node;
   double cur_time = ply_progress_get_time(progress);
 
+  ply_trace ("saving progress cache to %s", filename);
+
   fp = fopen (filename,"w");
   if (fp == NULL)
-    return;
+    {
+      ply_trace ("failed to save cache: %m");
+      return;
+    }
 
   node = ply_list_get_first_node (progress->current_message_list);
 
@@ -326,75 +335,5 @@ ply_progress_status_update (ply_progress_t* progress,
     }
 }
 
-#ifdef PLY_PROGRESS_ENABLE_TEST
-
-#include <stdio.h>
-
-int
-main (int    argc,
-      char **argv)
-{
-  double percent;
-  int slowness;
-  double time;
-  int i;
-  const char* strings[10]={"foobar", "barfoo", "barbar", "foo", "foo", "bar", "foo", "more", "even more", "even even more"};
-  ply_progress_t* progress = ply_progress_new ();
-  
-  progress->scalar = 1.0/5;  /* Original time estimate is 5 sec*/
-
-  percent = ply_progress_get_percentage (progress);
-  time = ply_progress_get_time (progress);
-  printf("Time:%f   \t Percentage: %f%%\n", time, percent*100);
-  srand ((int) ply_get_timestamp ());
-  
-  slowness = rand () % 500000 + 50000;
-
-  for (i=0; i<2; i++)
-    {
-      usleep ((rand () % slowness+slowness));
-      percent = ply_progress_get_percentage (progress);
-      time = ply_progress_get_time (progress);
-      printf("Time:%f   \t Percentage: %f%%\n", time, percent*100);
-    }
-  printf("Load cache\n");
-  ply_progress_load_cache (progress, PLYMOUTH_TIME_DIRECTORY "/boot-duration");
-
-  for (i=0; i<10; i++)
-    {
-      ply_progress_status_update (progress, strings[i]);
-      usleep ((rand () % slowness+slowness));
-      percent = ply_progress_get_percentage (progress);
-      time = ply_progress_get_time (progress);
-      printf("Time:%f   \t Percentage: %f%% \tScalar:%f\n", time, percent*100, progress->scalar);
-    }
-  printf("Save and free cache\n");
-  ply_progress_save_cache (progress, PLYMOUTH_TIME_DIRECTORY "/boot-duration");
-  ply_progress_free(progress);
-
-  printf("\nManual set percentage run\n\n");
-
-  progress = ply_progress_new ();
-  progress->scalar = 1.0/5;  /* Original time estimate is 5 sec*/
-
-  percent = ply_progress_get_percentage (progress);
-  time = ply_progress_get_time (progress);
-  printf("Time:%f   \t Percentage: %f%%\n", time, percent*100);
-  srand ((int) ply_get_timestamp ());
-
-  for (i=0; i<12; i++)
-    {
-      ply_progress_set_percentage (progress, (double)i/12);
-      usleep ((rand () % slowness+slowness));
-      percent = ply_progress_get_percentage (progress);
-      time = ply_progress_get_time (progress);
-      printf("Time:%f   \t Percentage: %f%% (%f%%)\tScalar:%f\n", time, percent*100, (double)i/12*100, progress->scalar);
-    }
-  ply_progress_free(progress);
-
-  return 0;
-}
-
-#endif /* PLY_PROGRESS_ENABLE_TEST */
 /* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */
     

@@ -182,14 +182,8 @@ on_timeout (ply_animation_t *animation)
   animation->previous_time = animation->now;
   animation->now = ply_get_timestamp ();
 
-#ifdef REAL_TIME_ANIMATION
   should_continue = animate_at_time (animation,
                                      animation->now - animation->start_time);
-#else
-  static double time = 0.0;
-  time += 1.0 / FRAMES_PER_SECOND;
-  should_continue = animate_at_time (animation, time);
-#endif
 
   sleep_time = 1.0 / FRAMES_PER_SECOND;
   sleep_time = MAX (sleep_time - (ply_get_timestamp () - animation->now),

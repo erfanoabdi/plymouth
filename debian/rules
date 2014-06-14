@@ -15,10 +15,15 @@ override_dh_auto_configure:
 	cp -f /usr/share/misc/config.sub build-tools
 
 	dh_auto_configure -- \
-		--prefix=/usr --localstatedir=/var \
-		--enable-pango --enable-systemd-integration \
-		--enable-tracing --disable-gdm-transition \
-		--disable-libkms --disable-tests \
+		--prefix=/usr \
+		--localstatedir=/var \
+		--enable-pango \
+		--enable-systemd-integration \
+		--enable-static \
+		--enable-tracing \
+		--disable-gdm-transition \
+		--disable-libkms \
+		--disable-tests \
 		--with-background-color=0x005a8a \
 		--with-gdm-autostart-file \
 		--with-log-viewer \
@@ -29,16 +34,18 @@ override_dh_auto_configure:
 		--with-boot-tty=/dev/tty7 \
 		--with-shutdown-tty=/dev/tty7
 
-override_dh_builddeb:
-	dh_builddeb -- -Zxz
+override_dh_auto_install:
+	dh_auto_install
 
-override_dh_install:
-	# Removing useless files
 	rm -f debian/tmp/lib/$(DEB_HOST_MULTIARCH)/*.la
 	rm -f debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)/*.la
 	rm -f debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)/plymouth/*.la
 	rm -f debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)/plymouth/*/*.la
 
+override_dh_builddeb:
+	dh_builddeb -- -Zxz
+
+override_dh_install:
 	# Moving /usr/lib to /lib
 	mv debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)/*.so.* debian/tmp/lib/$(DEB_HOST_MULTIARCH)
 

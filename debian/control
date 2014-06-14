@@ -6,11 +6,15 @@ Build-Depends:
  debhelper (>= 9),
  dh-autoreconf,
  dh-systemd,
+ docbook-xsl,
  libdrm-dev,
  libgtk2.0-dev,
  libpango1.0-dev,
  libpng-dev,
+ libudev-dev,
  pkg-config,
+ systemd,
+ xsltproc,
 Standards-Version: 3.9.5
 Homepage: http://www.freedesktop.org/wiki/Software/Plymouth
 Vcs-Browser: http://daniel-baumann.ch/gitweb/?p=debian/packages/plymouth.git

@@ -1,4 +1,8 @@
-SUBDIRS = src themes images scripts docs systemd-units
+SUBDIRS = src themes images scripts systemd-units
+
+if BUILD_DOCUMENTATION
+SUBDIRS += docs
+endif
 
 DISTCHECK_CONFIGURE_FLAGS = --disable-tests --without-system-root-install
 

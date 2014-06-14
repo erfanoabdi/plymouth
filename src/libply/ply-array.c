@@ -171,34 +171,4 @@ ply_array_steal_uint32_elements (ply_array_t *array)
   return data;
 }
 
-#ifdef PLY_ARRAY_ENABLE_TEST
-#include <stdio.h>
-
-int
-main (int    argc,
-      char **argv)
-{
-  ply_array_t *array;
-  int i;
-  char **data;
-
-  array = ply_array_new (PLY_ARRAY_ELEMENT_TYPE_POINTER);
-
-  ply_array_add_pointer_element (array, "foo");
-  ply_array_add_pointer_element (array, "bar");
-  ply_array_add_pointer_element (array, "baz");
-  ply_array_add_pointer_element (array, "qux");
-
-  data = (char **) ply_array_get_pointer_elements (array);
-  for (i = 0; data[i] != NULL; i++)
-    {
-      printf ("element '%d' has data '%s'\n", i, data[i]);
-      i++;
-    }
-
-  ply_array_free (array);
-  return 0;
-}
-
-#endif
 /* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

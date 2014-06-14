@@ -129,7 +129,7 @@ case "${THEME_NAME}" in
 		copy_exec /usr/lib/@DEB_HOST_MULTIARCH@/plymouth/renderers/drm.so
 
 		# add drm modules
-		copy_modules_dir kernel/drivers/gpu/drm mga r128 savage sis tdfx via
+		copy_modules_dir kernel/drivers/gpu/drm drm mga r128 savage sis tdfx via
 		;;
 esac
 

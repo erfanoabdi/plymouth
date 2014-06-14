@@ -7,8 +7,8 @@ diff -Naurp plymouth.orig/systemd-units/plymouth-halt.service.in plymouth/system
 --- plymouth.orig/systemd-units/plymouth-halt.service.in
 +++ plymouth/systemd-units/plymouth-halt.service.in
 @@ -3,7 +3,7 @@ Description=Show Plymouth Halt Screen
- After=getty@tty1.service prefdm.service plymouth-start.service
- Before=halt.service
+ After=getty@tty1.service display-manager.service plymouth-start.service
+ Before=systemd-halt.service
  DefaultDependencies=no
 -ConditionKernelCommandLine=!plymouth.enable=0
 +ConditionKernelCommandLine=splash
@@ -19,8 +19,8 @@ diff -Naurp plymouth.orig/systemd-units/plymouth-kexec.service.in plymouth/syste
 --- plymouth.orig/systemd-units/plymouth-kexec.service.in
 +++ plymouth/systemd-units/plymouth-kexec.service.in
 @@ -3,7 +3,7 @@ Description=Show Plymouth Reboot with ke
- After=getty@tty1.service prefdm.service plymouth-start.service
- Before=kexec.service
+ After=getty@tty1.service display-manager.service plymouth-start.service
+ Before=systemd-kexec.service
  DefaultDependencies=no
 -ConditionKernelCommandLine=!plymouth.enable=0
 +ConditionKernelCommandLine=splash
@@ -31,8 +31,8 @@ diff -Naurp plymouth.orig/systemd-units/plymouth-poweroff.service.in plymouth/sy
 --- plymouth.orig/systemd-units/plymouth-poweroff.service.in
 +++ plymouth/systemd-units/plymouth-poweroff.service.in
 @@ -3,7 +3,7 @@ Description=Show Plymouth Power Off Scre
- After=getty@tty1.service prefdm.service plymouth-start.service
- Before=poweroff.service
+ After=getty@tty1.service display-manager.service plymouth-start.service
+ Before=systemd-poweroff.service
  DefaultDependencies=no
 -ConditionKernelCommandLine=!plymouth.enable=0
 +ConditionKernelCommandLine=splash
@@ -43,8 +43,8 @@ diff -Naurp plymouth.orig/systemd-units/plymouth-reboot.service.in plymouth/syst
 --- plymouth.orig/systemd-units/plymouth-reboot.service.in
 +++ plymouth/systemd-units/plymouth-reboot.service.in
 @@ -3,7 +3,7 @@ Description=Show Plymouth Reboot Screen
- After=getty@tty1.service prefdm.service plymouth-start.service
- Before=reboot.service
+ After=getty@tty1.service display-manager.service plymouth-start.service
+ Before=systemd-reboot.service
  DefaultDependencies=no
 -ConditionKernelCommandLine=!plymouth.enable=0
 +ConditionKernelCommandLine=splash
@@ -55,8 +55,8 @@ diff -Naurp plymouth.orig/systemd-units/plymouth-start.service.in plymouth/syste
 --- plymouth.orig/systemd-units/plymouth-start.service.in
 +++ plymouth/systemd-units/plymouth-start.service.in
 @@ -4,7 +4,7 @@ DefaultDependencies=no
- Wants=systemd-ask-password-plymouth.path
- After=systemd-vconsole-setup.service systemd-udev-trigger.service
+ Wants=systemd-ask-password-plymouth.path systemd-vconsole-setup.service
+ After=systemd-vconsole-setup.service systemd-udev-trigger.service systemd-udevd.service
  Before=systemd-ask-password-plymouth.service
 -ConditionKernelCommandLine=!plymouth.enable=0
 +ConditionKernelCommandLine=splash
@@ -64,7 +64,7 @@ diff -Naurp plymouth.orig/systemd-units/plymouth-start.service.in plymouth/syste
  [Service]
  ExecStart=@PLYMOUTH_DAEMON_DIR@/plymouthd --mode=boot --pid-file=@plymouthruntimedir@/pid --attach-to-session
 diff -Naurp plymouth.orig/systemd-units/systemd-ask-password-plymouth.path.in plymouth/systemd-units/systemd-ask-password-plymouth.path.in
---- plymouth.orig/systemd-units/systemd-ask-password-plymouth.path.in
+--- plymouth.orig/systemd-units/systemd-ask-password-plymouth.path.in	2012-09-26 18:50:53.000000000 +0200
 +++ plymouth/systemd-units/systemd-ask-password-plymouth.path.in
 @@ -5,7 +5,7 @@ DefaultDependencies=no
  Conflicts=shutdown.target

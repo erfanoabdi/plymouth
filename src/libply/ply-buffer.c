@@ -263,22 +263,4 @@ ply_buffer_clear (ply_buffer_t *buffer)
   buffer->size = 0;
 }
 
-#ifdef PLY_BUFFER_ENABLE_TEST
-int
-main (int    argc,
-      char **argv)
-{
-  int exit_code;
-  ply_buffer_t *buffer;
-
-  exit_code = 0;
-  buffer = ply_buffer_new ();
-
-  ply_buffer_append (buffer, "yo yo yo\n");
-  ply_buffer_free (buffer);
-
-  return exit_code;
-}
-
-#endif /* PLY_BUFFER_ENABLE_TEST */
 /* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

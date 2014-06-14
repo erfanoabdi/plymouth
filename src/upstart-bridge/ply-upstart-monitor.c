@@ -46,7 +46,6 @@ typedef struct
 struct _ply_upstart_monitor
 {
   DBusConnection                              *connection;
-  char                                        *owner;
   ply_event_loop_t                            *loop;
   ply_hashtable_t                             *jobs;
   ply_hashtable_t                             *all_instances;
@@ -74,7 +73,8 @@ typedef struct
   uint32_t                                   call_failed : 1;
 } ply_upstart_monitor_instance_t;
 
-#define UPSTART_SERVICE                 "com.ubuntu.Upstart"
+#define UPSTART_SERVICE                 NULL
+#define DBUS_ADDRESS_UPSTART            "unix:abstract=/com/ubuntu/upstart"
 #define UPSTART_PATH                    "/com/ubuntu/Upstart"
 #define UPSTART_INTERFACE_0_6           "com.ubuntu.Upstart0_6"
 #define UPSTART_INTERFACE_0_6_JOB       "com.ubuntu.Upstart0_6.Job"
@@ -273,7 +273,7 @@ on_get_all_job_properties_finished (DBusPendingCall           *call,
               DBUS_TYPE_STRING)
             goto next_item;
           dbus_message_iter_get_basic (&variant_iter, &description);
-          if (description != NULL)
+          if (description != NULL && description[0])
             {
               ply_trace ("description = '%s'", description);
               job->properties.description = strdup (description);
@@ -579,82 +579,6 @@ out:
   dbus_message_unref (reply);
 }
 
-static void
-on_get_name_owner_finished (DBusPendingCall       *call,
-                            ply_upstart_monitor_t *monitor)
-{
-  DBusMessage *reply, *message;
-  DBusError error;
-  const char *owner;
-
-  assert (call != NULL);
-  assert (monitor != NULL);
-
-  reply = dbus_pending_call_steal_reply (call);
-  if (reply == NULL)
-    return;
-  if (dbus_message_get_type (reply) != DBUS_MESSAGE_TYPE_METHOD_RETURN)
-    goto out;
-
-  dbus_error_init (&error);
-  dbus_message_get_args (reply, &error,
-                         DBUS_TYPE_STRING, &owner,
-                         DBUS_TYPE_INVALID);
-  if (dbus_error_is_set (&error))
-    goto out;
-  dbus_error_free (&error);
-
-  ply_trace ("owner = '%s'", owner);
-
-  free (monitor->owner);
-  monitor->owner = strdup (owner);
-
-  ply_trace ("calling GetAllJobs");
-  message = dbus_message_new_method_call (UPSTART_SERVICE, UPSTART_PATH,
-                                          UPSTART_INTERFACE_0_6,
-                                          "GetAllJobs");
-  dbus_connection_send_with_reply (monitor->connection, message, &call, -1);
-  dbus_message_unref (message);
-  if (call != NULL)
-    dbus_pending_call_set_notify (call,
-                                  (DBusPendingCallNotifyFunction)
-                                  on_get_all_jobs_finished,
-                                  monitor, NULL);
-
-out:
-  dbus_message_unref (reply);
-}
-
-static DBusHandlerResult
-name_owner_changed_handler (DBusConnection        *connection,
-                            DBusMessage           *message,
-                            ply_upstart_monitor_t *monitor)
-{
-  DBusError error;
-  const char *name, *old_owner, *new_owner;
-
-  assert (connection != NULL);
-  assert (message != NULL);
-  assert (monitor != NULL);
-
-  dbus_error_init (&error);
-  if (dbus_message_get_args (message, &error,
-                             DBUS_TYPE_STRING, &name,
-                             DBUS_TYPE_STRING, &old_owner,
-                             DBUS_TYPE_STRING, &new_owner,
-                             DBUS_TYPE_INVALID) &&
-      strcmp (name, UPSTART_SERVICE) == 0)
-    {
-      if (new_owner)
-        ply_trace ("owner changed from '%s' to '%s'", old_owner, new_owner);
-      else
-        ply_trace ("owner left bus");
-      free (monitor->owner);
-      monitor->owner = new_owner ? strdup (new_owner) : NULL;
-    }
-
-  return DBUS_HANDLER_RESULT_NOT_YET_HANDLED; /* let other handlers try */
-}
 
 static DBusHandlerResult
 job_added_handler (DBusConnection        *connection,
@@ -856,12 +780,6 @@ message_handler (DBusConnection *connection, DBusMessage *message, void *data)
   if (path == NULL)
     return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 
-  if (dbus_message_is_signal (message, DBUS_INTERFACE_DBUS,
-                              "NameOwnerChanged") &&
-      dbus_message_has_path (message, DBUS_PATH_DBUS) &&
-      dbus_message_has_sender (message, DBUS_SERVICE_DBUS))
-    return name_owner_changed_handler (connection, message, monitor);
-
   if (dbus_message_is_signal (message, UPSTART_INTERFACE_0_6,
                               "JobAdded"))
     return job_added_handler (connection, message, monitor);
@@ -899,9 +817,7 @@ ply_upstart_monitor_new (ply_event_loop_t *loop)
   DBusError error;
   DBusConnection *connection;
   ply_upstart_monitor_t *monitor;
-  char *rule;
   DBusMessage *message;
-  const char *monitor_service = UPSTART_SERVICE;
   DBusPendingCall *call;
 
   dbus_error_init (&error);
@@ -909,7 +825,7 @@ ply_upstart_monitor_new (ply_event_loop_t *loop)
   /* Get a connection to the system bus and set it up to listen for messages
    * from Upstart.
    */
-  connection = dbus_bus_get (DBUS_BUS_SYSTEM, &error);
+  connection = dbus_connection_open (DBUS_ADDRESS_UPSTART, &error);
   if (connection == NULL)
     {
       ply_error ("unable to connect to system bus: %s", error.message);
@@ -938,52 +854,17 @@ ply_upstart_monitor_new (ply_event_loop_t *loop)
       return NULL;
     }
 
-  asprintf (&rule, "type='%s',sender='%s',path='%s',"
-                   "interface='%s',member='%s',arg0='%s'",
-            "signal", DBUS_SERVICE_DBUS, DBUS_PATH_DBUS,
-            DBUS_INTERFACE_DBUS, "NameOwnerChanged", UPSTART_SERVICE);
-  dbus_bus_add_match (connection, rule, &error);
-  free (rule);
-  if (dbus_error_is_set (&error))
-    {
-      ply_error ("unable to add match rule to system bus connection: %s",
-                 error.message);
-      ply_upstart_monitor_free (monitor);
-      dbus_error_free (&error);
-      return NULL;
-    }
-
-  asprintf (&rule, "type='%s',sender='%s'", "signal", UPSTART_SERVICE);
-  dbus_bus_add_match (connection, rule, &error);
-  free (rule);
-  if (dbus_error_is_set (&error))
-    {
-      ply_error ("unable to add match rule to system bus connection: %s",
-                 error.message);
-      ply_upstart_monitor_free (monitor);
-      dbus_error_free (&error);
-      return NULL;
-    }
-
-  /* Start the state machine going: find out the current owner of the
-   * well-known Upstart name.
-   * Ignore errors: the worst case is that we don't get any messages back
-   * and our state machine does nothing.
-   */
-  ply_trace ("calling GetNameOwner");
-  message = dbus_message_new_method_call (DBUS_SERVICE_DBUS, DBUS_PATH_DBUS,
-                                          DBUS_INTERFACE_DBUS, "GetNameOwner");
-  dbus_message_append_args (message,
-                            DBUS_TYPE_STRING, &monitor_service,
-                            DBUS_TYPE_INVALID);
-  dbus_connection_send_with_reply (connection, message, &call, -1);
+  ply_trace ("calling GetAllJobs");
+  message = dbus_message_new_method_call (UPSTART_SERVICE, UPSTART_PATH,
+                                          UPSTART_INTERFACE_0_6,
+                                          "GetAllJobs");
+  dbus_connection_send_with_reply (monitor->connection, message, &call, -1);
   dbus_message_unref (message);
   if (call != NULL)
     dbus_pending_call_set_notify (call,
                                   (DBusPendingCallNotifyFunction)
-                                  on_get_name_owner_finished,
-                                  monitor,
-                                  NULL);
+                                  on_get_all_jobs_finished,
+                                  monitor, NULL);
 
   if (loop != NULL)
     ply_upstart_monitor_connect_to_event_loop (monitor, loop);

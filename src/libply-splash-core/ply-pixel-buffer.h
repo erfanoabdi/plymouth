@@ -124,6 +124,10 @@ ply_pixel_buffer_t *ply_pixel_buffer_rotate (ply_pixel_buffer_t *old_buffer,
                                              long                center_y,
                                              double              theta_offset);
 
+ply_pixel_buffer_t *ply_pixel_buffer_tile (ply_pixel_buffer_t *old_buffer,
+                                           long                width,
+                                           long                height);
+
 #endif
 
 #endif /* PLY_PIXEL_BUFFER_H */

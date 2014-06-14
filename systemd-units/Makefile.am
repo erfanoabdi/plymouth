@@ -25,7 +25,8 @@ install-data-hook:
 		$(DESTDIR)$(SYSTEMD_UNIT_DIR)/poweroff.target.wants          \
 		$(DESTDIR)$(SYSTEMD_UNIT_DIR)/halt.target.wants
 	(cd $(DESTDIR)$(SYSTEMD_UNIT_DIR)/initrd-switch-root.target.wants && \
-		rm -f plymouth-switch-root.service &&                        \
+		rm -f plymouth-start.service plymouth-switch-root.service && \
+		$(LN_S) ../plymouth-start.service &&                         \
 		$(LN_S) ../plymouth-switch-root.service)
 	(cd $(DESTDIR)$(SYSTEMD_UNIT_DIR)/sysinit.target.wants &&            \
 		rm -f plymouth-start.service plymouth-read-write.service &&  \
@@ -51,7 +52,7 @@ install-data-hook:
 uninstall-hook:
 	rm -f \
 	(cd $(DESTDIR)$(SYSTEMD_UNIT_DIR)/initrd-switch-root.target.wants && \
-		rm -f plymouth-switch-root.service)                          \
+		rm -f plymouth-start.service plymouth-switch-root.service)   \
 	(cd $(DESTDIR)$(SYSTEMD_UNIT_DIR)/sysinit.target.wants &&            \
 		rm -f plymouth-start.service plymouth-read-write.service)    \
 	(cd $(DESTDIR)$(SYSTEMD_UNIT_DIR)/multi-user.target.wants &&         \

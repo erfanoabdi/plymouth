@@ -1,3 +1,27 @@
+plymouth (0.9.0-1) unstable; urgency=low
+
+  * Merging upstream version 0.9.0.
+  * Refreshing stderr.patch.
+  * Refreshing default-theme.patch.
+  * Refreshing cmdline.patch.
+  * Removing udevadm.patch, not needed anymore.
+  * Removing deactive.patch, included upstream.
+  * Removing config-parser.patch, included upstream.
+  * Refreshing initscript-aliases.patch.
+  * Renumbering patches.
+  * Adding build-depends to libudev-dev.
+  * Adding build-depends to xsltproc.
+  * Adding build-depends to docbook-xsl.
+  * Ordering removal of unneeded files in rules for more consistency.
+  * Including drm module in initrd, thanks to Lukas Anzinger
+    <l.anzinger@gmail.com> (Closes: #751275).
+  * Adding build-depends to systemd.
+  * Keeping building of static libraries.
+  * Wrapping configure call in rules.
+  * Updating plymouth package contents for new upstream.
+
+ -- Daniel Baumann <mail@daniel-baumann.ch>  Sat, 14 Jun 2014 12:48:42 +0200
+
 plymouth (0.8.8-17) unstable; urgency=low
 
   * Building with dh-autoreconf, thanks to Fernando Seiti Furusato

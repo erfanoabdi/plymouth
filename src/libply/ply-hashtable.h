@@ -57,6 +57,8 @@ int ply_hashtable_lookup_full (ply_hashtable_t *hashtable,
 void ply_hashtable_foreach (ply_hashtable_t              *hashtable,
 							ply_hashtable_foreach_func_t  func,
 							void                         *user_data);
+
+int ply_hashtable_get_size (ply_hashtable_t *hashtable);
 #endif
 
 #endif /* PLY_HASHTABLE_H */
