@@ -1,3 +1,11 @@
+plymouth (0.9.0-4) unstable; urgency=low
+
+  * Dropping old --disable-libkms and --disable-tests configure flags
+    (Closes: #752802).
+  * Setting no delay for fast booting machines (Closes: #752746).
+
+ -- Daniel Baumann <mail@daniel-baumann.ch>  Thu, 26 Jun 2014 19:45:22 +0200
+
 plymouth (0.9.0-3) unstable; urgency=low
 
   * Dropping drm module in initrd (Closes: #752575).

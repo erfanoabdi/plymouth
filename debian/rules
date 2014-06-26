@@ -22,8 +22,6 @@ override_dh_auto_configure:
 		--enable-static \
 		--enable-tracing \
 		--disable-gdm-transition \
-		--disable-libkms \
-		--disable-tests \
 		--with-background-color=0x005a8a \
 		--with-gdm-autostart-file \
 		--with-log-viewer \
