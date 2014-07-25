@@ -1,7 +1,7 @@
 Source: plymouth
 Section: misc
 Priority: optional
-Maintainer: Daniel Baumann <mail@daniel-baumann.ch>
+Maintainer: Debian QA Group <packages@qa.debian.org>
 Build-Depends:
  debhelper (>= 9),
  dh-autoreconf,
