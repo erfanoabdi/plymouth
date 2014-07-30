@@ -60,6 +60,11 @@ void ply_entry_add_bullet (ply_entry_t *entry);
 void ply_entry_remove_bullet (ply_entry_t *entry);
 void ply_entry_remove_all_bullets (ply_entry_t *entry);
 void ply_entry_set_text (ply_entry_t *entry, const char* text);
+void ply_entry_set_text_color (ply_entry_t *entry,
+                               float        red,
+                               float        green,
+                               float        blue,
+                               float        alpha);
 
 #endif
 

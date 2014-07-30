@@ -250,9 +250,12 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
                                  detach_from_event_loop,
                                  plugin);
 
-  size = ply_buffer_get_size (boot_buffer);
+  if (boot_buffer)
+    {
+      size = ply_buffer_get_size (boot_buffer);
 
-  write_on_views (plugin, ply_buffer_get_bytes (boot_buffer), size);
+      write_on_views (plugin, ply_buffer_get_bytes (boot_buffer), size);
+    }
 
   return true;
 }

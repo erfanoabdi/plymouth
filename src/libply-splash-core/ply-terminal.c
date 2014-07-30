@@ -61,6 +61,7 @@ struct _ply_terminal
   ply_event_loop_t *loop;
 
   struct termios original_term_attributes;
+  struct termios original_locked_term_attributes;
 
   char *name;
   int   fd;
@@ -79,6 +80,7 @@ struct _ply_terminal
   int number_of_columns;
 
   uint32_t original_term_attributes_saved : 1;
+  uint32_t original_locked_term_attributes_saved : 1;
   uint32_t supports_text_color : 1;
   uint32_t is_open : 1;
   uint32_t is_active : 1;
@@ -168,6 +170,7 @@ bool
 ply_terminal_set_unbuffered_input (ply_terminal_t *terminal)
 {
   struct termios term_attributes;
+  struct termios locked_term_attributes;
 
   tcgetattr (terminal->fd, &term_attributes);
 
@@ -185,6 +188,18 @@ ply_terminal_set_unbuffered_input (ply_terminal_t *terminal)
   if (tcsetattr (terminal->fd, TCSANOW, &term_attributes) != 0)
     return false;
 
+  if (ioctl (terminal->fd, TIOCGLCKTRMIOS, &locked_term_attributes) == 0)
+    {
+      terminal->original_locked_term_attributes = locked_term_attributes;
+      terminal->original_locked_term_attributes_saved = true;
+
+      memset (&locked_term_attributes, 0xff, sizeof (locked_term_attributes));
+      if (ioctl (terminal->fd, TIOCSLCKTRMIOS, &locked_term_attributes) < 0)
+        {
+          ply_trace ("couldn't lock terminal settings: %m");
+        }
+    }
+
   terminal->is_unbuffered = true;
 
   return true;
@@ -197,6 +212,16 @@ ply_terminal_set_buffered_input (ply_terminal_t *terminal)
 
   if (!terminal->is_unbuffered)
     return true;
+
+  if (terminal->original_locked_term_attributes_saved)
+    {
+      if (ioctl (terminal->fd, TIOCSLCKTRMIOS,
+                 &terminal->original_locked_term_attributes) < 0)
+        {
+          ply_trace ("couldn't unlock terminal settings: %m");
+        }
+      terminal->original_locked_term_attributes_saved = false;
+    }
 
   tcgetattr (terminal->fd, &term_attributes);
 
@@ -321,7 +346,11 @@ get_active_vt (ply_terminal_t *terminal)
     return -1;
 
   if (terminal->initial_vt_number < 0)
-    terminal->initial_vt_number = vt_state.v_active;
+    {
+      terminal->initial_vt_number = vt_state.v_active;
+      ply_trace ("Remembering that initial vt is %d",
+                 terminal->initial_vt_number);
+    }
 
   return vt_state.v_active;
 }
@@ -714,6 +743,16 @@ set_active_vt (ply_terminal_t *terminal,
 }
 
 static bool
+wait_for_vt_to_become_active (ply_terminal_t *terminal,
+                              int             vt_number)
+{
+  if (ioctl (terminal->fd, VT_WAITACTIVE, vt_number) < 0)
+    return false;
+
+  return true;
+}
+
+static bool
 deallocate_vt (ply_terminal_t *terminal,
                int             vt_number)
 {
@@ -722,7 +761,6 @@ deallocate_vt (ply_terminal_t *terminal,
 
   return true;
 }
-
 
 bool
 ply_terminal_activate_vt (ply_terminal_t *terminal)
@@ -736,7 +774,11 @@ ply_terminal_activate_vt (ply_terminal_t *terminal)
     return true;
 
   if (!set_active_vt (terminal, terminal->vt_number))
-    return false;
+    {
+      ply_trace ("unable to set active vt to %d: %m",
+                 terminal->vt_number);
+      return false;
+    }
 
   return true;
 }
@@ -775,16 +817,29 @@ ply_terminal_deactivate_vt (ply_terminal_t *terminal)
 
   if (ply_terminal_is_active (terminal))
     {
+      ply_trace ("Attempting to set active vt back to %d from %d",
+                 terminal->initial_vt_number, old_vt_number);
       if (!set_active_vt (terminal, terminal->initial_vt_number))
         {
-          ply_trace ("Couldn't number to initial VT");
+          ply_trace ("Couldn't move console to initial vt: %m");
           return false;
         }
+
+      if (!wait_for_vt_to_become_active (terminal, terminal->initial_vt_number))
+        {
+          ply_trace ("Error while waiting for vt %d to become active: %m",
+                     terminal->initial_vt_number);
+          return false;
+        }
+    }
+  else
+    {
+      ply_trace ("terminal for vt %d is inactive", terminal->vt_number);
     }
 
   if (!deallocate_vt (terminal, old_vt_number))
     {
-      ply_trace ("Couldn't deallocate vt %d", old_vt_number);
+      ply_trace ("couldn't deallocate vt %d: %m", old_vt_number);
       return false;
     }
 

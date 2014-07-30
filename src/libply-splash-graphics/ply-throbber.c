@@ -55,6 +55,10 @@
 #define FRAMES_PER_SECOND 30
 #endif
 
+#ifndef THROBBER_DURATION
+#define THROBBER_DURATION 2.0
+#endif
+
 struct _ply_throbber
 {
   ply_array_t *frames;
@@ -104,11 +108,11 @@ static void
 ply_throbber_remove_frames (ply_throbber_t *throbber)
 {
   int i;
-  ply_image_t **frames;
+  ply_pixel_buffer_t **frames;
 
-  frames = (ply_image_t **) ply_array_steal_elements (throbber->frames);
+  frames = (ply_pixel_buffer_t **) ply_array_steal_elements (throbber->frames);
   for (i = 0; frames[i] != NULL; i++)
-    ply_image_free (frames[i]);
+    ply_pixel_buffer_free (frames[i]);
   free (frames);
 }
 
@@ -131,8 +135,9 @@ animate_at_time (ply_throbber_t *throbber,
                  double      time)
 {
   int number_of_frames;
-  ply_image_t * const * frames;
+  ply_pixel_buffer_t * const * frames;
   bool should_continue;
+  double percent_in_sequence;
 
   number_of_frames = ply_array_get_size (throbber->frames);
 
@@ -140,8 +145,8 @@ animate_at_time (ply_throbber_t *throbber,
     return true;
 
   should_continue = true;
-
-  throbber->frame_number = (.5 * sin (time) + .5) * number_of_frames;
+  percent_in_sequence = fmod (time, THROBBER_DURATION) / THROBBER_DURATION;
+  throbber->frame_number = (int) (number_of_frames * percent_in_sequence);
 
   if (throbber->stop_trigger != NULL)
     {
@@ -149,12 +154,10 @@ animate_at_time (ply_throbber_t *throbber,
         should_continue = false;
     }
 
-  frames = (ply_image_t * const *) ply_array_get_elements (throbber->frames);
-
+  frames = (ply_pixel_buffer_t * const *) ply_array_get_elements (throbber->frames);
+  ply_pixel_buffer_get_size (frames[throbber->frame_number], &throbber->frame_area);
   throbber->frame_area.x = throbber->x;
   throbber->frame_area.y = throbber->y;
-  throbber->frame_area.width = ply_image_get_width (frames[throbber->frame_number]);
-  throbber->frame_area.height = ply_image_get_height (frames[throbber->frame_number]);
   ply_pixel_display_draw_area (throbber->display,
                                throbber->x, throbber->y,
                                throbber->frame_area.width,
@@ -185,6 +188,7 @@ on_timeout (ply_throbber_t *throbber)
 
   if (!should_continue)
     {
+      throbber->is_stopped = true;
       if (throbber->stop_trigger != NULL)
         {
           ply_trigger_pull (throbber->stop_trigger, NULL);
@@ -202,9 +206,10 @@ on_timeout (ply_throbber_t *throbber)
 
 static bool
 ply_throbber_add_frame (ply_throbber_t *throbber,
-                    const char *filename)
+                        const char     *filename)
 {
   ply_image_t *image;
+  ply_pixel_buffer_t *frame;
 
   image = ply_image_new (filename);
 
@@ -214,10 +219,12 @@ ply_throbber_add_frame (ply_throbber_t *throbber,
       return false;
     }
 
-  ply_array_add_element (throbber->frames, image);
+  frame = ply_image_convert_to_pixel_buffer (image);
 
-  throbber->width = MAX (throbber->width, ply_image_get_width (image));
-  throbber->height = MAX (throbber->height, ply_image_get_height (image));
+  ply_array_add_element (throbber->frames, frame);
+
+  throbber->width = MAX (throbber->width, ply_pixel_buffer_get_width (frame));
+  throbber->height = MAX (throbber->height, ply_pixel_buffer_get_height (frame));
 
   return true;
 }
@@ -365,18 +372,17 @@ ply_throbber_draw_area (ply_throbber_t     *throbber,
                         unsigned long       width,
                         unsigned long       height)
 {
-  ply_image_t * const * frames;
+  ply_pixel_buffer_t * const * frames;
   uint32_t *frame_data;
 
   if (throbber->is_stopped)
     return;
 
   frames = (ply_image_t * const *) ply_array_get_elements (throbber->frames);
-  frame_data = ply_image_get_data (frames[throbber->frame_number]);
-
-  ply_pixel_buffer_fill_with_argb32_data (buffer,
-                                          &throbber->frame_area, 0, 0,
-                                          frame_data);
+  ply_pixel_buffer_fill_with_buffer (buffer,
+                                     frames[throbber->frame_number],
+                                     throbber->frame_area.x,
+                                     throbber->frame_area.y);
 }
 
 long

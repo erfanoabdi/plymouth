@@ -466,7 +466,7 @@ draw_logo (view_t                   *view,
   view->logo_area.height = height;
 
   ply_pixel_buffer_fill_with_argb32_data (pixel_buffer,
-                                          &view->logo_area, 0, 0,
+                                          &view->logo_area,
                                           logo_data);
 }
 
@@ -570,13 +570,13 @@ on_draw (view_t                   *view,
 
       box_data = ply_image_get_data (plugin->box_image);
       ply_pixel_buffer_fill_with_argb32_data (pixel_buffer,
-                                              &view->box_area, 0, 0,
+                                              &view->box_area,
                                               box_data);
       ply_entry_draw_area (view->entry, pixel_buffer, x, y, width, height);
       ply_label_draw_area (view->label, pixel_buffer, x, y, width, height);
       lock_data = ply_image_get_data (plugin->lock_image);
       ply_pixel_buffer_fill_with_argb32_data (pixel_buffer,
-                                              &view->lock_area, 0, 0,
+                                              &view->lock_area,
                                               lock_data);
     }
   else

@@ -104,11 +104,11 @@ static void
 ply_animation_remove_frames (ply_animation_t *animation)
 {
   int i;
-  ply_image_t **frames;
+  ply_pixel_buffer_t **frames;
 
-  frames = (ply_image_t **) ply_array_steal_elements (animation->frames);
+  frames = (ply_pixel_buffer_t **) ply_array_steal_elements (animation->frames);
   for (i = 0; frames[i] != NULL; i++)
-    ply_image_free (frames[i]);
+    ply_pixel_buffer_free (frames[i]);
   free (frames);
 }
 
@@ -131,7 +131,7 @@ animate_at_time (ply_animation_t *animation,
                  double           time)
 {
   int number_of_frames;
-  ply_image_t * const * frames;
+  ply_pixel_buffer_t * const * frames;
   bool should_continue;
 
   number_of_frames = ply_array_get_size (animation->frames);
@@ -147,12 +147,10 @@ animate_at_time (ply_animation_t *animation,
   if (animation->stop_requested)
     should_continue = false;
 
-  frames = (ply_image_t * const *) ply_array_get_elements (animation->frames);
-
+  frames = (ply_pixel_buffer_t * const *) ply_array_get_elements (animation->frames);
+  ply_pixel_buffer_get_size (frames[animation->frame_number], &animation->frame_area);
   animation->frame_area.x = animation->x;
   animation->frame_area.y = animation->y;
-  animation->frame_area.width = ply_image_get_width (frames[animation->frame_number]);
-  animation->frame_area.height = ply_image_get_height (frames[animation->frame_number]);
 
   ply_pixel_display_draw_area (animation->display,
                                animation->x, animation->y,
@@ -207,6 +205,7 @@ ply_animation_add_frame (ply_animation_t *animation,
                          const char      *filename)
 {
   ply_image_t *image;
+  ply_pixel_buffer_t *frame;
 
   image = ply_image_new (filename);
 
@@ -216,10 +215,12 @@ ply_animation_add_frame (ply_animation_t *animation,
       return false;
     }
 
-  ply_array_add_element (animation->frames, image);
+  frame = ply_image_convert_to_pixel_buffer (image);
 
-  animation->width = MAX (animation->width, ply_image_get_width (image));
-  animation->height = MAX (animation->height, ply_image_get_height (image));
+  ply_array_add_element (animation->frames, frame);
+
+  animation->width = MAX (animation->width, ply_pixel_buffer_get_width (frame));
+  animation->height = MAX (animation->height, ply_pixel_buffer_get_height (frame));
 
   return true;
 }
@@ -365,7 +366,7 @@ ply_animation_draw_area (ply_animation_t    *animation,
                          unsigned long       width,
                          unsigned long       height)
 {
-  ply_image_t * const * frames;
+  ply_pixel_buffer_t * const * frames;
   uint32_t *frame_data;
   int number_of_frames;
   int frame_index;
@@ -376,12 +377,11 @@ ply_animation_draw_area (ply_animation_t    *animation,
   number_of_frames = ply_array_get_size (animation->frames);
   frame_index = MIN(animation->frame_number, number_of_frames - 1);
 
-  frames = (ply_image_t * const *) ply_array_get_elements (animation->frames);
-  frame_data = ply_image_get_data (frames[frame_index]);
-
-  ply_pixel_buffer_fill_with_argb32_data (buffer,
-                                          &animation->frame_area, 0, 0,
-                                          frame_data);
+  frames = (ply_pixel_buffer_t * const *) ply_array_get_elements (animation->frames);
+  ply_pixel_buffer_fill_with_buffer (buffer,
+                                     frames[frame_index],
+                                     animation->frame_area.x,
+                                     animation->frame_area.y);
 }
 
 long

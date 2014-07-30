@@ -91,6 +91,7 @@ typedef struct
   ply_list_t *keystroke_triggers;
   ply_list_t *entry_triggers;
   ply_buffer_t *entry_buffer;
+  ply_list_t *messages;
   ply_command_parser_t *command_parser;
   ply_mode_t mode;
   ply_renderer_t *renderer;
@@ -172,6 +173,23 @@ on_update (state_t     *state,
 }
 
 static void
+show_messages (state_t *state)
+{
+  ply_list_node_t *node = ply_list_get_first_node (state->messages);
+  while (node != NULL)
+    {
+      ply_list_node_t *next_node;
+      char *message = ply_list_node_get_data (node);
+
+      ply_trace ("displaying messages");
+
+      ply_boot_splash_display_message (state->boot_splash, message);
+      next_node = ply_list_get_next_node (state->messages, node);
+      node = next_node;
+    }
+}
+
+static void
 show_detailed_splash (state_t *state)
 {
   if (state->boot_splash != NULL)
@@ -203,10 +221,8 @@ find_override_splash (state_t *state)
       char *end;
       splash_string = strdup (splash_string + strlen ("plymouth:splash="));
 
-      end = strstr (splash_string, " ");
-
-      if (end != NULL)
-        *end = '\0';
+      end = splash_string + strcspn (splash_string, " \n");
+      *end = '\0';
 
       ply_trace ("Splash is configured to be '%s'", splash_string);
 
@@ -374,6 +390,7 @@ on_display_message (state_t       *state,
   ply_trace ("displaying message %s", message);
   if (state->boot_splash != NULL)
     ply_boot_splash_display_message (state->boot_splash, message);
+  ply_list_append_data (state->messages, strdup(message));
 }
 
 static void
@@ -670,7 +687,6 @@ remove_displays_and_keyboard (state_t *state)
   if (state->keyboard != NULL)
     {
       ply_trace ("removing keyboard");
-      ply_keyboard_stop_watching_for_input (state->keyboard);
       ply_keyboard_free (state->keyboard);
       state->keyboard = NULL;
     }
@@ -720,6 +736,7 @@ on_show_splash (state_t *state)
       show_detailed_splash (state);
       state->showing_details = true;
     }
+  show_messages (state);
 }
 
 static void
@@ -845,12 +862,6 @@ deactivate_splash (state_t *state)
       ply_renderer_deactivate (state->renderer);
     }
 
-  if (state->keyboard != NULL)
-    {
-      ply_trace ("deactivating keyboard");
-      ply_keyboard_stop_watching_for_input (state->keyboard);
-    }
-
   if ((state->session != NULL) && state->is_attached)
     {
       ply_trace ("deactivating terminal session");
@@ -921,6 +932,13 @@ on_deactivate (state_t       *state,
   state->deactivate_trigger = deactivate_trigger;
 
   ply_trace ("deactivating");
+
+  if (state->keyboard != NULL)
+    {
+      ply_trace ("deactivating keyboard");
+      ply_keyboard_stop_watching_for_input (state->keyboard);
+    }
+
   if (state->boot_splash != NULL)
     {
       ply_boot_splash_become_idle (state->boot_splash,
@@ -985,14 +1003,24 @@ on_quit (state_t       *state,
       return;
     }
 
+  if (state->system_initialized)
+    ply_progress_save_cache (state->progress,
+                             get_cache_file_for_mode (state->mode));
+
   state->quit_trigger = quit_trigger;
   state->should_retain_splash = retain_splash;
 
   ply_trace ("time to quit, closing log");
   if (state->session != NULL)
     ply_terminal_session_close_log (state->session);
-  ply_trace ("unloading splash");
 
+  if (state->keyboard != NULL)
+    {
+      ply_trace ("deactivating keyboard");
+      ply_keyboard_stop_watching_for_input (state->keyboard);
+    }
+
+  ply_trace ("unloading splash");
   if (state->is_inactive && !retain_splash)
     {
       /* We've been deactivated and X failed to start
@@ -1117,6 +1145,7 @@ toggle_between_splash_and_details (state_t *state)
       state->showing_details = false;
     }
   update_display (state);
+  show_messages (state);
 }
 
 static void
@@ -1263,7 +1292,6 @@ add_display_and_keyboard_for_terminal (state_t    *state,
   display = ply_text_display_new (state->terminal);
 
   ply_list_append_data (state->text_displays, display);
-  state->keyboard = keyboard;
   set_keyboard (state, keyboard);
 }
 
@@ -1515,8 +1543,8 @@ check_verbosity (state_t *state)
   path = NULL;
   if ((strstr (state->kernel_command_line, " plymouth:debug ") != NULL)
      || (strstr (state->kernel_command_line, "plymouth:debug ") != NULL)
-     || (strstr (state->kernel_command_line, " plymouth:debug") != NULL)
-     || (path = strstr (state->kernel_command_line, " plymouth:debug=file:")) != NULL)
+     || (path = strstr (state->kernel_command_line, " plymouth:debug=file:")) != NULL
+     || (strstr (state->kernel_command_line, " plymouth:debug") != NULL))
     {
 #ifdef LOG_TO_DEBUG_FILE
       int fd;
@@ -1532,12 +1560,8 @@ check_verbosity (state_t *state)
 
           path += strlen (" plymouth:debug=file:");
           debug_buffer_path = strdup (path);
-          end = strstr (debug_buffer_path, " ");
-
-          if (end != NULL)
-            *end = '\0';
-
-          debug_buffer_path = path;
+          end = debug_buffer_path + strcspn (debug_buffer_path, " \n");
+          *end = '\0';
         }
 
         if (debug_buffer == NULL)
@@ -1674,6 +1698,7 @@ initialize_environment (state_t *state)
   state->entry_buffer = ply_buffer_new();
   state->pixel_displays = ply_list_new ();
   state->text_displays = ply_list_new ();
+  state->messages = ply_list_new ();
   state->keyboard = NULL;
 
   if (!state->default_tty)
@@ -1937,9 +1962,6 @@ main (int    argc,
   ply_trace ("entering event loop");
   exit_code = ply_event_loop_run (state.loop);
   ply_trace ("exited event loop");
-
-  ply_progress_save_cache (state.progress,
-                           get_cache_file_for_mode (state.mode));
 
   ply_boot_splash_free (state.boot_splash);
   state.boot_splash = NULL;

@@ -94,6 +94,7 @@ ply_entry_new (const char *image_dir)
   entry->bullet_image = ply_image_new (image_path);
   free (image_path);
   entry->label = ply_label_new ();
+  ply_label_set_color (entry->label, 0, 0, 0, 1);
 
   entry->number_of_bullets = 0;
   entry->text = strdup("");
@@ -165,25 +166,26 @@ ply_entry_draw_area (ply_entry_t        *entry,
                      unsigned long       height)
 {
   ply_rectangle_t     bullet_area;
-  uint32_t *text_field_data, *bullet_data;
+  ply_rectangle_t     clip_area;
+  ply_pixel_buffer_t *bullet_buffer, *text_field_buffer;
   int i, number_of_visible_bullets;
 
   if (entry->is_hidden)
     return;
 
-  text_field_data = ply_image_get_data (entry->text_field_image);
+  text_field_buffer = ply_image_get_buffer (entry->text_field_image);
 
-  ply_pixel_buffer_fill_with_argb32_data (pixel_buffer,
-                                          &entry->area, 0, 0,
-                                          text_field_data);
+  ply_pixel_buffer_fill_with_buffer (pixel_buffer,
+                                     text_field_buffer,
+                                     entry->area.x,
+                                     entry->area.y);
 
   if (entry->is_password)
     {
-      bullet_data = ply_image_get_data (entry->bullet_image);
-      bullet_area.width = ply_image_get_width (entry->bullet_image);
-      bullet_area.height = ply_image_get_height (entry->bullet_image);
+      bullet_buffer = ply_image_get_buffer (entry->bullet_image);
+      ply_pixel_buffer_get_size (bullet_buffer, &bullet_area);
 
-      if (entry->number_of_bullets < entry->max_number_of_visible_bullets)
+      if (entry->number_of_bullets <= entry->max_number_of_visible_bullets)
         number_of_visible_bullets = entry->number_of_bullets;
       else
         {
@@ -192,12 +194,16 @@ ply_entry_draw_area (ply_entry_t        *entry,
           /* We've got more bullets than we can show in the available space, so
            * draw a little half bullet to indicate some bullets are offscreen
            */
-          bullet_area.x = entry->area.x;
+          bullet_area.x = entry->area.x - bullet_area.width / 2.0;
           bullet_area.y = entry->area.y + entry->area.height / 2.0 - bullet_area.height / 2.0;
-
-          ply_pixel_buffer_fill_with_argb32_data (pixel_buffer,
-                                                  &bullet_area, bullet_area.width / 2.0, 0,
-                                                  bullet_data);
+          clip_area = bullet_area;
+          clip_area.x = entry->area.x;
+          
+          ply_pixel_buffer_fill_with_buffer_with_clip (pixel_buffer,
+                                                       bullet_buffer,
+                                                       bullet_area.x,
+                                                       bullet_area.y,
+                                                       &clip_area);
         }
 
       for (i = 0; i < number_of_visible_bullets; i++)
@@ -205,14 +211,20 @@ ply_entry_draw_area (ply_entry_t        *entry,
           bullet_area.x = entry->area.x + i * bullet_area.width + bullet_area.width / 2.0;
           bullet_area.y = entry->area.y + entry->area.height / 2.0 - bullet_area.height / 2.0;
 
-          ply_pixel_buffer_fill_with_argb32_data (pixel_buffer,
-                                                  &bullet_area, 0, 0,
-                                                  bullet_data);
+          ply_pixel_buffer_fill_with_buffer (pixel_buffer,
+                                             bullet_buffer,
+                                             bullet_area.x,
+                                             bullet_area.y);
         }
     }
   else
     {
       ply_label_set_text (entry->label, entry->text);
+      ply_label_show (entry->label,
+                      NULL,
+                      entry->area.x,
+                      entry->area.y + entry->area.height / 2
+                       - ply_label_get_height (entry->label) / 2);
       ply_label_draw_area (entry->label, pixel_buffer,
                            entry->area.x, entry->area.y,
                            entry->area.width, entry->area.height);
@@ -266,6 +278,17 @@ ply_entry_set_text (ply_entry_t *entry, const char* text)
       ply_entry_draw (entry);
     }
 }
+
+void
+ply_entry_set_text_color (ply_entry_t *entry,
+                          float        red,
+                          float        green,
+                          float        blue,
+                          float        alpha)
+{
+  ply_label_set_color (entry->label, red, green, blue, alpha);
+}
+
 
 void
 ply_entry_show (ply_entry_t         *entry,
