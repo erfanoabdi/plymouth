@@ -783,6 +783,10 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
   if (!backend->driver_supports_mapping_console &&
       ply_list_get_length (backend->heads) == 1)
     {
+      ply_trace ("Only one monitor configured, and driver doesn't "
+                 "support mapping console, so letting frame-buffer "
+                 "take over");
+
       free_heads (backend);
       return false;
     }
