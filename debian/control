@@ -1,7 +1,8 @@
 Source: plymouth
 Section: misc
 Priority: optional
-Maintainer: Debian QA Group <packages@qa.debian.org>
+Maintainer: Laurent Bigonville <bigon@debian.org>
+Uploaders: Sjoerd Simons <sjoerd@debian.org>
 Build-Depends:
  debhelper (>= 9),
  dh-autoreconf,
@@ -17,52 +18,36 @@ Build-Depends:
  xsltproc,
 Standards-Version: 3.9.5
 Homepage: http://www.freedesktop.org/wiki/Software/Plymouth
-Vcs-Browser: http://daniel-baumann.ch/gitweb/?p=debian/packages/plymouth.git
-Vcs-Git: git://daniel-baumann.ch/git/debian/packages/plymouth.git
+Vcs-Git: git://anonscm.debian.org/collab-maint/plymouth.git
+Vcs-Browser: http://anonscm.debian.org/gitweb/?p=collab-maint/plymouth.git
 
 Package: plymouth
 Architecture: linux-any
-Pre-Depends: multiarch-support
+Pre-Depends: ${misc:Pre-Depends}
 Depends:
  ${misc:Depends},
  ${shlibs:Depends},
   initramfs-tools | dracut,
 Conflicts: console-common
+Breaks: plymouth-drm (<< 0.9.0-6~)
+Replaces: plymouth-drm (<< 0.9.0-6~)
 Suggests:
  desktop-base,
- plymouth-drm,
+ plymouth-themes
 Description: Graphical Boot Animation and Logger
  Plymouth provides an attractive boot animation in place of the text messages
  that normally get shown. Text messages are instead redirected to a logfile for
  viewing after boot.
-
-Package: plymouth-drm
-Architecture: linux-any
-Pre-Depends: multiarch-support
-Depends:
- ${misc:Depends},
- ${shlibs:Depends},
- plymouth (= ${binary:Version}),
- fontconfig-config,
- fonts-dejavu-core | ttf-dejavu-core,
-Recommends: plymouth-themes
-Description: Graphical Boot Animation and Logger (DRM)
- Plymouth provides an attractive boot animation in place of the text messages
- that normally get shown. Text messages are instead redirected to a logfile for
- viewing after boot.
- .
- This package contains the DRM backend for systems supporting Kernel Mode
- Setting (KMS).
 
 Package: plymouth-x11
 Architecture: linux-any
 Depends:
  ${misc:Depends},
  ${shlibs:Depends},
- plymouth-drm (= ${binary:Version}),
+ plymouth (= ${binary:Version}),
 Recommends: plymouth-themes
 Suggests: gdm
-Description: Graphical Boot Animation and Logger
+Description: Graphical Boot Animation and Logger (x11 renderer and log viewer)
  Plymouth provides an attractive boot animation in place of the text messages
  that normally get shown. Text messages are instead redirected to a logfile for
  viewing after boot.
@@ -76,7 +61,6 @@ Priority: extra
 Depends:
  ${misc:Depends},
  plymouth (= ${binary:Version}),
- plymouth-drm (= ${binary:Version}),
  plymouth-x11 (= ${binary:Version}),
  plymouth-dev (= ${binary:Version}),
  plymouth-themes (>= ${source:Version}),
@@ -92,7 +76,6 @@ Architecture: linux-any
 Depends:
  ${misc:Depends},
  plymouth (= ${binary:Version}),
- plymouth-drm (= ${binary:Version}),
  plymouth-x11 (= ${binary:Version}),
 Description: Graphical Boot Animation and Logger (development)
  Plymouth provides an attractive boot animation in place of the text messages
@@ -102,8 +85,13 @@ Description: Graphical Boot Animation and Logger (development)
  This package contains the development files.
 
 Package: plymouth-themes
-Architecture: all
-Depends: ${misc:Depends}
+Architecture: linux-any
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends},
+ plymouth (= ${binary:Version}),
+ fontconfig-config,
+ fonts-dejavu-core | ttf-dejavu-core,
 Conflicts:
  plymouth-themes-all,
  plymouth-themes-fade-in,
@@ -120,6 +108,7 @@ Replaces:
  plymouth-themes-solar,
  plymouth-themes-spinfinity,
  plymouth-themes-spinner,
+ plymouth-drm (<< 0.9.0-6~)
 Provides:
  plymouth-theme,
  plymouth-themes-all,
@@ -129,6 +118,7 @@ Provides:
  plymouth-themes-solar,
  plymouth-themes-spinfinity,
  plymouth-themes-spinner,
+Breaks: plymouth-drm (<< 0.9.0-6~)
 Description: Graphical Boot Animation and Logger (themes)
  Plymouth provides an attractive boot animation in place of the text messages
  that normally get shown. Text messages are instead redirected to a logfile for

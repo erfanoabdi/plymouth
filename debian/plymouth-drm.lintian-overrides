@@ -1,5 +1,0 @@
-plymouth-drm: package-name-doesnt-match-sonames
-plymouth-drm: unused-shlib-entry-in-control-file two step
-plymouth-drm: unused-shlib-entry-in-control-file fade throbber
-plymouth-drm: unused-shlib-entry-in-control-file space flares
-plymouth-drm: unused-shlib-entry-in-control-file frame buffer

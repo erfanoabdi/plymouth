@@ -1,3 +1,42 @@
+plymouth (0.9.0-6) UNRELEASED; urgency=medium
+
+  * New maintainer (Closes: #756075)
+  * Move the frame-buffer and drm renderers into the main plymouth package and
+    always install them in the initramfs, this should fix the issue where the
+    splash is not shown for some users (Closes: #752752)
+  * Move the libply-splash-graphics library to the main package and the themes
+    related .so files to the -themes package, this is effectively killing the
+    -drm package
+  * Add debian/watch file
+  * debian/rules:
+    - Tell dh_makeshlibs to exclude plugins from shlibs file
+    - Minimize the runtime dependencies by calling dh_autoreconf with
+      --as-needed and passing the same flag to LDFLAGS
+    - Pass --disable-silent-rules to the configure
+  * debian/control:
+    - Fix short description for plymouth-x11 package to please lintian
+    - Use ${misc:Pre-Depends} instead of hardcoding multiarch-support package
+    - Update the Vcs-* fields
+  * debian/local/plymouth.hook: Always copy text.so and details.so in the
+    initramfs as they are used as fallbacks
+  * Add debian/patches/0009-use-correct-utf8-multibyte-sequence.patch: This
+    should fix the character displayed in the text theme (Closes: #756244)
+  * Add plymouth-{themes,x11}.postrm: Also regenerate the initramfs when these
+    packages two are removed
+  * debian/plymouth.dirs: Create /var/lib/plymouth on installation, this
+    directory is needed to store boot-duration file
+  * debian/plymouth.lintian-overrides: Override
+    init.d-script-depends-on-all-virtual-facility, we really want to be the
+    last to be started so the splash screen stays until the end of the boot
+  * Drop debian/patches/0006-initscript-aliases.patch and use symlinks instead
+    to mask the LSB initscripts
+  * debian/plymouth.postinst, d/p/0010-revert-systemd-wantedby.patch: The
+    WantedBy option in the .service files was useless as they are already
+    statically enabled and has been removed, we also need to cleanup i-s-h
+    related files on upgrade
+
+ -- Laurent Bigonville <bigon@debian.org>  Wed, 30 Jul 2014 11:41:22 +0200
+
 plymouth (0.9.0-5) unstable; urgency=low
 
   * I don't care anymore, not worth it.. orphaning.

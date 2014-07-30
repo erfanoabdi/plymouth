@@ -2,6 +2,10 @@
 
 DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
 
+# Ensure at build time that the library has no dependencies on undefined
+# symbols, and speed up loading.
+export DEB_LDFLAGS_MAINT_APPEND=-Wl,-z,defs -Wl,-O1 -Wl,--as-needed
+
 %:
 	dh ${@} --parallel --with autoreconf,systemd
 
@@ -15,6 +19,7 @@ override_dh_auto_configure:
 	cp -f /usr/share/misc/config.sub build-tools
 
 	dh_auto_configure -- \
+		--disable-silent-rules \
 		--prefix=/usr \
 		--localstatedir=/var \
 		--enable-pango \
@@ -63,6 +68,9 @@ override_dh_install:
 override_dh_systemd_start:
 	dh_systemd_start --no-start
 
+override_dh_autoreconf:
+	dh_autoreconf --as-needed
+
 override_dh_installinit:
 	dh_installinit --no-start -- start . 2 3 4 5 . stop . 0 6 .
 	dh_installinit --no-start --name=plymouth-log -- start . S .
@@ -77,8 +85,7 @@ override_dh_link:
 	dh_link --remaining-packages
 
 override_dh_makeshlibs:
-	dh_makeshlibs -p plymouth
-	dh_makeshlibs -p plymouth-drm
+	dh_makeshlibs -Xusr/lib/$(DEB_HOST_MULTIARCH)/plymouth
 
 override_dh_strip:
 	dh_strip --dbg-package=plymouth-dbg

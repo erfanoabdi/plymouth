@@ -3,6 +3,7 @@
 0003-default-theme.patch
 0004-return-code.patch
 0005-cmdline.patch
-0006-initscript-aliases.patch
 0007-udev-seat-tag.patch
 0008-show-delay.patch
+0009-use-correct-utf8-multibyte-sequence.patch
+0010-revert-systemd-wantedby.patch
