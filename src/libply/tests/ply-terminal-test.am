@@ -4,6 +4,8 @@ ply_terminal_test_CFLAGS = $(PLYMOUTH_CFLAGS) -DPLY_TERMINAL_ENABLE_TEST
 ply_terminal_test_LDADD = $(PLYMOUTH_LIBS)
 
 ply_terminal_test_SOURCES =                                                   \
+                          $(srcdir)/../ply-list.h                             \
+                          $(srcdir)/../ply-list.c                             \
                           $(srcdir)/../ply-logger.h                           \
                           $(srcdir)/../ply-logger.c                           \
                           $(srcdir)/../ply-utils.h                            \

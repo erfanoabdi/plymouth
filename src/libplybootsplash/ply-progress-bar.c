@@ -110,9 +110,6 @@ ply_progress_bar_update_area (ply_progress_bar_t *progress_bar,
                               long                y)
 {
 
-  long width, height;
-  double fraction;
-
   ply_frame_buffer_get_size (progress_bar->frame_buffer, &progress_bar->area);
 
   progress_bar->area.x = x;

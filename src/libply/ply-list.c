@@ -65,7 +65,7 @@ ply_list_free (ply_list_t *list)
   free (list);
 }
 
-ply_list_node_t *
+static ply_list_node_t *
 ply_list_node_new (void *data)
 {
   ply_list_node_t *node;
@@ -76,7 +76,7 @@ ply_list_node_new (void *data)
   return node;
 }
 
-void
+static void
 ply_list_node_free (ply_list_node_t *node)
 {
   if (node == NULL)

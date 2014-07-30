@@ -37,6 +37,7 @@
 #include <unistd.h>
 
 #include "ply-utils.h"
+#include "ply-list.h"
 
 #ifndef PLY_LOGGER_OPEN_FLAGS
 #define PLY_LOGGER_OPEN_FLAGS (O_WRONLY | O_TRUNC | O_CREAT | O_NOFOLLOW)
@@ -50,6 +51,12 @@
 #define PLY_LOGGER_MAX_BUFFER_CAPACITY (8 * 4096)
 #endif
 
+typedef struct
+{
+  ply_logger_filter_handler_t  handler;
+  void                        *user_data;
+} ply_logger_filter_t;
+
 struct _ply_logger
 {
   int output_fd;
@@ -60,6 +67,7 @@ struct _ply_logger
   size_t buffer_capacity;
 
   ply_logger_flush_policy_t flush_policy;
+  ply_list_t *filters;
 
   uint32_t is_enabled : 1;
   uint32_t tracing_is_enabled : 1;
@@ -233,6 +241,8 @@ ply_logger_new (void)
   logger->buffer = calloc (1, logger->buffer_capacity);
   logger->buffer_size = 0;
 
+  logger->filters = ply_list_new ();
+
   return logger;
 }
 
@@ -266,6 +276,27 @@ ply_logger_get_error_default (void)
   return logger;
 }
 
+static void
+ply_logger_free_filters (ply_logger_t *logger)
+{
+  ply_list_node_t *node;
+
+  node = ply_list_get_first_node (logger->filters);
+  while (node != NULL)
+    {
+      ply_list_node_t *next_node;
+      ply_logger_filter_t *filter;
+
+      filter = (ply_logger_filter_t *) ply_list_node_get_data (node);
+
+      next_node = ply_list_get_next_node (logger->filters, node);
+      free (filter);
+      node = next_node;
+    }
+
+  ply_list_free (logger->filters);
+}
+
 void
 ply_logger_free (ply_logger_t *logger)
 {
@@ -278,6 +309,8 @@ ply_logger_free (ply_logger_t *logger)
         ply_logger_flush (logger);
       close (logger->output_fd);
     }
+
+  ply_logger_free_filters (logger);
 
   free (logger->filename);
   free (logger->buffer);
@@ -468,17 +501,78 @@ ply_logger_inject_bytes (ply_logger_t *logger,
                          const void   *bytes,
                          size_t        number_of_bytes)
 {
+  ply_list_node_t *node;
+  void *filtered_bytes;
+  size_t filtered_size;
+
   assert (logger != NULL);
   assert (bytes != NULL);
   assert (number_of_bytes != 0);
 
-  ply_logger_buffer (logger, bytes, number_of_bytes);
+  filtered_bytes = NULL;
+  filtered_size = 0;
+  node = ply_list_get_first_node (logger->filters);
+  while (node != NULL)
+    {
+      ply_list_node_t *next_node;
+      ply_logger_filter_t *filter;
+
+      filter = (ply_logger_filter_t *) ply_list_node_get_data (node);
+
+      next_node = ply_list_get_next_node (logger->filters, node);
+
+      if (filtered_bytes == NULL)
+        filter->handler (filter->user_data, bytes, number_of_bytes,
+                         &filtered_bytes, &filtered_size, logger);
+      else
+        {
+          void *new_bytes;
+          size_t new_size;
+
+          new_bytes = NULL;
+          new_size = 0;
+          filter->handler (filter->user_data, filtered_bytes, filtered_size,
+                           &new_bytes, &new_size, logger);
+
+          if (new_bytes != NULL)
+            {
+              free (filtered_bytes);
+              filtered_bytes = new_bytes;
+              filtered_size = new_size;
+            }
+        }
+
+      node = next_node;
+    }
+
+  if (filtered_bytes == NULL)
+    ply_logger_buffer (logger, bytes, number_of_bytes);
+  else
+    {
+      ply_logger_buffer (logger, filtered_bytes, filtered_size);
+      free (filtered_bytes);
+    }
 
   assert ((logger->flush_policy == PLY_LOGGER_FLUSH_POLICY_WHEN_ASKED)
           || (logger->flush_policy == PLY_LOGGER_FLUSH_POLICY_EVERY_TIME));
 
   if (logger->flush_policy == PLY_LOGGER_FLUSH_POLICY_EVERY_TIME)
     ply_logger_flush (logger);
+}
+
+void
+ply_logger_add_filter (ply_logger_t                *logger,
+                       ply_logger_filter_handler_t  filter_handler,
+                       void                        *user_data)
+{
+  ply_logger_filter_t *filter;
+
+  filter = calloc (1, sizeof (ply_logger_filter_t));
+
+  filter->handler = filter_handler;
+  filter->user_data = user_data;
+
+  ply_list_append_data (logger->filters, filter);
 }
 
 #ifdef PLY_ENABLE_TRACING

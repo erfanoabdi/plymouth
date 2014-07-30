@@ -29,15 +29,20 @@
 #include "ply-buffer.h"
 #include "ply-event-loop.h"
 #include "ply-trigger.h"
+#include "ply-key-file.h"
 #include "ply-window.h"
+
+typedef enum
+{
+  PLY_BOOT_SPLASH_MODE_BOOT_UP,
+  PLY_BOOT_SPLASH_MODE_SHUTDOWN,
+} ply_boot_splash_mode_t;
 
 typedef struct _ply_boot_splash_plugin ply_boot_splash_plugin_t;
 
-typedef void (* ply_boot_splash_password_answer_handler_t) (void *answer_data, const char *password);
-
 typedef struct
 {
-  ply_boot_splash_plugin_t * (* create_plugin) (void);
+  ply_boot_splash_plugin_t * (* create_plugin) (ply_key_file_t *key_file);
   void (* destroy_plugin) (ply_boot_splash_plugin_t *plugin);
 
   void (* add_window) (ply_boot_splash_plugin_t *plugin,
@@ -47,7 +52,8 @@ typedef struct
                           ply_window_t             *window);
   bool (* show_splash_screen) (ply_boot_splash_plugin_t *plugin,
                                ply_event_loop_t         *loop,
-                               ply_buffer_t             *boot_buffer);
+                               ply_buffer_t             *boot_buffer,
+                               ply_boot_splash_mode_t    mode);
   void (* update_status) (ply_boot_splash_plugin_t *plugin,
                           const char               *status);
   void (* on_boot_output) (ply_boot_splash_plugin_t *plugin,
@@ -59,10 +65,15 @@ typedef struct
   void (* on_root_mounted) (ply_boot_splash_plugin_t *plugin);
   void (* hide_splash_screen) (ply_boot_splash_plugin_t *plugin,
                                ply_event_loop_t         *loop);
-
-  void (* ask_for_password) (ply_boot_splash_plugin_t *plugin,
+  void (* display_normal) (ply_boot_splash_plugin_t *plugin);
+  void (* display_message) (ply_boot_splash_plugin_t *plugin,
+                            const char               *message);
+  void (* display_password) (ply_boot_splash_plugin_t *plugin,
                              const char               *prompt,
-                             ply_trigger_t            *answer);
+                             int                       bullets);
+  void (* display_question) (ply_boot_splash_plugin_t *plugin,
+                             const char               *prompt,
+                             const char               *entry_text);
   void (* become_idle) (ply_boot_splash_plugin_t       *plugin,
                         ply_trigger_t                  *idle_trigger);
 } ply_boot_splash_plugin_interface_t;

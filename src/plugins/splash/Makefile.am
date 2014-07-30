@@ -1,4 +1,4 @@
-SUBDIRS = spinfinity fade-in text details solar pulser
+SUBDIRS = throbgress fade-throbber text details space-flares two-step script
 MAINTAINERCLEANFILES = Makefile.in
 
 if ADD_DEFAULT_PLUGIN_LINK

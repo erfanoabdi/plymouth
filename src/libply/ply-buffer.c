@@ -43,7 +43,7 @@
 #endif
 
 #ifndef PLY_BUFFER_MAX_BUFFER_CAPACITY
-#define PLY_BUFFER_MAX_BUFFER_CAPACITY (8 * 4096)
+#define PLY_BUFFER_MAX_BUFFER_CAPACITY (255 * 4096)
 #endif
 
 struct _ply_buffer
@@ -83,6 +83,7 @@ ply_buffer_remove_bytes (ply_buffer_t *buffer,
                buffer->size - bytes_to_remove);
       buffer->size -= bytes_to_remove;
     }
+  buffer->data[buffer->size] = '\0';
 }
 
 void
@@ -94,6 +95,7 @@ ply_buffer_remove_bytes_at_end (ply_buffer_t *buffer,
   bytes_to_remove = MIN (buffer->size, bytes_to_remove);
 
   buffer->size -= bytes_to_remove;
+  buffer->data[buffer->size] = '\0';
 }
 
 ply_buffer_t *
@@ -176,22 +178,25 @@ ply_buffer_append_with_non_literal_format_string (ply_buffer_t   *buffer,
 
 void
 ply_buffer_append_bytes (ply_buffer_t *buffer,
-                         const void   *bytes,
+                         const void   *bytes_in,
                          size_t        length)
 {
   assert (buffer != NULL);
-  assert (bytes != NULL);
+  assert (bytes_in != NULL);
   assert (length != 0);
-
-  if ((buffer->size + length) >= buffer->capacity)
+  
+  const uint8_t *bytes = bytes_in;
+  
+  if (length >PLY_BUFFER_MAX_BUFFER_CAPACITY){
+    bytes += length - (PLY_BUFFER_MAX_BUFFER_CAPACITY-1);
+    length = (PLY_BUFFER_MAX_BUFFER_CAPACITY-1);
+    }
+  
+  while ((buffer->size + length) >= buffer->capacity)
     {
       if (!ply_buffer_increase_capacity (buffer))
         {
           ply_buffer_remove_bytes (buffer, length);
-
-          if ((buffer->size + length) >= buffer->capacity)
-            if (!ply_buffer_increase_capacity (buffer))
-              return;
         }
     }
 
@@ -201,6 +206,7 @@ ply_buffer_append_bytes (ply_buffer_t *buffer,
           bytes, length);
 
   buffer->size += length;
+  buffer->data[buffer->size] = '\0';
 }
 
 void

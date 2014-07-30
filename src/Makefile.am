@@ -5,12 +5,15 @@ INCLUDES = -I$(top_srcdir)                                                    \
            -I$(srcdir)                                                        \
            -DPLYMOUTH_LOG_DIRECTORY=\"$(localstatedir)/log\"                  \
            -DPLYMOUTH_SPOOL_DIRECTORY=\"$(localstatedir)/spool/plymouth\"     \
+           -DPLYMOUTH_TIME_DIRECTORY=\"$(localstatedir)/lib/plymouth/\"       \
            -DPLYMOUTH_LOGO_FILE=\"$(logofile)\"
 
 plymouthdbindir = $(plymouthdaemondir)
 plymouthdbin_PROGRAMS = plymouthd
 
-plymouthd_CFLAGS = $(PLYMOUTH_CFLAGS) -DPLYMOUTH_PLUGIN_PATH=\"$(libdir)/plymouth/\"
+plymouthd_CFLAGS = $(PLYMOUTH_CFLAGS)                                         \
+		   -DPLYMOUTH_PLUGIN_PATH=\"$(PLYMOUTH_PLUGIN_PATH)\"         \
+		   -DPLYMOUTH_THEME_PATH=\"$(PLYMOUTH_THEME_PATH)/\"
 plymouthd_LDADD = $(PLYMOUTH_LIBS) libply/libply.la libplybootsplash/libplybootsplash.la
 plymouthd_SOURCES =                                                            \
                    ply-boot-protocol.h                                        \

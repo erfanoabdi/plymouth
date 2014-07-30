@@ -59,12 +59,21 @@ void ply_command_parser_get_options (ply_command_parser_t *parser,
                                      const char *option_name, /*
                                      void *      option_result */
                                      ...);
-
+void ply_command_parser_get_option (ply_command_parser_t *parser,
+                                    const char           *option_name,
+                                    void                 *option_result,
+                                    bool                 *option_is_set);
 void ply_command_parser_get_command_options (ply_command_parser_t *parser,
                                              const char *command_name,
                                              const char *option_name, /*
-                                             void *      option_result */
+                                             void *      option_result,
+                                             bool *      option_was_set */
                                              ...);
+void ply_command_parser_get_command_option (ply_command_parser_t *parser,
+                                            const char           *command_name,
+                                            const char           *option_name,
+                                            void                 *option_result,
+                                            bool                 *option_is_set);
 void ply_command_parser_stop_parsing_arguments (ply_command_parser_t *parser);
 
 char *ply_command_parser_get_help_string (ply_command_parser_t *parser);

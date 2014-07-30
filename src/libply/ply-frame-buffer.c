@@ -23,6 +23,7 @@
  *             Ray Strode <rstrode@redhat.com>
  */
 #include "config.h"
+#include "ply-list.h"
 #include "ply-frame-buffer.h"
 #include "ply-logger.h"
 
@@ -76,9 +77,10 @@ struct _ply_frame_buffer
   unsigned int row_stride;
 
   ply_frame_buffer_area_t area;
-  ply_frame_buffer_area_t area_to_flush;
+  ply_list_t *areas_to_flush;
 
-  void (*flush)(ply_frame_buffer_t *buffer);
+  void (*flush_area) (ply_frame_buffer_t      *buffer,
+                      ply_frame_buffer_area_t *area_to_flush);
 
   int pause_count;
 };
@@ -87,11 +89,11 @@ static bool ply_frame_buffer_open_device (ply_frame_buffer_t  *buffer);
 static void ply_frame_buffer_close_device (ply_frame_buffer_t *buffer);
 static bool ply_frame_buffer_query_device (ply_frame_buffer_t *buffer);
 static bool ply_frame_buffer_map_to_device (ply_frame_buffer_t *buffer);
-static uint_fast32_t inline ply_frame_buffer_pixel_value_to_device_pixel_value (
+static inline uint_fast32_t ply_frame_buffer_pixel_value_to_device_pixel_value (
     ply_frame_buffer_t *buffer,
     uint32_t        pixel_value);
 
-static void inline ply_frame_buffer_blend_value_at_pixel (ply_frame_buffer_t *buffer,
+static inline void ply_frame_buffer_blend_value_at_pixel (ply_frame_buffer_t *buffer,
                                                    int             x,
                                                    int             y,
                                                    uint32_t        pixel_value);
@@ -145,19 +147,20 @@ ply_frame_buffer_close_device (ply_frame_buffer_t *buffer)
 }
 
 static void
-flush_generic (ply_frame_buffer_t *buffer)
+flush_area_to_any_device (ply_frame_buffer_t      *buffer,
+                          ply_frame_buffer_area_t *area_to_flush)
 {
   unsigned long row, column;
   char *row_buffer;
   size_t bytes_per_row;
   unsigned long x1, y1, x2, y2;
 
-  x1 = buffer->area_to_flush.x;
-  y1 = buffer->area_to_flush.y;
-  x2 = x1 + buffer->area_to_flush.width;
-  y2 = y1 + buffer->area_to_flush.height;
+  x1 = area_to_flush->x;
+  y1 = area_to_flush->y;
+  x2 = x1 + area_to_flush->width;
+  y2 = y1 + area_to_flush->height;
 
-  bytes_per_row = buffer->area_to_flush.width * buffer->bytes_per_pixel;
+  bytes_per_row = area_to_flush->width * buffer->bytes_per_pixel;
   row_buffer = malloc (buffer->row_stride * buffer->bytes_per_pixel);
   for (row = y1; row < y2; row++)
     {
@@ -180,34 +183,35 @@ flush_generic (ply_frame_buffer_t *buffer)
 
       offset = row * buffer->row_stride * buffer->bytes_per_pixel + x1 * buffer->bytes_per_pixel;
       memcpy (buffer->map_address + offset, row_buffer + x1 * buffer->bytes_per_pixel,
-              buffer->area_to_flush.width * buffer->bytes_per_pixel);
+              area_to_flush->width * buffer->bytes_per_pixel);
     }
   free (row_buffer);
 }
 
 static void
-flush_xrgb32 (ply_frame_buffer_t *buffer)
+flush_area_to_xrgb32_device (ply_frame_buffer_t      *buffer,
+                             ply_frame_buffer_area_t *area_to_flush)
 {
   unsigned long x1, y1, x2, y2, y;
   char *dst, *src;
 
-  x1 = buffer->area_to_flush.x;
-  y1 = buffer->area_to_flush.y;
-  x2 = x1 + buffer->area_to_flush.width;
-  y2 = y1 + buffer->area_to_flush.height;
+  x1 = area_to_flush->x;
+  y1 = area_to_flush->y;
+  x2 = x1 + area_to_flush->width;
+  y2 = y1 + area_to_flush->height;
 
   dst = &buffer->map_address[(y1 * buffer->row_stride + x1) * 4];
   src = (char *) &buffer->shadow_buffer[y1 * buffer->area.width + x1];
 
-  if (buffer->area_to_flush.width == buffer->row_stride)
+  if (area_to_flush->width == buffer->row_stride)
     {
-      memcpy (dst, src, buffer->area_to_flush.width * buffer->area_to_flush.height * 4);
+      memcpy (dst, src, area_to_flush->width * area_to_flush->height * 4);
       return;
     }
 
   for (y = y1; y < y2; y++)
     {
-      memcpy (dst, src, buffer->area_to_flush.width * 4);
+      memcpy (dst, src, area_to_flush->width * 4);
       dst += buffer->row_stride * 4;
       src += buffer->area.width * 4;
     }
@@ -328,9 +332,9 @@ ply_frame_buffer_query_device (ply_frame_buffer_t *buffer)
       buffer->red_bit_position == 16 && buffer->bits_for_red == 8 &&
       buffer->green_bit_position == 8 && buffer->bits_for_green == 8 &&
       buffer->blue_bit_position == 0 && buffer->bits_for_blue == 8)
-    buffer->flush = flush_xrgb32;
+    buffer->flush_area = flush_area_to_xrgb32_device;
   else
-    buffer->flush = flush_generic;
+    buffer->flush_area = flush_area_to_any_device;
 
   return true;
 }
@@ -484,67 +488,300 @@ ply_frame_buffer_fill_area_with_pixel_value (ply_frame_buffer_t     *buffer,
 }
 
 static void
-ply_frame_buffer_area_union (ply_frame_buffer_area_t *area1,
-                             ply_frame_buffer_area_t *area2,
-                             ply_frame_buffer_area_t *result)
+integrate_area_with_flush_area (ply_frame_buffer_t      *buffer,
+                                ply_list_node_t         *node,
+                                ply_frame_buffer_area_t *new_area)
 {
-  unsigned long x1, y1, x2, y2;
-
-  if (area1->width == 0)
+  if (new_area->width == 0) return;
+  if (new_area->height == 0) return;
+  while (node != NULL)
     {
-      *result = *area2;
-      return;
+      ply_list_node_t *next_node;
+      ply_frame_buffer_area_t *second_new_area;
+      ply_frame_buffer_area_t *old_area;
+      old_area = (ply_frame_buffer_area_t *) ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (buffer->areas_to_flush, node);
+      
+      /*
+        Say we have an overlap between rectangle A and rectangle B and C denotes the overlap.
+        Depending on the type of overlap we can create a non overlapping addition to the set.
+        
+        1:Collision on one side         2:Collision on two sides  
+        Trim one of the rectanges       Break into two rectangles 
+        
+        AAAAA         AAAAA               AAAAA         AAAAA     
+        AAACCBBB      AAAAABBB            AAAAA         AAAAA     
+        AAACCBBB  =>  AAAAABBB            AAACCBBB  =>  AAAAAbbb  
+        AAACCBBB      AAAAABBB            AAACCBBB      AAAAAbbb  
+        AAAAA         AAAAA                  BBBBB         BBBBB  
+                                             BBBBB         BBBBB
+        
+        3:Collision on opposite sides   4:Fully contained
+        Break into two rectangles       Throw away the rectangle 
+
+         AAAAA        AAAAA              AAAAA        AAAAA
+        BCCCCCB      BAAAAAb             ACCCA        AAAAA
+        BCCCCCB  =>  BAAAAAb             ACCCA   =>   AAAAA
+        BCCCCCB      BAAAAAb             ACCCA        AAAAA
+         AAAAA        AAAAA              AAAAA        AAAAA
+        
+      */
+      enum {H_COLLISION_NONE, H_COLLISION_LEFT, H_COLLISION_RIGHT, H_COLLISION_BOTH, H_COLLISION_CONTAINED}
+            h_collision = H_COLLISION_NONE;
+      enum {V_COLLISION_NONE, V_COLLISION_TOP, V_COLLISION_BOTTOM, V_COLLISION_BOTH, V_COLLISION_CONTAINED}
+            v_collision = V_COLLISION_NONE;
+      
+      if (new_area->x >= old_area->x && (new_area->x + new_area->width) <= (old_area->x + old_area->width))
+        h_collision = H_COLLISION_CONTAINED;
+      else
+        {                                       /* Remember: x+width points to the first pixel outside the rectangle*/
+          if (new_area->x < old_area->x &&
+              (new_area->x + (int)new_area->width) > old_area->x)
+            h_collision = H_COLLISION_LEFT;         /* new_area colllided with the left edge of old_area */
+
+          if (new_area->x < (old_area->x + (int)old_area->width) &&
+              (new_area->x + (int)new_area->width) >= (old_area->x + (int)old_area->width))
+            {                                       /* new_area colllided with the right edge of old_area */
+              if (h_collision == H_COLLISION_LEFT)
+                h_collision = H_COLLISION_BOTH;
+              else
+                h_collision = H_COLLISION_RIGHT;
+            }
+        }
+
+      if (h_collision != H_COLLISION_NONE)
+        {
+          if (new_area->y >= old_area->y && (new_area->y + new_area->height) <= (old_area->y + old_area->height))
+            v_collision = V_COLLISION_CONTAINED;
+          else
+            {
+              if (new_area->y < old_area->y &&
+                  (new_area->y + (int)new_area->height) > old_area->y)
+                v_collision = V_COLLISION_TOP;
+              if (new_area->y < (old_area->y + (int)old_area->height) &&
+                  (new_area->y + (int)new_area->height) >= (old_area->y + (int)old_area->height))
+                {                                       /* new_area colllided with the right edge of old_area */
+                  if (v_collision == V_COLLISION_TOP)
+                    v_collision = V_COLLISION_BOTH;
+                  else
+                    v_collision = V_COLLISION_BOTTOM;
+                }
+            }
+        }
+      
+      switch(v_collision)
+        {
+          case V_COLLISION_NONE:
+            break;
+          case V_COLLISION_TOP:
+            {
+              switch (h_collision)
+                {
+                  case H_COLLISION_NONE:   /* no collision */
+                    break;
+                  case H_COLLISION_LEFT:   /* collision with old top left corner, split new into two */
+                    {
+                      second_new_area = malloc (sizeof (ply_frame_buffer_area_t));
+                      second_new_area->x = new_area->x;
+                      second_new_area->y = old_area->y;
+                      second_new_area->width = old_area->x - new_area->x;
+                      second_new_area->height = (new_area->y + new_area->height) - old_area->y;
+                      new_area->height = old_area->y - new_area->y;
+
+                      integrate_area_with_flush_area (buffer, node, second_new_area);
+                      integrate_area_with_flush_area (buffer, node, new_area);
+                      return;
+                    }
+                  case H_COLLISION_RIGHT:   /* collision with old top right corner, split new into two */
+                    {
+                      second_new_area = malloc (sizeof (ply_frame_buffer_area_t));
+                      second_new_area->x = old_area->x + old_area->width;
+                      second_new_area->y = old_area->y;
+                      second_new_area->width = (new_area->x + new_area->width) - (old_area->x + old_area->width);
+                      second_new_area->height = (new_area->y + new_area->height) - old_area->y;
+                      new_area->height = old_area->y - new_area->y;
+
+                      integrate_area_with_flush_area (buffer, node, second_new_area);
+                      integrate_area_with_flush_area (buffer, node, new_area);
+                      return;
+                    }
+                  case H_COLLISION_BOTH:   /* collision with old top, left and right corners, trim old */
+                    old_area->height = (old_area->y + old_area->height) - (new_area->y + new_area->height);
+                    old_area->y = new_area->y + new_area->height;
+                    break;
+                  case H_COLLISION_CONTAINED:   /* collision with old top edge only, trim new */
+                    new_area->height = old_area->y - new_area->y;
+                    break;
+                }
+              break;
+            }
+          case V_COLLISION_BOTTOM:
+            {
+              switch (h_collision)
+                {
+                  case H_COLLISION_NONE:   /* no collision */
+                    break;
+                  case H_COLLISION_LEFT:   /* collision with old bottom left corner, split new into two */
+                    {
+                      second_new_area = malloc (sizeof (ply_frame_buffer_area_t));
+                      second_new_area->x = new_area->x;
+                      second_new_area->y = new_area->y;
+                      second_new_area->width = old_area->x - new_area->x;
+                      second_new_area->height = (old_area->y + old_area->height) - new_area->y;
+
+                      new_area->height = (new_area->y + new_area->height) - (old_area->y + old_area->height);
+                      new_area->y = old_area->y + old_area->height;
+
+                      integrate_area_with_flush_area (buffer, node, second_new_area);
+                      integrate_area_with_flush_area (buffer, node, new_area);
+                      return;
+                    }
+                  case H_COLLISION_RIGHT:   /* collision with old bottom right corner, split new into two */
+                    {
+                      second_new_area = malloc (sizeof (ply_frame_buffer_area_t));
+                      second_new_area->x = old_area->x + old_area->width;
+                      second_new_area->y = new_area->y;
+                      second_new_area->width = (new_area->x + new_area->width) - (old_area->x + old_area->width);
+                      second_new_area->height = (old_area->y + old_area->height) - new_area->y;
+
+                      new_area->height = (new_area->y + new_area->height) - (old_area->y + old_area->height);
+                      new_area->y = old_area->y + old_area->height;
+
+                      integrate_area_with_flush_area (buffer, node, second_new_area);
+                      integrate_area_with_flush_area (buffer, node, new_area);
+                      return;
+                    }
+                  case H_COLLISION_BOTH:   /* collision with old bottom, left and right corners, trim old */
+                    old_area->height = new_area->y - old_area->y;
+                    break;
+                  case H_COLLISION_CONTAINED:   /* collision with old botoom edge only, trim new */
+                    new_area->height = (new_area->y + new_area->height) - (old_area->y + old_area->height);
+                    new_area->y = old_area->y + old_area->height;
+                    break;
+                }
+              break;
+            }
+          case V_COLLISION_BOTH:
+            {
+              switch (h_collision)
+                {
+                  case H_COLLISION_NONE:   /* no collision */
+                    break;
+                  case H_COLLISION_LEFT:   /* collision with old left, top and bottom corners, trim old */
+                    old_area->width = (old_area->x + old_area->width) - (new_area->x + new_area->width);
+                    old_area->x = new_area->x + new_area->width;
+                    break;
+                  case H_COLLISION_RIGHT:   /* collision with old right, top and bottom corners, trim old */
+                    old_area->width = new_area->x - old_area->x;
+                    break;
+                  case H_COLLISION_BOTH:   /* old fully contained within new, remove old */
+                    free (old_area);
+                    ply_list_remove_node (buffer->areas_to_flush, node);
+                    break;
+                  case H_COLLISION_CONTAINED:   /* collision with old top and bottom edges but not left and right, split new into two */
+                    {
+                      second_new_area = malloc (sizeof (ply_frame_buffer_area_t));
+                      second_new_area->x = new_area->x;
+                      second_new_area->y = old_area->y + old_area->height;
+                      second_new_area->width = new_area->width;
+                      second_new_area->height = (new_area->y + new_area->height) - (old_area->y + old_area->height);
+                      new_area->height = old_area->y - new_area->y;
+
+                      integrate_area_with_flush_area (buffer, node, second_new_area);
+                      integrate_area_with_flush_area (buffer, node, new_area);
+                      return;
+                    }
+                }
+              break;
+            }
+          case V_COLLISION_CONTAINED:
+            {
+              switch (h_collision)
+                {
+                  case H_COLLISION_NONE:   /* no collision */
+                    break;
+                  case H_COLLISION_LEFT:   /* collision with old left edge only, trim new */
+                    new_area->width = old_area->x - new_area->x;
+                    break;
+                  case H_COLLISION_RIGHT:   /* collision with old right edge only, trim new */
+                    new_area->width = (new_area->x + new_area->width) - (old_area->x + old_area->width);
+                    new_area->x = old_area->x + old_area->width;
+                    break;
+                  case H_COLLISION_BOTH:
+                    {       /* collision with old left and right edges but not top and botton, split new into two */
+                      second_new_area = malloc (sizeof (ply_frame_buffer_area_t));
+                      second_new_area->x = old_area->x + old_area->width;
+                      second_new_area->y = new_area->y;
+                      second_new_area->width = (new_area->x + new_area->width) - (old_area->x + old_area->width);
+                      second_new_area->height = new_area->height;
+                      new_area->width = old_area->x - new_area->x;
+
+                      integrate_area_with_flush_area (buffer, node, second_new_area);
+                      integrate_area_with_flush_area (buffer, node, new_area);
+                      return;
+                    }
+                  case H_COLLISION_CONTAINED:   /* new fully contained within old, remove new */
+                    free (new_area);
+                    return;
+                }
+              break;
+            }
+        }
+      node = next_node;
     }
 
-  if (area2->width == 0)
-    {
-      *result = *area1;
-      return;
-    }
-
-  x1 = area1->x + area1->width;
-  y1 = area1->y + area1->height;
-  x2 = area2->x + area2->width;
-  y2 = area2->y + area2->height;
-
-  result->x = MIN(area1->x, area2->x);
-  result->y = MIN(area1->y, area2->y);
-  result->width = MAX(x1, x2) - result->x;
-  result->height = MAX(y1, y2) - result->y;
+  ply_list_append_data (buffer->areas_to_flush, new_area);
 }
 
 static void
 ply_frame_buffer_add_area_to_flush_area (ply_frame_buffer_t      *buffer,
                                          ply_frame_buffer_area_t *area)
 {
-  ply_frame_buffer_area_t cropped_area;
+  ply_frame_buffer_area_t *cropped_area;
+
   assert (buffer != NULL);
   assert (area != NULL);
 
-  ply_frame_buffer_area_intersect (area, &buffer->area, &cropped_area);
+  cropped_area = malloc (sizeof (ply_frame_buffer_area_t));
+  ply_frame_buffer_area_intersect (area, &buffer->area, cropped_area);
 
-  if (cropped_area.width == 0 || cropped_area.height == 0)
-    return;
+  if (cropped_area->width == 0 || cropped_area->height == 0)
+    {
+      free (cropped_area);
+      return;
+    }
 
-  ply_frame_buffer_area_union (&buffer->area_to_flush,
-                               &cropped_area,
-                               &buffer->area_to_flush);
+  integrate_area_with_flush_area (buffer, 
+                                  ply_list_get_first_node (buffer->areas_to_flush),
+                                  cropped_area);
 }
 
 static bool
 ply_frame_buffer_flush (ply_frame_buffer_t *buffer)
 {
+  ply_list_node_t *node;
   assert (buffer != NULL);
 
   if (buffer->pause_count > 0)
     return true;
 
-  (*buffer->flush) (buffer);
+  node = ply_list_get_first_node (buffer->areas_to_flush);
+  while (node != NULL)
+    {
+      ply_list_node_t *next_node;
+      ply_frame_buffer_area_t *area_to_flush;
 
-  buffer->area_to_flush.x = buffer->area.width - 1;
-  buffer->area_to_flush.y = buffer->area.height - 1;
-  buffer->area_to_flush.width = 0; 
-  buffer->area_to_flush.height = 0; 
+      area_to_flush = (ply_frame_buffer_area_t *) ply_list_node_get_data (node);
+
+      next_node = ply_list_get_next_node (buffer->areas_to_flush, node);
+
+      (*buffer->flush_area) (buffer, area_to_flush);
+
+      free (area_to_flush);
+      ply_list_remove_node (buffer->areas_to_flush, node);
+
+      node = next_node;
+    }
 
   return true;
 }
@@ -566,10 +803,35 @@ ply_frame_buffer_new (const char *device_name)
 
   buffer->map_address = MAP_FAILED;
   buffer->shadow_buffer = NULL;
+  buffer->areas_to_flush = ply_list_new ();
 
   buffer->pause_count = 0;
 
   return buffer;
+}
+
+static void
+free_flush_areas (ply_frame_buffer_t *buffer)
+{
+  ply_list_node_t *node;
+
+  node = ply_list_get_first_node (buffer->areas_to_flush);
+  while (node != NULL)
+    {
+      ply_list_node_t *next_node;
+      ply_frame_buffer_area_t *area_to_flush;
+
+      area_to_flush = (ply_frame_buffer_area_t *) ply_list_node_get_data (node);
+
+      next_node = ply_list_get_next_node (buffer->areas_to_flush, node);
+
+      free (area_to_flush);
+      ply_list_remove_node (buffer->areas_to_flush, node);
+
+      node = next_node;
+    }
+
+  ply_list_free (buffer->areas_to_flush);
 }
 
 void
@@ -579,6 +841,8 @@ ply_frame_buffer_free (ply_frame_buffer_t *buffer)
 
   if (ply_frame_buffer_device_is_open (buffer))
     ply_frame_buffer_close (buffer);
+
+  free_flush_areas (buffer);
 
   free (buffer->device_name);
   free (buffer->shadow_buffer);
@@ -799,6 +1063,10 @@ ply_frame_buffer_fill_with_gradient (ply_frame_buffer_t      *buffer,
 
   uint32_t red, green, blue, red_step, green_step, blue_step, t, pixel;
   uint32_t x, y;
+  /* we use a fixed seed so that the dithering doesn't change on repaints
+   * of the same area.
+   */
+  uint32_t noise = 0x100001;
   ply_frame_buffer_area_t cropped_area;
 
   if (area == NULL)
@@ -817,35 +1085,53 @@ ply_frame_buffer_fill_with_gradient (ply_frame_buffer_t      *buffer,
   t = (end << BLUE_SHIFT) & COLOR_MASK;
   blue_step = (int32_t) (t - blue) / (int32_t) buffer->area.height;
 
-  /* we use a fixed seed so that the dithering doesn't change on repaints
-   * of the same area.
-   */
-  srand(100200);
 
-/* FIXME: we assume RAND_MAX is at least 24 bits here, and it is on linux.
- * On some platforms it's only 16its though.  If that were true on linux,
- * then NOISE_BITS would get effectively ignored, since those bits would
- * always overlap with zeros.  We could fix it by running rand() twice
- * per channel generating 32-bits of noise, or by shifting the result of
- * rand() over 8 bits, such that the zeros would be overlapping with the
- * least significant fractional bits of the color channel instead.
- */
-#define NOISE() (rand () & NOISE_MASK)
+#define RANDOMIZE(num) (num = (num + (num << 1)) & NOISE_MASK)
+#define UNROLLED_PIXEL_COUNT 8
 
   for (y = buffer->area.y; y < buffer->area.y + buffer->area.height; y++)
     {
       if (cropped_area.y <= y && y < cropped_area.y + cropped_area.height)
         {
-          for (x = cropped_area.x; x < cropped_area.x + cropped_area.width; x++)
+          if (cropped_area.width < UNROLLED_PIXEL_COUNT)
             {
-              pixel =
-                  0xff000000 |
-                  (((red   + NOISE ()) & COLOR_MASK) >> RED_SHIFT) |
-                  (((green + NOISE ()) & COLOR_MASK) >> GREEN_SHIFT) |
-                  (((blue  + NOISE ()) & COLOR_MASK) >> BLUE_SHIFT);
+              for (x = cropped_area.x; x < cropped_area.x + cropped_area.width; x++)
+                {
+                  pixel = 0xff000000;
+                  RANDOMIZE(noise);
+                  pixel |= (((red   + noise) & COLOR_MASK) >> RED_SHIFT);
+                  RANDOMIZE(noise);
+                  pixel |= (((green + noise) & COLOR_MASK) >> GREEN_SHIFT);
+                  RANDOMIZE(noise);
+                  pixel |= (((blue  + noise) & COLOR_MASK) >> BLUE_SHIFT);
 
-              buffer->shadow_buffer[y * buffer->area.width + x] = pixel;
+                  buffer->shadow_buffer[y * buffer->area.width + x] = pixel;
+                }
             }
+          else
+            {
+              uint32_t shaded_set[UNROLLED_PIXEL_COUNT];
+              uint32_t *ptr = &buffer->shadow_buffer[y * buffer->area.width + cropped_area.x];
+              for (x = 0; x < UNROLLED_PIXEL_COUNT; x++)
+                {
+                  shaded_set[x] = 0xff000000;
+                  RANDOMIZE(noise);
+                  shaded_set[x] |= (((red   + noise) & COLOR_MASK) >> RED_SHIFT);
+                  RANDOMIZE(noise);
+                  shaded_set[x] |= (((green + noise) & COLOR_MASK) >> GREEN_SHIFT);
+                  RANDOMIZE(noise);
+                  shaded_set[x] |= (((blue  + noise) & COLOR_MASK) >> BLUE_SHIFT);
+                }
+              for (x = cropped_area.width; x >=UNROLLED_PIXEL_COUNT; x-=UNROLLED_PIXEL_COUNT)
+                {
+                    memcpy((void*)ptr, (void*)shaded_set, UNROLLED_PIXEL_COUNT * sizeof(uint32_t));
+                    ptr += UNROLLED_PIXEL_COUNT;
+                }
+              memcpy((void*)ptr, (void*)shaded_set, x * sizeof(uint32_t));
+              
+              
+            }
+          
         }
 
       red += red_step;
@@ -953,7 +1239,7 @@ ply_frame_buffer_fill_with_argb32_data_at_opacity_with_clip (ply_frame_buffer_t 
                                                    uint32_t                *data,
                                                    double                   opacity)
 {
-  long row, column;
+  unsigned long row, column;
   uint8_t opacity_as_byte;
   ply_frame_buffer_area_t cropped_area;
 
@@ -1064,7 +1350,7 @@ static void
 animate_at_time (ply_frame_buffer_t *buffer,
                  double          time)
 {
-  int x, y;
+  unsigned int x, y;
   uint32_t *data;
   ply_frame_buffer_area_t area;
 

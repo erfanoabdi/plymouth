@@ -1,6 +1,10 @@
 TESTS += ply-boot-splash-test
 
-ply_boot_splash_test_CFLAGS = $(PLYMOUTH_CFLAGS) -DPLY_BOOT_SPLASH_ENABLE_TEST -DPLYMOUTH_TIME_DIRECTORY=\"/var/lib/plymouth\"
+ply_boot_splash_test_CFLAGS = $(PLYMOUTH_CFLAGS) -DPLY_BOOT_SPLASH_ENABLE_TEST  \
+                        -DPLYMOUTH_TIME_DIRECTORY=\"/var/lib/plymouth\"         \
+                        -DPLYMOUTH_PLUGIN_PATH=\"$(PLYMOUTH_PLUGIN_PATH)\"      \
+                        -DPLYMOUTH_THEME_PATH=\"$(PLYMOUTH_THEME_PATH)/\"
+
 ply_boot_splash_test_LDADD = $(PLYMOUTH_LIBS) ../libply/libply.la
 
 ply_boot_splash_test_SOURCES =                                                   \

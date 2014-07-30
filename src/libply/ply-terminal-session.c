@@ -56,6 +56,7 @@ struct _ply_terminal_session
 
   uint32_t is_running : 1;
   uint32_t console_is_redirected : 1;
+  uint32_t created_terminal_device : 1;
 };
 
 static bool ply_terminal_session_open_console (ply_terminal_session_t *session);
@@ -237,7 +238,6 @@ ply_terminal_session_run (ply_terminal_session_t              *session,
   look_in_path = (flags & PLY_TERMINAL_SESSION_FLAGS_LOOK_IN_PATH) != 0;
   should_redirect_console = 
     (flags & PLY_TERMINAL_SESSION_FLAGS_REDIRECT_CONSOLE) != 0;
-  should_redirect_console = 0;
 
   ply_trace ("creating terminal device");
   if (!ply_terminal_create_device (session->terminal))
@@ -309,12 +309,26 @@ ply_terminal_session_attach (ply_terminal_session_t               *session,
   assert (session->loop != NULL);
   assert (!session->is_running);
   assert (session->done_handler == NULL);
-  assert (ptmx >= 0);
 
   should_redirect_console = 
     (flags & PLY_TERMINAL_SESSION_FLAGS_REDIRECT_CONSOLE) != 0;
 
-  ply_terminal_set_fd(session->terminal, ptmx);
+  if (ptmx >= 0)
+    {
+      ply_trace ("ptmx passed in, using it");
+      ply_terminal_set_fd(session->terminal, ptmx);
+    }
+  else
+    {
+      ply_trace ("ptmx not passed in, creating one");
+      if (!ply_terminal_create_device (session->terminal))
+        {
+          ply_trace ("could not create pseudo-terminal: %m");
+          return false;
+        }
+
+      session->created_terminal_device = true;
+    }
 
   if (should_redirect_console)
     ply_trace ("redirecting system console to terminal device");
@@ -351,6 +365,13 @@ ply_terminal_session_detach (ply_terminal_session_t       *session)
     {
       ply_trace ("unredirecting console messages");
       ply_terminal_session_unredirect_console (session);
+    }
+
+  if (session->created_terminal_device)
+    {
+      ply_trace ("ptmx wasn't originally passed in, destroying created one");
+      ply_terminal_destroy_device (session->terminal);
+      session->created_terminal_device = false;
     }
 
   session->output_handler = NULL;

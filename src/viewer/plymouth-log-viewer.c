@@ -100,7 +100,6 @@ read_boot_log (const char  *file,
   gsize length;
   char *p, *q;
   GtkTextBuffer *buffer;
-  GtkTextTag *blue;
   GtkTextIter iter;
   GString *partial;
 

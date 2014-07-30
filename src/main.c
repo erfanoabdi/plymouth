@@ -31,9 +31,14 @@
 #include <sysexits.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
+#include <wchar.h>
+#include <paths.h>
 
 #include <linux/kd.h>
+#include <linux/vt.h>
 
+#include "ply-buffer.h"
+#include "ply-command-parser.h"
 #include "ply-boot-server.h"
 #include "ply-boot-splash.h"
 #include "ply-event-loop.h"
@@ -48,6 +53,29 @@
 #define PLY_MAX_COMMAND_LINE_SIZE 512
 #endif
 
+#define BOOT_DURATION_FILE     PLYMOUTH_TIME_DIRECTORY "/boot-duration"
+#define SHUTDOWN_DURATION_FILE PLYMOUTH_TIME_DIRECTORY "/shutdown-duration"
+
+typedef enum {
+  PLY_MODE_BOOT,
+  PLY_MODE_SHUTDOWN
+} ply_mode_t;
+
+typedef struct 
+{
+  const char    *keys;
+  ply_trigger_t *trigger;
+} ply_keystroke_watch_t;
+
+typedef struct 
+{
+  enum {PLY_ENTRY_TRIGGER_TYPE_PASSWORD,
+        PLY_ENTRY_TRIGGER_TYPE_QUESTION}
+        type;
+  const char    *prompt;
+  ply_trigger_t *trigger;
+} ply_entry_trigger_t;
+
 typedef struct
 {
   ply_event_loop_t *loop;
@@ -57,7 +85,13 @@ typedef struct
   ply_terminal_session_t *session;
   ply_buffer_t *boot_buffer;
   ply_progress_t *progress;
-  long ptmx;
+  ply_list_t *keystroke_triggers;
+  ply_list_t *entry_triggers;
+  ply_buffer_t *entry_buffer;
+  ply_command_parser_t *command_parser;
+  ply_mode_t mode;
+
+  ply_trigger_t *quit_trigger;
 
   char kernel_command_line[PLY_MAX_COMMAND_LINE_SIZE];
   uint32_t no_boot_log : 1;
@@ -65,14 +99,17 @@ typedef struct
   uint32_t system_initialized : 1;
   uint32_t is_redirected : 1;
   uint32_t is_attached : 1;
+  uint32_t should_be_attached : 1;
+  uint32_t should_retain_splash : 1;
 
   char *console;
+  char *override_splash_path;
 
   int number_of_errors;
 } state_t;
 
 static ply_boot_splash_t *start_boot_splash (state_t    *state,
-                                             const char *module_path);
+                                             const char *theme_path);
 
 static ply_window_t *create_window (state_t    *state,
                                     const char *tty_name);
@@ -80,6 +117,33 @@ static ply_window_t *create_window (state_t    *state,
 static bool attach_to_running_session (state_t *state);
 static void on_escape_pressed (state_t *state);
 static void dump_details_and_quit_splash (state_t *state);
+static void update_display (state_t *state);
+
+static void on_error_message (ply_buffer_t *debug_buffer,
+                              const void   *bytes,
+                              size_t        number_of_bytes);
+static ply_buffer_t *debug_buffer;
+static char *debug_buffer_path;
+
+static void
+switch_to_vt (int vt_number)
+{
+    int fd;
+
+    fd = open ("/dev/tty0", O_RDWR | O_NOCTTY);
+
+    if (fd < 0)
+      return;
+
+  if (ioctl (fd, VT_ACTIVATE, vt_number) < 0)
+    {
+      close (fd);
+      return;
+    }
+
+  ioctl (fd, VT_WAITACTIVE, vt_number);
+  close (fd);
+}
 
 static void
 on_session_output (state_t    *state,
@@ -113,9 +177,12 @@ on_update (state_t     *state,
 static void
 show_detailed_splash (state_t *state)
 {
+  if (state->boot_splash != NULL)
+    return;
+
   ply_trace ("Showing detailed splash screen");
   state->boot_splash = start_boot_splash (state,
-                                          PLYMOUTH_PLUGIN_PATH "details.so");
+                                          PLYMOUTH_THEME_PATH "details/details.plymouth");
 
   if (state->boot_splash == NULL)
     {
@@ -125,18 +192,61 @@ show_detailed_splash (state_t *state)
 }
 
 static void
+find_override_splash (state_t *state)
+{
+  char *splash_string;
+
+  if (state->override_splash_path != NULL)
+      return;
+
+  splash_string = strstr (state->kernel_command_line, "plymouth:splash=");
+
+  if (splash_string != NULL)
+    {
+      char *end;
+      splash_string = strdup (splash_string + strlen ("plymouth:splash="));
+
+      end = strstr (splash_string, " ");
+
+      if (end != NULL)
+        *end = '\0';
+
+      ply_trace ("Splash is configured to be '%s'", splash_string);
+
+      asprintf (&state->override_splash_path,
+                PLYMOUTH_THEME_PATH "%s/%s.plymouth",
+                splash_string, splash_string);
+    }
+}
+
+static void
 show_default_splash (state_t *state)
 {
+  if (state->boot_splash != NULL)
+    return;
+
   ply_trace ("Showing splash screen");
-  state->boot_splash = start_boot_splash (state,
-                                          PLYMOUTH_PLUGIN_PATH "default.so");
+  find_override_splash (state);
+  if (state->override_splash_path != NULL)
+    {
+      ply_trace ("Starting override splash at '%s'", state->override_splash_path);
+      state->boot_splash = start_boot_splash (state,
+                                              state->override_splash_path);
+    }
+
+  if (state->boot_splash == NULL)
+    {
+      ply_trace ("Starting default splash");
+      state->boot_splash = start_boot_splash (state,
+                                              PLYMOUTH_THEME_PATH "default.plymouth");
+    }
 
   if (state->boot_splash == NULL)
     {
       ply_trace ("Could not start graphical splash screen,"
                  "showing text splash screen");
       state->boot_splash = start_boot_splash (state,
-                                              PLYMOUTH_PLUGIN_PATH "text.so");
+                                              PLYMOUTH_THEME_PATH "text/text.plymouth");
     }
 
   if (state->boot_splash == NULL)
@@ -148,52 +258,213 @@ on_ask_for_password (state_t      *state,
                      const char   *prompt,
                      ply_trigger_t *answer)
 {
-  if (state->boot_splash == NULL)
-    {
-      show_detailed_splash (state);
-      if (state->boot_splash == NULL)
-        ply_trigger_pull (answer, "");
-      return;
-    }
+  ply_entry_trigger_t *entry_trigger =
+                                  calloc (1, sizeof (ply_entry_trigger_t));
+  entry_trigger->type = PLY_ENTRY_TRIGGER_TYPE_PASSWORD;
+  entry_trigger->prompt = prompt;
+  entry_trigger->trigger = answer;
+  ply_list_append_data (state->entry_triggers, entry_trigger);
+  update_display (state);
+}
 
-  ply_boot_splash_ask_for_password (state->boot_splash,
-                                    prompt, answer);
+static void
+on_ask_question (state_t      *state,
+                 const char   *prompt,
+                 ply_trigger_t *answer)
+{
+  ply_entry_trigger_t *entry_trigger =
+                                  calloc (1, sizeof (ply_entry_trigger_t));
+  entry_trigger->type = PLY_ENTRY_TRIGGER_TYPE_QUESTION;
+  entry_trigger->prompt = prompt;
+  entry_trigger->trigger = answer;
+  ply_list_append_data (state->entry_triggers, entry_trigger);
+  update_display (state);
+}
+
+static void
+on_display_message (state_t       *state,
+                    const char    *message)
+{
+  if (state->boot_splash != NULL)
+    ply_boot_splash_display_message (state->boot_splash, message);
+}
+
+static void
+on_watch_for_keystroke (state_t      *state,
+                     const char    *keys,
+                     ply_trigger_t *trigger)
+{
+  ply_keystroke_watch_t *keystroke_trigger =
+                                  calloc (1, sizeof (ply_keystroke_watch_t));
+  keystroke_trigger->keys = keys;
+  keystroke_trigger->trigger = trigger;
+  ply_list_append_data (state->keystroke_triggers, keystroke_trigger);
+}
+
+static void
+on_ignore_keystroke (state_t      *state,
+                     const char    *keys)
+{
+  ply_list_node_t *node;
+  
+  for (node = ply_list_get_first_node (state->keystroke_triggers); node;
+                    node = ply_list_get_next_node (state->keystroke_triggers, node))
+    {
+      ply_keystroke_watch_t* keystroke_trigger = ply_list_node_get_data (node);
+      if ((!keystroke_trigger->keys && !keys) ||
+          (keystroke_trigger->keys && keys && strcmp(keystroke_trigger->keys, keys)==0))
+        {
+          ply_trigger_pull (keystroke_trigger->trigger, NULL);
+          ply_list_remove_node (state->keystroke_triggers, node);
+          return;
+        }
+    }
+}
+
+static void
+on_progress_pause (state_t *state)
+{
+  ply_progress_pause (state->progress);
+}
+
+static void
+on_progress_unpause (state_t *state)
+{
+  ply_progress_unpause (state->progress);
 }
 
 static void
 on_newroot (state_t    *state,
-             const char *root_dir)
+            const char *root_dir)
 {
+  if (state->mode != PLY_MODE_BOOT)
+    {
+      ply_trace ("new root is only supported in boot mode ");
+      return;
+    }
+
   ply_trace ("new root mounted at \"%s\", switching to it", root_dir);
   chdir(root_dir);
   chroot(".");
   chdir("/");
-  ply_progress_load_cache (state->progress);
+  ply_progress_load_cache (state->progress, BOOT_DURATION_FILE);
   if (state->boot_splash != NULL)
     ply_boot_splash_root_mounted (state->boot_splash);
+}
+
+static const char *
+get_cache_file_for_mode (ply_mode_t mode)
+{
+  const char *filename;
+
+  switch ((int)mode)
+    {
+    case PLY_MODE_BOOT:
+      filename = BOOT_DURATION_FILE;
+      break;
+    case PLY_MODE_SHUTDOWN:
+      filename = SHUTDOWN_DURATION_FILE;
+      break;
+    default:
+      fprintf (stderr, "Unhandled case in %s line %d\n", __FILE__, __LINE__);
+      abort ();
+      break;
+    }
+
+  return filename;
+}
+
+static const char *
+get_log_file_for_mode (ply_mode_t mode)
+{
+  const char *filename;
+
+  switch ((int)mode)
+    {
+    case PLY_MODE_BOOT:
+      filename = PLYMOUTH_LOG_DIRECTORY "/boot.log";
+      break;
+    case PLY_MODE_SHUTDOWN:
+      filename = _PATH_DEVNULL;
+      break;
+    default:
+      fprintf (stderr, "Unhandled case in %s line %d\n", __FILE__, __LINE__);
+      abort ();
+      break;
+    }
+
+  return filename;
+}
+
+static const char *
+get_log_spool_file_for_mode (ply_mode_t mode)
+{
+  const char *filename;
+
+  switch ((int)mode)
+    {
+    case PLY_MODE_BOOT:
+      filename = PLYMOUTH_SPOOL_DIRECTORY "/boot.log";
+      break;
+    case PLY_MODE_SHUTDOWN:
+      filename = _PATH_DEVNULL;
+      break;
+    default:
+      fprintf (stderr, "Unhandled case in %s line %d\n", __FILE__, __LINE__);
+      abort ();
+      break;
+    }
+
+  return filename;
 }
 
 static void
 spool_error (state_t *state)
 {
+  const char *logfile;
+  const char *logspool;
+
   ply_trace ("spooling error for viewer");
 
-  unlink (PLYMOUTH_SPOOL_DIRECTORY "/boot.log");
+  logfile = get_log_file_for_mode (state->mode);
+  logspool = get_log_spool_file_for_mode (state->mode);
 
-  ply_create_file_link (PLYMOUTH_LOG_DIRECTORY "/boot.log",
-                        PLYMOUTH_SPOOL_DIRECTORY "/boot.log");
+  if (logfile != NULL && logspool != NULL)
+    {
+      unlink (logspool);
+
+      ply_create_file_link (logfile, logspool);
+    }
+}
+
+static void
+prepare_logging (state_t *state)
+{
+  const char *logfile;
+
+  if (!state->system_initialized)
+    return;
+
+  if (state->session == NULL)
+    return;
+
+  logfile = get_log_file_for_mode (state->mode);
+  if (logfile != NULL)
+    {
+      ply_terminal_session_open_log (state->session, logfile);
+
+      if (state->number_of_errors > 0)
+        spool_error (state);
+    }
 }
 
 static void
 on_system_initialized (state_t *state)
 {
-  ply_trace ("system now initialized, opening boot.log");
+  ply_trace ("system now initialized, opening log");
   state->system_initialized = true;
-  ply_terminal_session_open_log (state->session,
-                                 PLYMOUTH_LOG_DIRECTORY "/boot.log");
 
-  if (state->number_of_errors > 0)
-    spool_error (state);
+  prepare_logging (state);
 }
 
 static void
@@ -291,7 +562,7 @@ plymouth_should_show_default_splash (state_t *state)
         }
     }
 
-  return strstr (state->kernel_command_line, "rhgb") != NULL;
+  return strstr (state->kernel_command_line, "rhgb") != NULL || strstr (state->kernel_command_line, "splash") != NULL;
 }
 
 static void
@@ -353,8 +624,8 @@ on_show_splash (state_t *state)
 
   has_window = has_open_window (state);
 
-  if (!state->is_attached && state->ptmx >= 0 && has_window)
-    state->is_attached = attach_to_running_session (state);
+  if (!state->is_attached && state->should_be_attached && has_window)
+    attach_to_running_session (state);
 
   if (!has_window && state->is_attached)
     {
@@ -365,9 +636,15 @@ on_show_splash (state_t *state)
     }
 
   if (plymouth_should_show_default_splash (state))
-    show_default_splash (state);
+    {
+      show_default_splash (state);
+      state->showing_details = false;
+    }
   else
-    show_detailed_splash (state);
+    {
+      show_detailed_splash (state);
+      state->showing_details = true;
+    }
 }
 
 static void
@@ -427,32 +704,65 @@ tell_gdm_to_transition (void)
 #endif
 
 static void
-on_quit (state_t *state,
-         bool     retain_splash)
+quit_program (state_t *state)
 {
-  ply_trace ("time to quit, closing boot.log");
-  if (state->session != NULL)
-    ply_terminal_session_close_log (state->session);
-  ply_trace ("unloading splash");
-  if (state->boot_splash != NULL)
-    {
-      if (!retain_splash)
-        {
-          if (state->boot_splash != NULL)
-              ply_boot_splash_hide (state->boot_splash);
-        }
-
-      quit_splash (state);
-    }
   ply_trace ("exiting event loop");
   ply_event_loop_exit (state->loop, 0);
 
 #ifdef PLY_ENABLE_GDM_TRANSITION
-  if (retain_splash)
+  if (state->should_retain_splash)
     {
       tell_gdm_to_transition ();
     }
 #endif
+
+  if (state->quit_trigger != NULL)
+    {
+      ply_trigger_pull (state->quit_trigger, NULL);
+      state->quit_trigger = NULL;
+    }
+}
+
+static void
+on_boot_splash_idle (state_t *state)
+{
+  ply_trace ("boot splash idle");
+  if (!state->should_retain_splash)
+    {
+      ply_trace ("hiding splash");
+      if (state->boot_splash != NULL)
+          ply_boot_splash_hide (state->boot_splash);
+    }
+
+  ply_trace ("quitting splash");
+  quit_splash (state);
+  ply_trace ("quitting program");
+  quit_program (state);
+}
+
+static void
+on_quit (state_t       *state,
+         bool           retain_splash,
+         ply_trigger_t *quit_trigger)
+{
+  ply_trace ("time to quit, closing log");
+  if (state->session != NULL)
+    ply_terminal_session_close_log (state->session);
+  ply_trace ("unloading splash");
+
+  state->should_retain_splash = retain_splash;
+
+  state->quit_trigger = quit_trigger;
+
+  if (state->boot_splash != NULL)
+    {
+      ply_boot_splash_become_idle (state->boot_splash,
+                                   (ply_boot_splash_on_idle_handler_t)
+                                   on_boot_splash_idle,
+                                   state);
+    }
+  else
+    quit_program (state);
 }
 
 static ply_boot_server_t *
@@ -462,6 +772,12 @@ start_boot_server (state_t *state)
 
   server = ply_boot_server_new ((ply_boot_server_update_handler_t) on_update,
                                 (ply_boot_server_ask_for_password_handler_t) on_ask_for_password,
+                                (ply_boot_server_ask_question_handler_t) on_ask_question,
+                                (ply_boot_server_display_message_handler_t) on_display_message,
+                                (ply_boot_server_watch_for_keystroke_handler_t) on_watch_for_keystroke,
+                                (ply_boot_server_ignore_keystroke_handler_t) on_ignore_keystroke,
+                                (ply_boot_server_progress_pause_handler_t) on_progress_pause,
+                                (ply_boot_server_progress_unpause_handler_t) on_progress_unpause,
                                 (ply_boot_server_show_splash_handler_t) on_show_splash,
                                 (ply_boot_server_hide_splash_handler_t) on_hide_splash,
                                 (ply_boot_server_newroot_handler_t) on_newroot,
@@ -483,6 +799,43 @@ start_boot_server (state_t *state)
   return server;
 }
 
+
+static void
+update_display (state_t *state)
+{
+  if (!state->boot_splash) return;
+  
+  ply_list_node_t *node;
+  node = ply_list_get_first_node (state->entry_triggers);
+  if (node)
+    {
+      ply_entry_trigger_t* entry_trigger = ply_list_node_get_data (node);
+      if (entry_trigger->type == PLY_ENTRY_TRIGGER_TYPE_PASSWORD)
+        {
+          int bullets = ply_utf8_string_get_length (ply_buffer_get_bytes (state->entry_buffer),
+                                                    ply_buffer_get_size (state->entry_buffer));
+          bullets = MAX(0, bullets);
+          ply_boot_splash_display_password (state->boot_splash, 
+                                            entry_trigger->prompt,
+                                            bullets);
+        }
+      else if (entry_trigger->type == PLY_ENTRY_TRIGGER_TYPE_QUESTION)
+        {
+          ply_boot_splash_display_question (state->boot_splash,
+                                            entry_trigger->prompt,
+                                            ply_buffer_get_bytes (state->entry_buffer));
+        }
+      else {
+          ply_trace("unkown entry type");
+        }
+    }
+  else
+    {
+      ply_boot_splash_display_normal (state->boot_splash);
+    }
+
+}
+
 static void
 on_escape_pressed (state_t *state)
 {
@@ -502,6 +855,92 @@ on_escape_pressed (state_t *state)
     {
       show_default_splash (state);
       state->showing_details = false;
+    }
+  update_display (state);
+}
+
+static void
+on_keyboard_input (state_t                  *state,
+                   const char               *keyboard_input,
+                   size_t                    character_size)
+{
+  ply_list_node_t *node;
+  node = ply_list_get_first_node (state->entry_triggers);
+  if (node)
+    {               /* \x3 (ETX) is Ctrl+C and \x4 (EOT) is Ctrl+D */
+      if (character_size == 1 && ( keyboard_input[0] == '\x3' || keyboard_input[0] == '\x4' ))
+        {
+          ply_entry_trigger_t* entry_trigger = ply_list_node_get_data (node);
+          ply_trigger_pull (entry_trigger->trigger, NULL);
+          ply_buffer_clear (state->entry_buffer);
+          ply_list_remove_node (state->entry_triggers, node);
+          free (entry_trigger);
+        }
+      else
+        {
+          ply_buffer_append_bytes (state->entry_buffer, keyboard_input, character_size);
+        }
+      update_display (state);
+    }
+  else
+    {
+      for (node = ply_list_get_first_node (state->keystroke_triggers); node;
+                        node = ply_list_get_next_node (state->keystroke_triggers, node))
+        {
+          ply_keystroke_watch_t* keystroke_trigger = ply_list_node_get_data (node);
+          if (!keystroke_trigger->keys || strstr(keystroke_trigger->keys, keyboard_input))  /* assume strstr works on utf8 arrays */
+            {
+              ply_trigger_pull (keystroke_trigger->trigger, keyboard_input);
+              ply_list_remove_node (state->keystroke_triggers, node);
+              free(keystroke_trigger);
+              return;
+            }
+        }
+      return;
+    }
+}
+
+void
+on_backspace (state_t                  *state)
+{
+  ssize_t bytes_to_remove;
+  ssize_t previous_character_size;
+  const char *bytes;
+  size_t size;
+  ply_list_node_t *node = ply_list_get_first_node (state->entry_triggers);
+  if (!node) return;
+
+  bytes = ply_buffer_get_bytes (state->entry_buffer);
+  size = ply_buffer_get_size (state->entry_buffer);
+
+  bytes_to_remove = MIN(size, PLY_UTF8_CHARACTER_SIZE_MAX);
+  while ((previous_character_size = ply_utf8_character_get_size (bytes + size - bytes_to_remove, bytes_to_remove)) < bytes_to_remove)
+    {
+      if (previous_character_size > 0)
+        bytes_to_remove -= previous_character_size;
+      else
+        bytes_to_remove--;
+    }
+
+  ply_buffer_remove_bytes_at_end (state->entry_buffer, bytes_to_remove);
+  update_display (state);
+}
+
+void
+on_enter (state_t                  *state,
+          const char               *line)
+{
+  ply_list_node_t *node;
+  node = ply_list_get_first_node (state->entry_triggers);
+  if (node)
+    {
+      ply_entry_trigger_t* entry_trigger = ply_list_node_get_data (node);
+      const char* reply_text = ply_buffer_get_bytes (state->entry_buffer);
+      ply_trigger_pull (entry_trigger->trigger, reply_text);
+      ply_buffer_clear (state->entry_buffer);
+      ply_list_remove_node (state->entry_triggers, node);
+      free (entry_trigger);
+      update_display (state);
     }
 }
 
@@ -541,9 +980,6 @@ add_windows_to_boot_splash (state_t           *state,
         {
           ply_trace ("adding window to boot splash");
           ply_boot_splash_add_window (splash, window);
-          ply_trace ("listening for escape key");
-          ply_window_set_escape_handler (window, (ply_window_escape_handler_t)
-                                         on_escape_pressed, state);
         }
       node = next_node;
     }
@@ -551,14 +987,15 @@ add_windows_to_boot_splash (state_t           *state,
 
 static ply_boot_splash_t *
 start_boot_splash (state_t    *state,
-                   const char *module_path)
+                   const char *theme_path)
 {
   ply_boot_splash_t *splash;
+  ply_boot_splash_mode_t splash_mode;
 
-  ply_trace ("Loading boot splash plugin '%s'",
-             module_path);
+  ply_trace ("Loading boot splash theme '%s'",
+             theme_path);
 
-  splash = ply_boot_splash_new (module_path, state->boot_buffer);
+  splash = ply_boot_splash_new (theme_path, PLYMOUTH_PLUGIN_PATH, state->boot_buffer);
 
   if (!ply_boot_splash_load (splash))
     {
@@ -576,9 +1013,13 @@ start_boot_splash (state_t    *state,
 
   ply_trace ("adding windows to boot splash");
   add_windows_to_boot_splash (state, splash);
-
   ply_trace ("showing plugin");
-  if (!ply_boot_splash_show (splash))
+  if (state->mode == PLY_MODE_SHUTDOWN)
+    splash_mode = PLY_BOOT_SPLASH_MODE_SHUTDOWN;
+  else
+    splash_mode = PLY_BOOT_SPLASH_MODE_BOOT_UP;
+
+  if (!ply_boot_splash_show (splash, splash_mode))
     {
       ply_save_errno ();
       ply_boot_splash_free (splash);
@@ -586,6 +1027,7 @@ start_boot_splash (state_t    *state,
       return NULL;
     }
 
+  update_display (state);
   return splash;
 }
 
@@ -621,8 +1063,7 @@ attach_to_running_session (state_t *state)
                                  on_session_output,
                                  (ply_terminal_session_done_handler_t)
                                  (should_be_redirected? on_session_finished: NULL),
-                                 state->ptmx,
-                                 state))
+                                 -1, state))
     {
       ply_save_errno ();
       ply_terminal_session_free (session);
@@ -664,17 +1105,22 @@ get_kernel_command_line (state_t *state)
     }
 
   ply_trace ("Kernel command line is: '%s'", state->kernel_command_line);
+  close (fd);
   return true;
 }
 
 static void
 check_verbosity (state_t *state)
 {
+  char *path;
+
   ply_trace ("checking if tracing should be enabled");
 
+  path = NULL;
   if ((strstr (state->kernel_command_line, " plymouth:debug ") != NULL)
      || (strstr (state->kernel_command_line, "plymouth:debug ") != NULL)
-     || (strstr (state->kernel_command_line, " plymouth:debug") != NULL))
+     || (strstr (state->kernel_command_line, " plymouth:debug") != NULL)
+     || (path = strstr (state->kernel_command_line, " plymouth:debug=file:")) != NULL)
     {
 #ifdef LOG_TO_DEBUG_FILE
       int fd;
@@ -684,6 +1130,26 @@ check_verbosity (state_t *state)
       if (!ply_is_tracing ())
         ply_toggle_tracing ();
 
+      if (path != NULL)
+        {
+          char *end;
+
+          path += strlen (" plymouth:debug=file:");
+          debug_buffer_path = strdup (path);
+          end = strstr (debug_buffer_path, " ");
+
+          if (end != NULL)
+            *end = '\0';
+
+          debug_buffer_path = path;
+        }
+
+        if (debug_buffer_path == NULL)
+          debug_buffer_path = strdup (PLYMOUTH_LOG_DIRECTORY "/plymouth-debug.log");
+
+        if (debug_buffer != NULL)
+          debug_buffer = ply_buffer_new ();
+
 #ifdef LOG_TO_DEBUG_FILE
       fd = open ("/dev/console", O_RDWR);
       ply_logger_set_output_fd (ply_logger_get_error_default (), fd);
@@ -691,6 +1157,15 @@ check_verbosity (state_t *state)
     }
   else
     ply_trace ("tracing shouldn't be enabled!");
+
+  if (debug_buffer != NULL)
+    {
+      ply_logger_add_filter (ply_logger_get_error_default (),
+                             (ply_logger_filter_handler_t)
+                             on_error_message,
+                             debug_buffer);
+
+    }
 }
 
 static void
@@ -702,15 +1177,19 @@ check_logging (state_t *state)
      || (strstr (state->kernel_command_line, "plymouth:nolog ") != NULL)
      || (strstr (state->kernel_command_line, " plymouth:nolog") != NULL))
     {
-      ply_trace ("logging should be enabled!");
+      ply_trace ("logging won't be enabled!");
       state->no_boot_log = true;
     }
   else
-    ply_trace ("logging shouldn't be enabled!");
+    {
+      ply_trace ("logging will be enabled!");
+      state->no_boot_log = false;
+    }
 }
 
 static void
-check_for_consoles (state_t *state)
+check_for_consoles (state_t    *state,
+                    const char *default_tty)
 {
   char *console_key;
   char *remaining_command_line;
@@ -739,18 +1218,18 @@ check_for_consoles (state_t *state)
       if (strcmp (state->console, "tty0") == 0 || strcmp (state->console, "/dev/tty0") == 0)
         {
           free (state->console);
-          state->console = strdup ("tty1");
+          state->console = strdup (default_tty);
         }
 
       ply_list_append_data (state->windows, create_window (state, state->console));
     }
 
     if (ply_list_get_length (state->windows) == 0)
-      ply_list_append_data (state->windows, create_window (state, "tty1"));
+      ply_list_append_data (state->windows, create_window (state, default_tty));
 }
 
 static bool
-redirect_standard_io_to_device (char *device)
+redirect_standard_io_to_device (const char *device)
 {
   int fd;
   char *file;
@@ -779,7 +1258,10 @@ redirect_standard_io_to_device (char *device)
 static bool
 initialize_environment (state_t *state)
 {
+  const char *default_tty;
+
   ply_trace ("initializing minimal work environment");
+  ply_list_node_t *node;
 
   if (!get_kernel_command_line (state))
     return false;
@@ -788,15 +1270,70 @@ initialize_environment (state_t *state)
   check_logging (state);
 
   state->windows = ply_list_new ();
-  check_for_consoles (state);
+  state->keystroke_triggers = ply_list_new ();
+  state->entry_triggers = ply_list_new ();
+  state->entry_buffer = ply_buffer_new();
+
+  if (state->mode == PLY_MODE_SHUTDOWN)
+    {
+      default_tty = "tty63";
+      switch_to_vt (63);
+    }
+  else
+    default_tty = "tty1";
+
+  check_for_consoles (state, default_tty);
 
   if (state->console != NULL)
     redirect_standard_io_to_device (state->console);
   else
-    redirect_standard_io_to_device ("tty1");
+    redirect_standard_io_to_device (default_tty);
 
+  for (node = ply_list_get_first_node (state->windows); node;
+                    node = ply_list_get_next_node (state->windows, node))
+    {
+      ply_window_t *window = ply_list_node_get_data (node);
+      
+      ply_trace ("listening for escape key");
+      ply_window_add_escape_handler (window, (ply_window_escape_handler_t)
+                                     on_escape_pressed, state);
+      ply_trace ("listening for keystrokes");
+      ply_window_add_keyboard_input_handler (window,
+           (ply_window_keyboard_input_handler_t) on_keyboard_input, state);
+      ply_trace ("listening for backspace");
+      ply_window_add_backspace_handler (window,
+           (ply_window_backspace_handler_t) on_backspace, state);
+      ply_trace ("listening for enter");
+      ply_window_add_enter_handler (window,
+           (ply_window_enter_handler_t) on_enter, state);
+    }
+  
+  
   ply_trace ("initialized minimal work environment");
   return true;
+}
+
+static void
+on_error_message (ply_buffer_t *debug_buffer,
+                  const void   *bytes,
+                  size_t        number_of_bytes)
+{
+  ply_buffer_append_bytes (debug_buffer, bytes, number_of_bytes);
+}
+
+static void
+dump_debug_buffer_to_file (void)
+{
+  int fd;
+  const char *bytes;
+  size_t size;
+
+  fd = open (debug_buffer_path,
+             O_WRONLY | O_CREAT, 0600);
+  size = ply_buffer_get_size (debug_buffer);
+  bytes = ply_buffer_get_bytes (debug_buffer);
+  ply_write (fd, bytes, size);
+  close (fd);
 }
 
 static void
@@ -810,6 +1347,12 @@ on_crash (int signum)
 
     close (fd);
 
+    if (debug_buffer != NULL)
+      {
+        dump_debug_buffer_to_file ();
+        pause ();
+      }
+
     signal (signum, SIG_DFL);
     raise(signum);
 }
@@ -818,30 +1361,73 @@ int
 main (int    argc,
       char **argv)
 {
-  state_t state = {
-      .ptmx = -1,
-  };
+  state_t state = { 0 };
   int exit_code;
-  bool attach_to_session = false;
+  bool should_help = false;
+  bool no_daemon = false;
+  bool debug = false;
+  bool attach_to_session;
   ply_daemon_handle_t *daemon_handle;
+  char *mode_string = NULL;
 
-  if (argc >= 2 && !strcmp(argv[1], "--attach-to-session"))
-      attach_to_session = true;
+  state.command_parser = ply_command_parser_new ("plymouthd", "Boot splash control server");
 
-  if (attach_to_session && argc == 3)
+  state.loop = ply_event_loop_new ();
+
+  ply_command_parser_add_options (state.command_parser,
+                                  "help", "This help message", PLY_COMMAND_OPTION_TYPE_FLAG,
+                                  "attach-to-session", "Redirect console messages from screen to log", PLY_COMMAND_OPTION_TYPE_FLAG,
+                                  "no-daemon", "Do not daemonize", PLY_COMMAND_OPTION_TYPE_FLAG,
+                                  "debug", "Output debugging information", PLY_COMMAND_OPTION_TYPE_FLAG,
+                                  "mode", "Mode is one of: boot, shutdown", PLY_COMMAND_OPTION_TYPE_STRING,
+                                  NULL);
+
+  if (!ply_command_parser_parse_arguments (state.command_parser, state.loop, argv, argc))
     {
-      state.ptmx = strtol(argv[2], NULL, 0);
-      if ((state.ptmx == LONG_MIN || state.ptmx == LONG_MAX) && errno != 0)
-        {
-          ply_error ("%s: could not parse ptmx string \"%s\": %m", argv[0], argv[2]);
-          return EX_OSERR;
-        }
+      char *help_string;
+
+      help_string = ply_command_parser_get_help_string (state.command_parser);
+
+      ply_error ("%s", help_string);
+
+      free (help_string);
+      return EX_USAGE;
     }
 
-  if ((attach_to_session && argc != 3) || (attach_to_session && state.ptmx == -1))
+  ply_command_parser_get_options (state.command_parser,
+                                  "help", &should_help,
+                                  "attach-to-session", &attach_to_session,
+                                  "mode", &mode_string,
+                                  "no-daemon", &no_daemon,
+                                  "debug", &debug,
+                                  NULL);
+
+  if (should_help)
     {
-      ply_error ("%s [--attach-to-session <pty_master_fd>]", argv[0]);
-      return EX_USAGE;
+      char *help_string;
+
+      help_string = ply_command_parser_get_help_string (state.command_parser);
+
+      if (argc < 2)
+        fprintf (stderr, "%s", help_string);
+      else
+        printf ("%s", help_string);
+
+      free (help_string);
+      return 0;
+    }
+
+  if (debug && !ply_is_tracing ())
+    ply_toggle_tracing ();
+
+  if (mode_string != NULL)
+    {
+      if (strcmp (mode_string, "shutdown") == 0)
+        state.mode = PLY_MODE_SHUTDOWN;
+      else
+        state.mode = PLY_MODE_BOOT;
+
+      free (mode_string);
     }
 
   if (geteuid () != 0)
@@ -853,18 +1439,27 @@ main (int    argc,
   chdir ("/");
   signal (SIGPIPE, SIG_IGN);
 
-  daemon_handle = ply_create_daemon ();
-
-  if (daemon_handle == NULL)
+  if (! no_daemon)
     {
-      ply_error ("cannot daemonize: %m");
-      return EX_UNAVAILABLE;
+      daemon_handle = ply_create_daemon ();
+
+      if (daemon_handle == NULL)
+        {
+          ply_error ("cannot daemonize: %m");
+          return EX_UNAVAILABLE;
+        }
     }
+
+  if (debug)
+    debug_buffer = ply_buffer_new ();
 
   signal (SIGABRT, on_crash);
   signal (SIGSEGV, on_crash);
 
-  state.loop = ply_event_loop_new ();
+  /* If we're shutting down we don't want to die until killed
+   */
+  if (state.mode == PLY_MODE_SHUTDOWN)
+    signal (SIGTERM, SIG_IGN);
 
   /* before do anything we need to make sure we have a working
    * environment.
@@ -873,12 +1468,14 @@ main (int    argc,
     {
       if (errno == 0)
         {
-          ply_detach_daemon (daemon_handle, 0);
+          if (! no_daemon)
+            ply_detach_daemon (daemon_handle, 0);
           return 0;
         }
 
       ply_error ("could not setup basic operating environment: %m");
-      ply_detach_daemon (daemon_handle, EX_OSERR);
+      if (! no_daemon)
+        ply_detach_daemon (daemon_handle, EX_OSERR);
       return EX_OSERR;
     }
 
@@ -886,10 +1483,12 @@ main (int    argc,
 
   if (attach_to_session)
     {
+      state.should_be_attached = attach_to_session;
       if (!attach_to_running_session (&state))
         {
           ply_error ("could not create session: %m");
-          ply_detach_daemon (daemon_handle, EX_UNAVAILABLE);
+          if (! no_daemon)
+            ply_detach_daemon (daemon_handle, EX_UNAVAILABLE);
           return EX_UNAVAILABLE;
         }
     }
@@ -899,27 +1498,34 @@ main (int    argc,
   if (state.boot_server == NULL)
     {
       ply_error ("could not log bootup: %m");
-      ply_detach_daemon (daemon_handle, EX_UNAVAILABLE);
+      if (! no_daemon)
+        ply_detach_daemon (daemon_handle, EX_UNAVAILABLE);
       return EX_UNAVAILABLE;
     }
 
-  if (!ply_detach_daemon (daemon_handle, 0))
-    {
-      ply_error ("could not tell parent to exit: %m");
-      return EX_UNAVAILABLE;
-    }
+  if (! no_daemon)
+    if (!ply_detach_daemon (daemon_handle, 0))
+      {
+        ply_error ("could not tell parent to exit: %m");
+        return EX_UNAVAILABLE;
+      }
 
   state.progress = ply_progress_new ();
-  ply_progress_load_cache (state.progress);
+
+  ply_progress_load_cache (state.progress,
+                           get_cache_file_for_mode (state.mode));
+
   ply_trace ("entering event loop");
   exit_code = ply_event_loop_run (state.loop);
   ply_trace ("exited event loop");
 
-  ply_progress_save_cache (state.progress);
-  
+  ply_progress_save_cache (state.progress,
+                           get_cache_file_for_mode (state.mode));
+
   ply_boot_splash_free (state.boot_splash);
   state.boot_splash = NULL;
 
+  ply_command_parser_free (state.command_parser);
   ply_list_free (state.windows);
 
   ply_boot_server_free (state.boot_server);
@@ -935,6 +1541,12 @@ main (int    argc,
   ply_event_loop_free (state.loop);
 
   ply_trace ("exiting with code %d", exit_code);
+  
+  if (debug_buffer != NULL)
+    {
+      dump_debug_buffer_to_file ();
+      ply_buffer_free (debug_buffer);
+    }
 
   ply_free_error_log();
 

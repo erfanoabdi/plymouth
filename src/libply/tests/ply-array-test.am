@@ -6,6 +6,8 @@ ply_array_test_LDADD = $(PLYMOUTH_LIBS)
 ply_array_test_SOURCES =                                                     \
                           $(srcdir)/../ply-buffer.h                          \
                           $(srcdir)/../ply-buffer.c                          \
+                          $(srcdir)/../ply-list.h                            \
+                          $(srcdir)/../ply-list.c                            \
                           $(srcdir)/../ply-logger.h                          \
                           $(srcdir)/../ply-logger.c                          \
                           $(srcdir)/../ply-utils.h                           \

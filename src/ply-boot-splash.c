@@ -40,6 +40,7 @@
 #include "ply-trigger.h"
 #include "ply-utils.h"
 #include "ply-progress.h"
+#include "ply-key-file.h"
 
 #ifndef UPDATES_PER_SECOND
 #define UPDATES_PER_SECOND 30
@@ -55,10 +56,13 @@ struct _ply_boot_splash
   ply_buffer_t *boot_buffer;
   ply_trigger_t *idle_trigger;
 
-  char *module_name;
+  char *theme_path;
+  char *plugin_dir;
   char *status;
 
   ply_progress_t *progress;
+  ply_boot_splash_on_idle_handler_t idle_handler;
+  void *idle_handler_user_data;
 
   uint32_t is_loaded : 1;
   uint32_t is_shown : 1;
@@ -67,17 +71,22 @@ struct _ply_boot_splash
 typedef const ply_boot_splash_plugin_interface_t *
         (* get_plugin_interface_function_t) (void);
 
+static void ply_boot_splash_update_progress (ply_boot_splash_t *splash);
+static void ply_boot_splash_detach_from_event_loop (ply_boot_splash_t *splash);
+
 ply_boot_splash_t *
-ply_boot_splash_new (const char   *module_name,
+ply_boot_splash_new (const char   *theme_path,
+                     const char   *plugin_dir,
                      ply_buffer_t *boot_buffer)
 {
   ply_boot_splash_t *splash;
 
-  assert (module_name != NULL);
+  assert (theme_path != NULL);
 
   splash = calloc (1, sizeof (ply_boot_splash_t));
   splash->loop = NULL;
-  splash->module_name = strdup (module_name);
+  splash->theme_path = strdup (theme_path);
+  splash->plugin_dir = strdup (plugin_dir);
   splash->module_handle = NULL;
   splash->is_shown = false;
 
@@ -103,15 +112,34 @@ ply_boot_splash_remove_window (ply_boot_splash_t *splash,
 bool
 ply_boot_splash_load (ply_boot_splash_t *splash)
 {
+  ply_key_file_t *key_file;
+  char *module_name;
+  char *module_path;
+
   assert (splash != NULL);
-  assert (splash->module_name != NULL);
 
   get_plugin_interface_function_t get_boot_splash_plugin_interface;
 
-  splash->module_handle = ply_open_module (splash->module_name);
+  key_file = ply_key_file_new (splash->theme_path);
+
+  if (!ply_key_file_load (key_file))
+    return false;
+
+  module_name = ply_key_file_get_value (key_file, "Plymouth Theme", "ModuleName");
+
+  asprintf (&module_path, "%s%s.so",
+            splash->plugin_dir, module_name);
+  free (module_name);
+
+  splash->module_handle = ply_open_module (module_path);
+
+  free (module_path);
 
   if (splash->module_handle == NULL)
-    return false;
+    {
+      ply_key_file_free (key_file);
+      return false;
+    }
 
   get_boot_splash_plugin_interface = (get_plugin_interface_function_t)
       ply_module_look_up_function (splash->module_handle,
@@ -122,6 +150,7 @@ ply_boot_splash_load (ply_boot_splash_t *splash)
       ply_save_errno ();
       ply_close_module (splash->module_handle);
       splash->module_handle = NULL;
+      ply_key_file_free (key_file);
       ply_restore_errno ();
       return false;
     }
@@ -133,11 +162,14 @@ ply_boot_splash_load (ply_boot_splash_t *splash)
       ply_save_errno ();
       ply_close_module (splash->module_handle);
       splash->module_handle = NULL;
+      ply_key_file_free (key_file);
       ply_restore_errno ();
       return false;
     }
 
-  splash->plugin = splash->plugin_interface->create_plugin ();
+  splash->plugin = splash->plugin_interface->create_plugin (key_file);
+
+  ply_key_file_free (key_file);
 
   assert (splash->plugin != NULL);
 
@@ -167,13 +199,32 @@ ply_boot_splash_unload (ply_boot_splash_t *splash)
 void
 ply_boot_splash_free (ply_boot_splash_t *splash)
 {
+  ply_trace ("freeing splash");
   if (splash == NULL)
     return;
+
+  if (splash->loop != NULL)
+    {
+      if (splash->plugin_interface->on_boot_progress != NULL)
+        {
+          ply_event_loop_stop_watching_for_timeout (splash->loop,
+                                                    (ply_event_loop_timeout_handler_t)
+                                                    ply_boot_splash_update_progress, splash);
+        }
+
+      ply_event_loop_stop_watching_for_exit (splash->loop, (ply_event_loop_exit_handler_t)
+                                             ply_boot_splash_detach_from_event_loop,
+                                             splash);
+    }
 
   if (splash->module_handle != NULL)
     ply_boot_splash_unload (splash);
 
-  free (splash->module_name);
+  if (splash->idle_trigger != NULL)
+    ply_trigger_free (splash->idle_trigger);
+
+  free (splash->theme_path);
+  free (splash->plugin_dir);
   free (splash);
 }
 
@@ -214,10 +265,11 @@ ply_boot_splash_attach_progress (ply_boot_splash_t *splash,
 
 
 bool
-ply_boot_splash_show (ply_boot_splash_t *splash)
+ply_boot_splash_show (ply_boot_splash_t *splash,
+                      ply_boot_splash_mode_t mode)
 {
   assert (splash != NULL);
-  assert (splash->module_name != NULL);
+  assert (splash->module_handle != NULL);
   assert (splash->loop != NULL);
 
   if (splash->is_shown)
@@ -230,7 +282,8 @@ ply_boot_splash_show (ply_boot_splash_t *splash)
   ply_trace ("showing splash screen\n");
   if (!splash->plugin_interface->show_splash_screen (splash->plugin,
                                                      splash->loop,
-                                                     splash->boot_buffer))
+                                                     splash->boot_buffer,
+                                                     mode))
     {
 
       ply_save_errno ();
@@ -284,42 +337,6 @@ ply_boot_splash_root_mounted (ply_boot_splash_t *splash)
 }
 
 static void
-on_password_answered (ply_boot_splash_t *splash)
-{
-  if (splash->progress)
-    ply_progress_unpause (splash->progress);
-}
-
-void
-ply_boot_splash_ask_for_password (ply_boot_splash_t *splash,
-                                  const char        *prompt,
-                                  ply_trigger_t     *trigger)
-{
-
-  assert (splash != NULL);
-  assert (splash->plugin_interface != NULL);
-  assert (splash->plugin != NULL);
-  assert (splash->is_shown);
-
-  if (splash->plugin_interface->ask_for_password == NULL)
-    {
-      ply_trigger_pull (trigger, NULL);
-      return;
-    }
-
-  if (splash->progress)
-    ply_progress_pause (splash->progress);
-  
-  ply_trigger_add_handler (trigger,
-                           (ply_trigger_handler_t)
-                           on_password_answered, splash);
-
-  splash->plugin_interface->ask_for_password (splash->plugin,
-                                              prompt,
-                                              trigger);
-}
-
-static void
 ply_boot_splash_detach_from_event_loop (ply_boot_splash_t *splash)
 {
   assert (splash != NULL);
@@ -354,6 +371,46 @@ ply_boot_splash_hide (ply_boot_splash_t *splash)
     }
 }
 
+void ply_boot_splash_display_normal  (ply_boot_splash_t              *splash)
+{
+  assert (splash != NULL);
+  assert (splash->plugin_interface != NULL);
+  assert (splash->plugin != NULL);
+  if (splash->plugin_interface->display_normal != NULL)
+      splash->plugin_interface->display_normal (splash->plugin);
+}
+void ply_boot_splash_display_message (ply_boot_splash_t             *splash,
+                                      const char                    *message)
+{
+  assert (splash != NULL);
+  assert (splash->plugin_interface != NULL);
+  assert (splash->plugin != NULL);
+  if (splash->plugin_interface->display_message != NULL)
+    splash->plugin_interface->display_message (splash->plugin, message);
+}
+void ply_boot_splash_display_password (ply_boot_splash_t             *splash,
+                                       const char                    *prompt,
+                                       int                            bullets)
+{
+  assert (splash != NULL);
+  assert (splash->plugin_interface != NULL);
+  assert (splash->plugin != NULL);
+  if (splash->plugin_interface->display_password != NULL)
+      splash->plugin_interface->display_password (splash->plugin, prompt, bullets);
+}
+void ply_boot_splash_display_question (ply_boot_splash_t             *splash,
+                                       const char                    *prompt,
+                                       const char                    *entry_text)
+{
+  assert (splash != NULL);
+  assert (splash->plugin_interface != NULL);
+  assert (splash->plugin != NULL);
+  if (splash->plugin_interface->display_question != NULL)
+      splash->plugin_interface->display_question (splash->plugin, prompt, entry_text);
+}
+
+
+
 void
 ply_boot_splash_attach_to_event_loop (ply_boot_splash_t *splash,
                                       ply_event_loop_t  *loop)
@@ -369,6 +426,19 @@ ply_boot_splash_attach_to_event_loop (ply_boot_splash_t *splash,
                                  splash); 
 }
 
+static void
+on_idle (ply_boot_splash_t *splash)
+{
+
+  ply_trace ("splash now idle");
+  ply_event_loop_watch_for_timeout (splash->loop, 0.01,
+                                    (ply_event_loop_timeout_handler_t)
+                                    splash->idle_handler,
+                                    splash->idle_handler_user_data);
+  splash->idle_handler = NULL;
+  splash->idle_handler_user_data = NULL;
+}
+
 void
 ply_boot_splash_become_idle (ply_boot_splash_t                  *splash,
                              ply_boot_splash_on_idle_handler_t  idle_handler,
@@ -376,16 +446,24 @@ ply_boot_splash_become_idle (ply_boot_splash_t                  *splash,
 {
   assert (splash->idle_trigger == NULL);
 
+  ply_trace ("telling splash to become idle");
   if (splash->plugin_interface->become_idle == NULL)
     {
-      idle_handler (user_data);
+      ply_event_loop_watch_for_timeout (splash->loop, 0.01,
+                                        (ply_event_loop_timeout_handler_t)
+                                        idle_handler,
+                                        user_data);
+
       return;
     }
 
+  splash->idle_handler = idle_handler;
+  splash->idle_handler_user_data = user_data;
+
   splash->idle_trigger = ply_trigger_new (&splash->idle_trigger);
   ply_trigger_add_handler (splash->idle_trigger,
-                           (ply_trigger_handler_t) idle_handler,
-                           user_data);
+                           (ply_trigger_handler_t) on_idle,
+                           splash);
 
   splash->plugin_interface->become_idle (splash->plugin, splash->idle_trigger);
 }
@@ -430,26 +508,25 @@ main (int    argc,
   int exit_code;
   test_state_t state;
   char *tty_name;
-  const char *module_name;
+  const char *theme_path;
 
   exit_code = 0;
 
   state.loop = ply_event_loop_new ();
 
   if (argc > 1)
-    module_name = argv[1];
+    theme_path = argv[1];
   else
-    module_name = "../splash-plugins/fade-in/.libs/fade-in.so";
+    theme_path = PLYMOUTH_THEME_PATH "/fade-in/fade-in.plymouth";
 
-  tty_name = strdup("tty");
-  if (argc > 2) {
-      strncat(tty_name, argv[2], strlen(argv[2]));
-  } else {
-      strncat(tty_name, "0", 1);
-  }
+  if (argc > 2)
+    asprintf(&tty_name, "tty%s", argv[2]);
+  else
+    tty_name = strdup("tty0");
 
   state.window = ply_window_new (tty_name);
   free(tty_name);
+  ply_window_attach_to_event_loop (state.window, state.loop);
 
   if (!ply_window_open (state.window))
     {
@@ -458,11 +535,11 @@ main (int    argc,
     }
 
   ply_window_attach_to_event_loop (state.window, state.loop);
-  ply_window_set_escape_handler (state.window,
+  ply_window_add_escape_handler (state.window,
                                  (ply_window_escape_handler_t) on_quit, &state);
 
   state.buffer = ply_buffer_new ();
-  state.splash = ply_boot_splash_new (module_name, state.buffer);
+  state.splash = ply_boot_splash_new (theme_path, PLYMOUTH_PLUGIN_PATH, state.buffer);
   if (!ply_boot_splash_load (state.splash))
     {
       perror ("could not load splash screen");
@@ -472,7 +549,7 @@ main (int    argc,
   ply_boot_splash_add_window (state.splash, state.window);
   ply_boot_splash_attach_to_event_loop (state.splash, state.loop);
 
-  if (!ply_boot_splash_show (state.splash))
+  if (!ply_boot_splash_show (state.splash, PLY_BOOT_SPLASH_MODE_BOOT_UP))
     {
       perror ("could not show splash screen");
       return errno;

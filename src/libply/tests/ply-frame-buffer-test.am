@@ -6,6 +6,8 @@ ply_frame_buffer_test_SOURCES = \
                           $(srcdir)/../ply-utils.h                            \
                           $(srcdir)/../ply-frame-buffer.h                     \
                           $(srcdir)/../ply-frame-buffer.c                     \
+			  $(srcdir)/../ply-list.h                             \
+			  $(srcdir)/../ply-list.c                             \
 			  $(srcdir)/../ply-logger.h                           \
 			  $(srcdir)/../ply-logger.c                           \
 			  $(srcdir)/../ply-utils.h                            \

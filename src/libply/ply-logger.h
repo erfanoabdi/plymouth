@@ -35,6 +35,13 @@ typedef enum
   PLY_LOGGER_FLUSH_POLICY_EVERY_TIME
 } ply_logger_flush_policy_t;
 
+typedef void (* ply_logger_filter_handler_t) (void          *user_data,
+                                              const void    *in_bytes,
+                                              size_t         in_size,
+                                              void         **out_bytes,
+                                              size_t        *out_size,
+                                              ply_logger_t  *logger);
+
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
 ply_logger_t *ply_logger_new (void);
 void ply_logger_free (ply_logger_t *logger);
@@ -54,6 +61,9 @@ bool ply_logger_is_logging (ply_logger_t *logger);
 void ply_logger_inject_bytes (ply_logger_t *logger,
                               const void   *bytes,
                               size_t number_of_bytes);
+void ply_logger_add_filter (ply_logger_t                *logger,
+                            ply_logger_filter_handler_t  filter_handler,
+                            void                        *user_data);
 #define ply_logger_inject(logger, format, args...)                             \
         ply_logger_inject_with_non_literal_format_string (logger,              \
                                                           format "", ##args)
