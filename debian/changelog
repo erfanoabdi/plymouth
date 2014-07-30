@@ -1,4 +1,4 @@
-plymouth (0.9.0-6) UNRELEASED; urgency=medium
+plymouth (0.9.0-6) unstable; urgency=medium
 
   * New maintainer (Closes: #756075)
   * Move the frame-buffer and drm renderers into the main plymouth package and
@@ -22,7 +22,7 @@ plymouth (0.9.0-6) UNRELEASED; urgency=medium
   * Add debian/patches/0009-use-correct-utf8-multibyte-sequence.patch: This
     should fix the character displayed in the text theme (Closes: #756244)
   * Add plymouth-{themes,x11}.postrm: Also regenerate the initramfs when these
-    packages two are removed
+    two packages are removed
   * debian/plymouth.dirs: Create /var/lib/plymouth on installation, this
     directory is needed to store boot-duration file
   * debian/plymouth.lintian-overrides: Override
@@ -36,7 +36,7 @@ plymouth (0.9.0-6) UNRELEASED; urgency=medium
     related files on upgrade
   * Add debian/gbp.conf file
 
- -- Laurent Bigonville <bigon@debian.org>  Wed, 30 Jul 2014 18:08:17 +0200
+ -- Laurent Bigonville <bigon@debian.org>  Wed, 30 Jul 2014 18:08:40 +0200
 
 plymouth (0.9.0-5) unstable; urgency=low
 
