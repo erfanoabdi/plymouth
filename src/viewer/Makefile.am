@@ -1,7 +1,7 @@
 SUBDIRS = .
 EXTRA_DIST=
 
-INCLUDES = -I$(top_srcdir)                                                    \
+AM_CPPFLAGS = -I$(top_srcdir)                                                 \
            -I$(srcdir)
 if WITH_LOG_VIEWER
 plymouth_log_viewerdir = $(bindir)

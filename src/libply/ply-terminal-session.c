@@ -148,7 +148,8 @@ ply_terminal_session_free (ply_terminal_session_t *session)
 
   ply_free_string_array (session->argv);
 
-  close (session->pseudoterminal_master_fd);
+  if (session->pseudoterminal_master_fd >= 0)
+    close (session->pseudoterminal_master_fd);
   free (session);
 }
 
@@ -213,8 +214,12 @@ ply_terminal_session_unredirect_console (ply_terminal_session_t *session)
   assert (session->console_is_redirected);
 
   fd = open ("/dev/console", O_RDWR | O_NOCTTY);
-  if (fd >= 0)
+  if (fd >= 0) {
     ioctl (fd, TIOCCONS);
+    close (fd);
+  } else {
+    ply_trace ("couldn't open /dev/console to stop redirecting it: %m");
+  }
 
   session->console_is_redirected = false;
 }
@@ -582,57 +587,4 @@ ply_terminal_session_close_log (ply_terminal_session_t *session)
   return ply_logger_close_file (session->logger);
 }
 
-#ifdef PLY_TERMINAL_SESSION_ENABLE_TEST
-
-#include <stdio.h>
-
-#include "ply-event-loop.h"
-#include "ply-terminal-session.h"
-
-static void
-on_finished (ply_event_loop_t *loop)
-{
-  ply_event_loop_exit (loop, 0);
-}
-
-int
-main (int    argc,
-      char **argv)
-{
-  ply_event_loop_t *loop;
-  ply_terminal_session_t *session;
-  int exit_code;
-  ply_terminal_session_flags_t flags;
-
-  exit_code = 0;
-
-  loop = ply_event_loop_new ();
-
-  session = ply_terminal_session_new ((const char * const *) (argv + 1));
-
-  flags = PLY_TERMINAL_SESSION_FLAGS_RUN_IN_PARENT;
-  flags |= PLY_TERMINAL_SESSION_FLAGS_LOOK_IN_PATH;
-
-  ply_terminal_session_attach_to_event_loop (session, loop);
-
-  if (!ply_terminal_session_run (session, flags, 
-                                 (ply_terminal_session_begin_handler_t) NULL,
-                                 (ply_terminal_session_output_handler_t) NULL,
-                                 (ply_terminal_session_hangup_handler_t) 
-                                 on_finished, loop))
-    {
-      perror ("could not start terminal session");
-      return errno;
-    }
-
-  ply_terminal_session_open_log (session, "foo.log");
-
-  exit_code = ply_event_loop_run (loop);
-
-  ply_terminal_session_free (session);
-
-  return exit_code;
-}
-
-#endif /* PLY_TERMINAL_SESSION_ENABLE_TEST */
 /* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

@@ -25,6 +25,7 @@
 #include "ply-key-file.h"
 
 #include <assert.h>
+#include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <string.h>
@@ -75,7 +76,7 @@ ply_key_file_open_file (ply_key_file_t *key_file)
 {
   assert (key_file != NULL);
 
-  key_file->fp = fopen (key_file->filename, "r");
+  key_file->fp = fopen (key_file->filename, "re");
 
   if (key_file->fp == NULL)
     {
@@ -173,13 +174,18 @@ ply_key_file_load_group (ply_key_file_t *key_file,
       ply_key_file_entry_t *entry;
       char *key;
       char *value;
-      long offset;
+      off_t offset;
       int first_byte;
 
       key = NULL;
       value = NULL;
 
-      first_byte = fgetc (key_file->fp);
+      do
+        {
+          first_byte = fgetc (key_file->fp);
+        }
+      while (isspace (first_byte));
+
       if (first_byte == '#')
         {
           char *line_to_toss;
@@ -196,13 +202,13 @@ ply_key_file_load_group (ply_key_file_t *key_file,
         }
       ungetc (first_byte, key_file->fp);
 
-      offset = ftell (key_file->fp);
-      items_matched = fscanf (key_file->fp, " %a[^= \t\n] = %a[^\n] ", &key, &value);
+      offset = ftello (key_file->fp);
+      items_matched = fscanf (key_file->fp, " %m[^= \t\n] = %m[^\n] ", &key, &value);
 
       if (items_matched != 2)
         {
           if (items_matched == 1)
-            fseek (key_file->fp, offset, SEEK_SET);
+            fseeko (key_file->fp, offset, SEEK_SET);
 
           free (key);
           free (value);
@@ -254,7 +260,7 @@ ply_key_file_load_groups (ply_key_file_t *key_file)
       ungetc (first_byte, key_file->fp);
 
       group_name = NULL;
-      items_matched = fscanf (key_file->fp, " [ %a[^]] ] ", &group_name);
+      items_matched = fscanf (key_file->fp, " [ %m[^]] ] ", &group_name);
 
       if (items_matched <= 0)
         {

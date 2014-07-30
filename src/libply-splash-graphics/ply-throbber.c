@@ -178,14 +178,8 @@ on_timeout (ply_throbber_t *throbber)
   bool should_continue;
   throbber->now = ply_get_timestamp ();
 
-#ifdef REAL_TIME_ANIMATION
   should_continue = animate_at_time (throbber,
-                                 throbber->now - throbber->start_time);
-#else
-  static double time = 0.0;
-  time += 1.0 / FRAMES_PER_SECOND;
-  should_continue = animate_at_time (throbber, time);
-#endif
+                                     throbber->now - throbber->start_time);
 
   sleep_time = 1.0 / FRAMES_PER_SECOND;
   sleep_time = MAX (sleep_time - (ply_get_timestamp () - throbber->now),

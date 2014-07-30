@@ -49,7 +49,7 @@ struct _ply_renderer
   const ply_renderer_plugin_interface_t *plugin_interface;
   ply_renderer_backend_t *backend;
 
-  char *plugin_path;
+  ply_renderer_type_t type;
   char *device_name;
   ply_terminal_t *terminal;
 
@@ -63,16 +63,15 @@ typedef const ply_renderer_plugin_interface_t *
 static void ply_renderer_unload_plugin (ply_renderer_t *renderer);
 
 ply_renderer_t *
-ply_renderer_new (const char     *plugin_path,
-                  const char     *device_name,
-                  ply_terminal_t *terminal)
+ply_renderer_new (ply_renderer_type_t  renderer_type,
+                  const char          *device_name,
+                  ply_terminal_t      *terminal)
 {
   ply_renderer_t *renderer;
 
   renderer = calloc (1, sizeof (struct _ply_renderer));
 
-  if (plugin_path != NULL)
-    renderer->plugin_path = strdup (plugin_path);
+  renderer->type = renderer_type;
 
   if (device_name != NULL)
     renderer->device_name = strdup (device_name);
@@ -95,8 +94,13 @@ ply_renderer_free (ply_renderer_t *renderer)
     }
 
   free (renderer->device_name);
-  free (renderer->plugin_path);
   free (renderer);
+}
+
+const char *
+ply_renderer_get_device_name (ply_renderer_t *renderer)
+{
+  return renderer->device_name;
 }
 
 static bool
@@ -258,28 +262,27 @@ ply_renderer_open (ply_renderer_t *renderer)
 {
   int i;
 
-  /* FIXME: at some point we may want to make this
-   * part more dynamic (so you don't have to edit this
-   * list to add a new renderer)
-   */
-  const char *known_plugins[] =
+  struct
     {
-      PLYMOUTH_PLUGIN_PATH "renderers/x11.so",
-      PLYMOUTH_PLUGIN_PATH "renderers/drm.so",
-      PLYMOUTH_PLUGIN_PATH "renderers/frame-buffer.so",
-      NULL
+      ply_renderer_type_t  type;
+      const char          *path;
+    } known_plugins[] =
+    {
+      { PLY_RENDERER_TYPE_X11, PLYMOUTH_PLUGIN_PATH "renderers/x11.so" },
+      { PLY_RENDERER_TYPE_DRM, PLYMOUTH_PLUGIN_PATH "renderers/drm.so" },
+      { PLY_RENDERER_TYPE_FRAME_BUFFER, PLYMOUTH_PLUGIN_PATH "renderers/frame-buffer.so" },
+      { PLY_RENDERER_TYPE_NONE, NULL }
     };
 
-  if (renderer->plugin_path != NULL)
+  for (i = 0; known_plugins[i].type != PLY_RENDERER_TYPE_NONE; i++)
     {
-      return ply_renderer_open_plugin (renderer, renderer->plugin_path);
+      if (renderer->type == known_plugins[i].type ||
+          renderer->type == PLY_RENDERER_TYPE_AUTO)
+        {
+          if (ply_renderer_open_plugin (renderer, known_plugins[i].path))
+            return true;
+        }
     }
-
-  for (i = 0; known_plugins[i] != NULL; i++)
-    {
-      if (ply_renderer_open_plugin (renderer, known_plugins[i]))
-        return true;
-  }
 
   ply_trace ("could not find suitable rendering plugin");
   return false;

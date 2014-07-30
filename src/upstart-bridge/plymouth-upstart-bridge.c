@@ -147,8 +147,6 @@ update_status (state_t                                   *state,
                const char                                *action,
                bool                                       is_okay)
 {
-  ply_boot_client_update_daemon (state->client, job->name, NULL, NULL, state);
-
   if (job->description == NULL)
     return;
 
@@ -307,7 +305,9 @@ main (int    argc,
   if (should_be_verbose && !ply_is_tracing ())
     ply_toggle_tracing ();
 
-  setupterm (NULL, STDOUT_FILENO, NULL);
+  /* Don't bail on dummy/hardcopy terminals */
+  int errret=0;
+  setupterm (NULL, STDOUT_FILENO, &errret);
 
   is_connected = ply_boot_client_connect (state.client,
                                           (ply_boot_client_disconnect_handler_t)

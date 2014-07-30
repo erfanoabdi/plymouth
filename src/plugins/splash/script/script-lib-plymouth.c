@@ -19,7 +19,9 @@
  *
  * Written by: Charlie Brej <cbrej@cs.man.ac.uk>
  */
-#define _GNU_SOURCE
+
+#include "config.h"
+
 #include "ply-boot-splash-plugin.h"
 #include "ply-utils.h"
 #include "script.h"
@@ -31,8 +33,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include "config.h"
 
 #include "script-lib-plymouth.script.h"
 
@@ -64,6 +64,7 @@ static script_return_t plymouth_get_mode (script_state_t *state,
       case PLY_BOOT_SPLASH_MODE_UPDATES:
         obj = script_obj_new_string ("updates");
         break;
+      case PLY_BOOT_SPLASH_MODE_INVALID:
       default:
         obj = script_obj_new_string ("unknown");
         break;

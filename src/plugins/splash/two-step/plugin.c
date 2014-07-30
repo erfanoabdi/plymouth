@@ -89,8 +89,9 @@ typedef struct
   ply_throbber_t *throbber;
   ply_label_t *label;
   ply_label_t *message_label;
-  ply_rectangle_t box_area, lock_area;
+  ply_rectangle_t box_area, lock_area, watermark_area;
   ply_trigger_t *end_trigger;
+  ply_image_t *background_image;
 } view_t;
 
 struct _ply_boot_splash_plugin
@@ -101,9 +102,14 @@ struct _ply_boot_splash_plugin
   ply_image_t *box_image;
   ply_image_t *corner_image;
   ply_image_t *header_image;
+  ply_image_t *background_tile_image;
+  ply_image_t *watermark_image;
   ply_list_t *views;
 
   ply_boot_splash_display_type_t state;
+
+  double watermark_horizontal_alignment;
+  double watermark_vertical_alignment;
 
   double animation_horizontal_alignment;
   double animation_vertical_alignment;
@@ -176,12 +182,37 @@ view_free (view_t *view)
   ply_label_free (view->label);
   ply_label_free (view->message_label);
 
+  if (view->background_image != NULL)
+    ply_image_free (view->background_image);
+
   free (view);
 }
 
 static bool
 view_load (view_t *view)
 {
+  unsigned long screen_width, screen_height;
+  ply_boot_splash_plugin_t *plugin;
+
+  plugin = view->plugin;
+
+  screen_width = ply_pixel_display_get_width (view->display);
+  screen_height = ply_pixel_display_get_height (view->display);
+
+  if (plugin->background_tile_image != NULL)
+    {
+      ply_trace ("tiling background to %lux%lu", screen_width, screen_height);
+      view->background_image = ply_image_tile (plugin->background_tile_image, screen_width, screen_height);
+    }
+
+  if (plugin->watermark_image != NULL)
+    {
+      view->watermark_area.width = ply_image_get_width (plugin->watermark_image);
+      view->watermark_area.height = ply_image_get_height (plugin->watermark_image);
+      view->watermark_area.x = screen_width * plugin->watermark_horizontal_alignment - ply_image_get_width (plugin->watermark_image) * plugin->watermark_horizontal_alignment;
+      view->watermark_area.y = screen_height * plugin->watermark_vertical_alignment - ply_image_get_height (plugin->watermark_image) * plugin->watermark_vertical_alignment;
+    }
+
   ply_trace ("loading entry");
   if (!ply_entry_load (view->entry))
     return false;
@@ -519,6 +550,14 @@ create_plugin (ply_key_file_t *key_file)
   plugin->header_image = ply_image_new (image_path);
   free (image_path);
 
+  asprintf (&image_path, "%s/background-tile.png", image_dir);
+  plugin->background_tile_image = ply_image_new (image_path);
+  free (image_path);
+
+  asprintf (&image_path, "%s/watermark.png", image_dir);
+  plugin->watermark_image = ply_image_new (image_path);
+  free (image_path);
+
   plugin->animation_dir = image_dir;
 
   alignment = ply_key_file_get_value (key_file, "two-step", "HorizontalAlignment");
@@ -533,6 +572,20 @@ create_plugin (ply_key_file_t *key_file)
     plugin->animation_vertical_alignment = strtod (alignment, NULL);
   else
     plugin->animation_vertical_alignment = .5;
+  free (alignment);
+
+  alignment = ply_key_file_get_value (key_file, "two-step", "WatermarkHorizontalAlignment");
+  if (alignment != NULL)
+    plugin->watermark_horizontal_alignment = strtod (alignment, NULL);
+  else
+    plugin->watermark_horizontal_alignment = 1.0;
+  free (alignment);
+
+  alignment = ply_key_file_get_value (key_file, "two-step", "WatermarkVerticalAlignment");
+  if (alignment != NULL)
+    plugin->watermark_vertical_alignment = strtod (alignment, NULL);
+  else
+    plugin->watermark_vertical_alignment = .5;
   free (alignment);
 
   plugin->transition = PLY_PROGRESS_ANIMATION_TRANSITION_NONE;
@@ -652,6 +705,12 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
 
   if (plugin->header_image != NULL)
     ply_image_free (plugin->header_image);
+
+  if (plugin->background_tile_image != NULL)
+    ply_image_free (plugin->background_tile_image);
+
+  if (plugin->watermark_image != NULL)
+    ply_image_free (plugin->watermark_image);
 
   free (plugin->animation_dir);
   free_views (plugin);
@@ -813,6 +872,21 @@ draw_background (view_t             *view,
   else
     ply_pixel_buffer_fill_with_hex_color (pixel_buffer, &area,
                                           plugin->background_start_color);
+
+  if (view->background_image != NULL)
+    {
+      uint32_t *data;
+      data = ply_image_get_data (view->background_image);
+      ply_pixel_buffer_fill_with_argb32_data (pixel_buffer, &area, data);
+    }
+
+  if (plugin->watermark_image != NULL)
+    {
+      uint32_t *data;
+
+      data = ply_image_get_data (plugin->watermark_image);
+      ply_pixel_buffer_fill_with_argb32_data (pixel_buffer, &view->watermark_area, data);
+    }
 }
 
 static void
@@ -997,6 +1071,26 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
         }
     }
 
+  if (plugin->background_tile_image != NULL)
+    {
+      ply_trace ("loading background tile image");
+      if (!ply_image_load (plugin->background_tile_image))
+        {
+          ply_image_free (plugin->background_tile_image);
+          plugin->background_tile_image = NULL;
+        }
+    }
+
+  if (plugin->watermark_image != NULL)
+    {
+      ply_trace ("loading watermark image");
+      if (!ply_image_load (plugin->watermark_image))
+        {
+          ply_image_free (plugin->watermark_image);
+          plugin->watermark_image = NULL;
+        }
+    }
+
   if (!load_views (plugin))
     {
       ply_trace ("couldn't load views");
@@ -1065,6 +1159,9 @@ on_boot_progress (ply_boot_splash_plugin_t *plugin,
     return;
 
   if (plugin->state != PLY_BOOT_SPLASH_DISPLAY_NORMAL)
+    return;
+
+  if (plugin->is_idle)
     return;
 
   if (percent_done >= SHOW_ANIMATION_PERCENT)

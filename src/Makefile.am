@@ -1,8 +1,8 @@
-SUBDIRS = libply libply-splash-core libply-splash-graphics . plugins client viewer tests
+SUBDIRS = libply libply-splash-core libply-splash-graphics . plugins client viewer
 if ENABLE_UPSTART_MONITORING
 SUBDIRS += upstart-bridge
 endif
-INCLUDES = -I$(top_srcdir)                                                    \
+AM_CPPFLAGS = -I$(top_srcdir)                                                 \
            -I$(srcdir)/libply                                                 \
            -I$(srcdir)/libply-splash-core                                     \
            -I$(srcdir)                                                        \
@@ -15,6 +15,7 @@ plymouthdbindir = $(plymouthdaemondir)
 plymouthdbin_PROGRAMS = plymouthd
 
 plymouthd_CFLAGS = $(PLYMOUTH_CFLAGS)                                         \
+		   -rdynamic                                                  \
 		   -DPLYMOUTH_PLUGIN_PATH=\"$(PLYMOUTH_PLUGIN_PATH)\"         \
 		   -DPLYMOUTH_THEME_PATH=\"$(PLYMOUTH_THEME_PATH)/\"          \
 		   -DPLYMOUTH_POLICY_DIR=\"$(PLYMOUTH_POLICY_DIR)/\"          \

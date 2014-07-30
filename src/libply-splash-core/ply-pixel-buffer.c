@@ -848,5 +848,35 @@ ply_pixel_buffer_rotate (ply_pixel_buffer_t *old_buffer,
   return buffer;
 }
 
+ply_pixel_buffer_t *
+ply_pixel_buffer_tile (ply_pixel_buffer_t *old_buffer,
+                       long                width,
+                       long                height)
+{
+  long x, y;
+  long old_x, old_y;
+  long old_width, old_height;
+  uint32_t *bytes, *old_bytes;
+  ply_pixel_buffer_t *buffer;
+
+  buffer = ply_pixel_buffer_new (width, height);
+
+  old_bytes = ply_pixel_buffer_get_argb32_data (old_buffer);
+  bytes = ply_pixel_buffer_get_argb32_data (buffer);
+
+  old_width = old_buffer->area.width;
+  old_height = old_buffer->area.height;
+
+  for (y = 0; y < height; y++)
+    {
+      old_y = y % old_height;
+      for (x = 0; x < width; x++)
+        {
+          old_x = x % old_width;
+          bytes[x + y * width] = old_bytes[old_x + old_y * old_width];
+        }
+    }
+  return buffer;
+}
 
 /* vim: set ts=4 sw=4 et ai ci cino={.5s,^-2,+.5s,t0,g0,e-2,n-2,p2s,(0,=.5s,:.5s */

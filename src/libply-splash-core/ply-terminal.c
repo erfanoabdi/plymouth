@@ -876,6 +876,12 @@ ply_terminal_free (ply_terminal_t *terminal)
   free (terminal);
 }
 
+const char *
+ply_terminal_get_name (ply_terminal_t *terminal)
+{
+  return terminal->name;
+}
+
 int
 ply_terminal_get_vt_number (ply_terminal_t *terminal)
 {

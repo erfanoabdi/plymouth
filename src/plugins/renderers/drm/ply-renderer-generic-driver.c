@@ -71,6 +71,8 @@ struct _ply_renderer_driver
 {
   int device_fd;
   ply_hashtable_t *buffers;
+
+  uint32_t requires_explicit_flushing : 1;
 };
 
 static bool
@@ -123,7 +125,7 @@ create_driver (int device_fd)
 
   driver = calloc (1, sizeof (ply_renderer_driver_t));
   driver->device_fd = device_fd;
-
+  driver->requires_explicit_flushing = true;
   driver->buffers = ply_hashtable_new (ply_hashtable_direct_hash,
                                        ply_hashtable_direct_compare);
 
@@ -330,6 +332,22 @@ end_flush (ply_renderer_driver_t *driver,
   buffer = get_buffer_from_id (driver, buffer_id);
 
   assert (buffer != NULL);
+
+  if (driver->requires_explicit_flushing)
+    {
+      struct drm_clip_rect flush_area;
+      int ret;
+
+      flush_area.x1 = 0;
+      flush_area.y1 = 0;
+      flush_area.x2 = buffer->width;
+      flush_area.y2 = buffer->height;
+
+      ret = drmModeDirtyFB (driver->device_fd, buffer->id, &flush_area, 1);
+
+      if (ret == -ENOSYS)
+        driver->requires_explicit_flushing = false;
+    }
 }
 
 static void

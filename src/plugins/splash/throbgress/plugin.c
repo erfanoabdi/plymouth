@@ -247,6 +247,8 @@ pause_views (ply_boot_splash_plugin_t *plugin)
 {
   ply_list_node_t *node;
 
+  ply_trace ("pausing views");
+
   node = ply_list_get_first_node (plugin->views);
   while (node != NULL)
     {
@@ -266,6 +268,8 @@ static void
 unpause_views (ply_boot_splash_plugin_t *plugin)
 {
   ply_list_node_t *node;
+
+  ply_trace ("unpausing views");
 
   node = ply_list_get_first_node (plugin->views);
   while (node != NULL)
@@ -431,6 +435,8 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
   if (plugin == NULL)
     return;
 
+  ply_trace ("destroying plugin");
+
   if (plugin->loop != NULL)
     {
       ply_event_loop_stop_watching_for_exit (plugin->loop, (ply_event_loop_exit_handler_t)
@@ -510,6 +516,8 @@ start_animation (ply_boot_splash_plugin_t *plugin)
   if (plugin->is_animating)
      return;
 
+  ply_trace ("starting animation");
+
   node = ply_list_get_first_node (plugin->views);
   while (node != NULL)
     {
@@ -541,6 +549,9 @@ stop_animation (ply_boot_splash_plugin_t *plugin,
 
   if (!plugin->is_animating)
      return;
+
+  ply_trace ("stopping animation%s",
+             trigger != NULL? " with trigger" : "");
 
   plugin->is_animating = false;
 
@@ -619,6 +630,7 @@ add_pixel_display (ply_boot_splash_plugin_t *plugin,
 {
   view_t *view;
 
+  ply_trace ("adding pixel display to plugin");
   view = view_new (plugin, display);
 
   ply_pixel_display_set_draw_handler (view->display,
@@ -634,6 +646,7 @@ remove_pixel_display (ply_boot_splash_plugin_t *plugin,
 {
   ply_list_node_t *node;
 
+  ply_trace ("removing pixel display from plugin");
   node = ply_list_get_first_node (plugin->views);
   while (node != NULL)
     {
@@ -745,6 +758,7 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin,
 {
   assert (plugin != NULL);
 
+  ply_trace ("hiding splash");
   if (plugin->loop != NULL)
     {
       stop_animation (plugin, NULL);
@@ -765,6 +779,7 @@ show_password_prompt (ply_boot_splash_plugin_t *plugin,
 {
   ply_list_node_t *node;
 
+  ply_trace ("showing password prompt");
   node = ply_list_get_first_node (plugin->views);
   while (node != NULL)
     {
@@ -788,6 +803,7 @@ show_prompt (ply_boot_splash_plugin_t *plugin,
 {
   ply_list_node_t *node;
 
+  ply_trace ("showing prompt");
   node = ply_list_get_first_node (plugin->views);
   while (node != NULL)
     {
@@ -807,6 +823,7 @@ show_prompt (ply_boot_splash_plugin_t *plugin,
 static void
 on_root_mounted (ply_boot_splash_plugin_t *plugin)
 {
+  ply_trace ("root filesystem mounted");
   plugin->root_is_mounted = true;
 }
 
@@ -814,8 +831,10 @@ static void
 become_idle (ply_boot_splash_plugin_t *plugin,
              ply_trigger_t            *idle_trigger)
 {
+  ply_trace ("deactivation requested");
   if (plugin->is_idle)
     {
+      ply_trace ("plugin is already idle");
       ply_trigger_pull (idle_trigger, NULL);
       return;
     }
@@ -829,6 +848,7 @@ hide_prompt (ply_boot_splash_plugin_t *plugin)
 {
   ply_list_node_t *node;
 
+  ply_trace ("hiding prompt");
   node = ply_list_get_first_node (plugin->views);
   while (node != NULL)
     {
@@ -843,6 +863,7 @@ hide_prompt (ply_boot_splash_plugin_t *plugin)
       node = next_node;
     }
 }
+
 
 static void
 show_message (ply_boot_splash_plugin_t *plugin,

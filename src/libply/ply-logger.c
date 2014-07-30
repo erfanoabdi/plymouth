@@ -40,7 +40,7 @@
 #include "ply-list.h"
 
 #ifndef PLY_LOGGER_OPEN_FLAGS
-#define PLY_LOGGER_OPEN_FLAGS (O_WRONLY | O_TRUNC | O_CREAT | O_NOFOLLOW)
+#define PLY_LOGGER_OPEN_FLAGS (O_WRONLY | O_TRUNC | O_CREAT | O_NOFOLLOW | O_CLOEXEC)
 #endif
 
 #ifndef PLY_LOGGER_MAX_INJECTION_SIZE
@@ -357,6 +357,9 @@ ply_logger_close_file (ply_logger_t *logger)
 {
   assert (logger != NULL);
 
+  if (logger->output_fd < 0)
+      return;
+
   close (logger->output_fd);
   ply_logger_set_output_fd (logger, -1);
 }
@@ -595,26 +598,4 @@ ply_logger_is_tracing_enabled (ply_logger_t *logger)
 }
 #endif /* PLY_ENABLE_TRACING */
 
-#ifdef PLY_LOGGER_ENABLE_TEST
-
-int
-main (int    argc,
-      char **argv)
-{
-  int exit_code;
-  ply_logger_t *logger;
-
-  exit_code = 0;
-  logger = ply_logger_new ();
-
-  ply_logger_inject (logger, "yo yo yo\n");
-  ply_logger_set_output_fd (logger, 1);
-  ply_logger_inject (logger, "yo yo yo yo\n");
-  ply_logger_flush (logger);
-  ply_logger_free (logger);
-
-  return exit_code;
-}
-
-#endif /* PLY_LOGGER_ENABLE_TEST */
 /* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

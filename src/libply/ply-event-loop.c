@@ -491,7 +491,7 @@ ply_event_loop_new (void)
 
   loop = calloc (1, sizeof (ply_event_loop_t));
 
-  loop->epoll_fd = epoll_create (PLY_EVENT_LOOP_NUM_EVENT_HANDLERS);
+  loop->epoll_fd =  epoll_create1(EPOLL_CLOEXEC);
   loop->wakeup_time = PLY_EVENT_LOOP_NO_TIMED_WAKEUP;
 
   assert (loop->epoll_fd >= 0);
@@ -1185,25 +1185,16 @@ static void
 ply_event_loop_disconnect_source (ply_event_loop_t           *loop,
                                   ply_event_source_t         *source)
 {
-  ply_trace ("disconnecting source with fd %d", source->fd);
   ply_event_loop_handle_disconnect_for_source (loop, source);
-  ply_trace ("done disconnecting source with fd %d", source->fd);
 
   /* at this point, we've told the event loop users about the
    * fd disconnection, so we can invalidate any outstanding
    * watches and free the destinations.
    */
-  ply_trace ("freeing watches for source with fd %d", source->fd);
   ply_event_loop_free_watches_for_source (loop, source);
-  ply_trace ("done freeing watches for source with fd %d", source->fd);
-  ply_trace ("freeing destinations for source with fd %d", source->fd);
   ply_event_loop_free_destinations_for_source (loop, source);
-  ply_trace ("done freeing destinations for source with fd %d", source->fd);
   assert (ply_list_get_length (source->destinations) == 0);
-
-  ply_trace ("removing source with fd %d from event loop", source->fd);
   ply_event_loop_remove_source (loop, source);
-  ply_trace ("done removing source with fd %d from event loop", source->fd);
 }
 
 static void
@@ -1376,88 +1367,4 @@ ply_event_loop_run (ply_event_loop_t *loop)
   return loop->exit_code;
 }
 
-#ifdef PLY_EVENT_LOOP_ENABLE_TEST
-
-static ply_event_loop_t *loop;
-
-static void
-alrm_signal_handler (void)
-{
-  write (1, "times up!\n", sizeof ("times up!\n") - 1);
-  ply_event_loop_exit (loop, 0);
-}
-
-static void
-usr1_signal_handler (void)
-{
-  write (1, "got sigusr1\n", sizeof ("got sigusr1\n") - 1);
-}
-
-static void
-hangup_signal_handler (void)
-{
-  write (1, "got hangup\n", sizeof ("got hangup\n") - 1);
-}
-
-static void
-terminate_signal_handler (void)
-{
-  write (1, "got terminate\n", sizeof ("got terminate\n") - 1);
-  ply_event_loop_exit (loop, 0);
-}
-
-static void
-line_received_handler (void)
-{
-  char line[512] = { 0 };
-  printf ("Received line: ");
-  fflush (stdout);
-
-  fgets (line, sizeof (line), stdin);
-  printf ("%s", line);
-}
-
-static void
-on_timeout (ply_event_loop_t *loop)
-{
-  printf ("timeout elapsed\n");
-}
-
-int
-main (int    argc,
-      char **argv)
-{
-  int exit_code;
-
-  loop = ply_event_loop_new ();
-
-  ply_event_loop_watch_signal (loop, SIGHUP,
-                             (ply_event_handler_t) hangup_signal_handler,
-                             NULL);
-  ply_event_loop_watch_signal (loop, SIGTERM,
-                             (ply_event_handler_t)
-                             terminate_signal_handler, NULL);
-  ply_event_loop_watch_signal (loop, SIGUSR1,
-                             (ply_event_handler_t)
-                             usr1_signal_handler, NULL);
-  ply_event_loop_watch_signal (loop, SIGALRM,
-                             (ply_event_handler_t)
-                             alrm_signal_handler, NULL);
-
-  ply_event_loop_watch_for_timeout (loop, 2.0,
-                                    (ply_event_loop_timeout_handler_t)
-                                    on_timeout, loop);
-  ply_event_loop_watch_fd (loop, 0, PLY_EVENT_LOOP_FD_STATUS_HAS_DATA,
-                          (ply_event_handler_t) line_received_handler,
-                          (ply_event_handler_t) line_received_handler,
-                          NULL);
-
-  alarm (5);
-  exit_code = ply_event_loop_run (loop);
-
-  ply_event_loop_free (loop);
-
-  return exit_code;
-}
-#endif /* PLY_EVENT_LOOP_ENABLE_TEST */
 /* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

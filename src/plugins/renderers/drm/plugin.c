@@ -60,19 +60,6 @@
 #include "ply-renderer-plugin.h"
 #include "ply-renderer-driver.h"
 #include "ply-renderer-generic-driver.h"
-#ifdef PLY_ENABLE_LIBDRM_INTEL
-#include "ply-renderer-i915-driver.h"
-#endif
-#ifdef PLY_ENABLE_LIBDRM_RADEON
-#include "ply-renderer-radeon-driver.h"
-#endif
-#ifdef PLY_ENABLE_LIBDRM_NOUVEAU
-#include "ply-renderer-nouveau-driver.h"
-#endif
-
-#ifdef PLY_ENABLE_LIBKMS
-#include "ply-renderer-libkms-driver.h"
-#endif
 
 #define BYTES_PER_PIXEL (4)
 
@@ -412,42 +399,6 @@ destroy_backend (ply_renderer_backend_t *backend)
   free (backend);
 }
 
-static char *
-find_driver_for_device (const char *device_name)
-{
-  char *driver;
-  int major_number, minor_number;
-  struct stat file_attributes;
-  char *device_path;
-  char device_link_path[PATH_MAX + 1] = "";
-
-  if (stat (device_name, &file_attributes) < 0)
-    return NULL;
-
-  if (!S_ISCHR (file_attributes.st_mode))
-    return NULL;
-
-  major_number = major (file_attributes.st_rdev);
-  minor_number = minor (file_attributes.st_rdev);
-
-  asprintf (&device_path, "/sys/dev/char/%d:%d/device/driver",
-            major_number, minor_number);
-
-  if (readlink (device_path, device_link_path, sizeof (device_link_path) - 1) < 0)
-    {
-      free (device_path);
-      return NULL;
-    }
-  free (device_path);
-
-  driver = strrchr (device_link_path, '/');
-
-  if (driver == NULL)
-    return NULL;
-
-  return strdup (driver + strlen ("/"));
-}
-
 static void
 activate (ply_renderer_backend_t *backend)
 {
@@ -508,72 +459,24 @@ on_active_vt_changed (ply_renderer_backend_t *backend)
 static bool
 load_driver (ply_renderer_backend_t *backend)
 {
-  char *driver_name;
   int device_fd;
 
-  driver_name = find_driver_for_device (backend->device_name);
-  ply_trace ("Attempting to load driver '%s'", driver_name);
-  device_fd = drmOpen (driver_name, NULL);
+  ply_trace ("Opening '%s'", backend->device_name);
+  device_fd = open (backend->device_name, O_RDWR);
 
   if (device_fd < 0)
     {
-      ply_trace ("drmOpen failed");
-      free (driver_name);
+      ply_trace ("open failed: %m");
       return false;
     }
-  backend->driver_interface = NULL;
 
-/* Try intel driver first if we're supporting the legacy GDM transition
- * since it can map the kernel console, which gives us the ability to do
- * a more seamless transition when plymouth quits before X starts
- */
-#if defined(PLY_ENABLE_DEPRECATED_GDM_TRANSITION) && defined(PLY_ENABLE_LIBDRM_INTEL)
-  if (backend->driver_interface == NULL && strcmp (driver_name, "i915") == 0)
-    {
-      backend->driver_interface = ply_renderer_i915_driver_get_interface ();
-      backend->driver_supports_mapping_console = true;
-    }
-#endif
+  backend->driver_interface = ply_renderer_generic_driver_get_interface (device_fd);
+  backend->driver_supports_mapping_console = false;
 
   if (backend->driver_interface == NULL)
     {
-      backend->driver_interface = ply_renderer_generic_driver_get_interface (device_fd);
-      backend->driver_supports_mapping_console = false;
-    }
-
-#ifdef PLY_ENABLE_LIBDRM_INTEL
-  if (backend->driver_interface == NULL && strcmp (driver_name, "i915") == 0)
-    {
-      backend->driver_interface = ply_renderer_i915_driver_get_interface ();
-      backend->driver_supports_mapping_console = true;
-    }
-#endif
-#ifdef PLY_ENABLE_LIBDRM_RADEON
-  if (backend->driver_interface == NULL && strcmp (driver_name, "radeon") == 0)
-    {
-      backend->driver_interface = ply_renderer_radeon_driver_get_interface ();
-      backend->driver_supports_mapping_console = false;
-    }
-#endif
-#ifdef PLY_ENABLE_LIBDRM_NOUVEAU
-  if (backend->driver_interface == NULL && strcmp (driver_name, "nouveau") == 0)
-    {
-      backend->driver_interface = ply_renderer_nouveau_driver_get_interface ();
-      backend->driver_supports_mapping_console = false;
-    }
-#endif
-
-  free (driver_name);
-
-  if (backend->driver_interface == NULL)
-    {
-#ifdef PLY_ENABLE_LIBKMS
-      backend->driver_interface = ply_renderer_libkms_driver_get_interface ();
-      backend->driver_supports_mapping_console = false;
-#else
       close (device_fd);
       return false;
-#endif
     }
 
   backend->driver = backend->driver_interface->create_driver (device_fd);
@@ -619,6 +522,9 @@ open_device (ply_renderer_backend_t *backend)
   if (!load_driver (backend))
     return false;
 
+  if (backend->terminal == NULL)
+    return true;
+
   if (!ply_terminal_open (backend->terminal))
     {
       ply_trace ("could not open terminal: %m");
@@ -647,10 +553,11 @@ close_device (ply_renderer_backend_t *backend)
 
   free_heads (backend);
 
-  ply_terminal_stop_watching_for_active_vt_change (backend->terminal,
-                                                   (ply_terminal_active_vt_changed_handler_t)
-                                                   on_active_vt_changed,
-                                                   backend);
+  if (backend->terminal != NULL)
+    ply_terminal_stop_watching_for_active_vt_change (backend->terminal,
+                                                     (ply_terminal_active_vt_changed_handler_t)
+                                                     on_active_vt_changed,
+                                                     backend);
 
   unload_driver (backend);
 }
@@ -985,10 +892,17 @@ map_to_device (ply_renderer_backend_t *backend)
       node = next_node;
     }
 
-  if (ply_terminal_is_active (backend->terminal))
-    activate (backend);
+  if (backend->terminal != NULL)
+    {
+      if (ply_terminal_is_active (backend->terminal))
+        activate (backend);
+      else
+        ply_terminal_activate_vt (backend->terminal);
+    }
   else
-    ply_terminal_activate_vt (backend->terminal);
+    {
+      activate (backend);
+    }
 
   return head_mapped;
 }
@@ -1116,8 +1030,11 @@ reset_scan_out_buffer_if_needed (ply_renderer_backend_t *backend,
   drmModeCrtc *controller;
   bool did_reset = false;
 
-  if (!ply_terminal_is_active (backend->terminal))
-    return false;
+  if (backend->terminal != NULL)
+    {
+      if (!ply_terminal_is_active (backend->terminal))
+        return false;
+    }
 
   controller = drmModeGetCrtc (backend->device_fd, head->controller_id);
 
@@ -1151,8 +1068,11 @@ flush_head (ply_renderer_backend_t *backend,
   if (!backend->is_active)
     return;
 
-  ply_terminal_set_mode (backend->terminal, PLY_TERMINAL_MODE_GRAPHICS);
-  ply_terminal_set_unbuffered_input (backend->terminal);
+  if (backend->terminal != NULL)
+    {
+      ply_terminal_set_mode (backend->terminal, PLY_TERMINAL_MODE_GRAPHICS);
+      ply_terminal_set_unbuffered_input (backend->terminal);
+    }
   pixel_buffer = head->pixel_buffer;
   updated_region = ply_pixel_buffer_get_updated_areas (pixel_buffer);
   areas_to_flush = ply_region_get_sorted_rectangle_list (updated_region);
@@ -1260,6 +1180,9 @@ open_input_source (ply_renderer_backend_t      *backend,
   assert (backend != NULL);
   assert (has_input_source (backend, input_source));
 
+  if (backend->terminal == NULL)
+    return false;
+
   terminal_fd = ply_terminal_get_fd (backend->terminal);
 
   input_source->backend = backend;
@@ -1289,6 +1212,9 @@ close_input_source (ply_renderer_backend_t      *backend,
 {
   assert (backend != NULL);
   assert (has_input_source (backend, input_source));
+
+  if (backend->terminal == NULL)
+    return;
 
   ply_event_loop_stop_watching_fd (backend->loop, input_source->terminal_input_watch);
   input_source->terminal_input_watch = NULL;

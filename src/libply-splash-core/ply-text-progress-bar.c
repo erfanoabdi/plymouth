@@ -104,7 +104,7 @@ get_os_string (void)
 
   buf = NULL;
 
-  fd = open (RELEASE_FILE, O_RDONLY);
+  fd = open (RELEASE_FILE, O_RDONLY|O_CLOEXEC);
   if (fd == -1)
     goto out;
 
@@ -136,6 +136,8 @@ get_os_string (void)
 
           if (pos2 != NULL)
             *pos2 = '\0';
+          else
+            pos2 = pos + strlen(pos) - 1;
 
           if ((*pos == '\"' && pos2[-1] == '\"') ||
               (*pos == '\'' && pos2[-1] == '\''))
