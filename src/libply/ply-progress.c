@@ -80,7 +80,7 @@ ply_progress_new (void)
   progress->last_percentage=0.0;
   progress->last_percentage_time=0.0;
   progress->dead_time=0.0;
-  progress->next_message_percentage=1.0;
+  progress->next_message_percentage=0.25;
   progress->current_message_list = ply_list_new ();
   progress->previous_message_list = ply_list_new ();
   progress->paused = false;
@@ -256,6 +256,14 @@ ply_progress_get_percentage (ply_progress_t* progress)
   return percentage;
 }
 
+void
+ply_progress_set_percentage (ply_progress_t* progress, double percentage)
+{
+  progress->next_message_percentage = 1;
+  progress->scalar += percentage / (ply_progress_get_time(progress)-progress->dead_time);
+  progress->scalar /= 2;
+  return;
+}
 
 double
 ply_progress_get_time (ply_progress_t* progress)
@@ -361,6 +369,27 @@ main (int    argc,
   printf("Save and free cache\n");
   ply_progress_save_cache (progress, PLYMOUTH_TIME_DIRECTORY "/boot-duration");
   ply_progress_free(progress);
+
+  printf("\nManual set percentage run\n\n");
+
+  progress = ply_progress_new ();
+  progress->scalar = 1.0/5;  /* Original time estimate is 5 sec*/
+
+  percent = ply_progress_get_percentage (progress);
+  time = ply_progress_get_time (progress);
+  printf("Time:%f   \t Percentage: %f%%\n", time, percent*100);
+  srand ((int) ply_get_timestamp ());
+
+  for (i=0; i<12; i++)
+    {
+      ply_progress_set_percentage (progress, (double)i/12);
+      usleep ((rand () % slowness+slowness));
+      percent = ply_progress_get_percentage (progress);
+      time = ply_progress_get_time (progress);
+      printf("Time:%f   \t Percentage: %f%% (%f%%)\tScalar:%f\n", time, percent*100, (double)i/12*100, progress->scalar);
+    }
+  ply_progress_free(progress);
+
   return 0;
 }
 

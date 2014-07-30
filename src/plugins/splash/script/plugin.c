@@ -177,7 +177,8 @@ start_animation (ply_boot_splash_plugin_t *plugin)
                                                      plugin->image_dir);
   plugin->script_sprite_lib = script_lib_sprite_setup (plugin->script_state,
                                                        plugin->window);
-  plugin->script_plymouth_lib = script_lib_plymouth_setup (plugin->script_state);
+  plugin->script_plymouth_lib = script_lib_plymouth_setup (plugin->script_state,
+                                                           plugin->mode);
   plugin->script_math_lib = script_lib_math_setup (plugin->script_state);
 
   ply_trace ("executing script file");

@@ -19,8 +19,8 @@
  *
  * Written by: Charlie Brej <cbrej@cs.man.ac.uk>
  */
-#ifndef SCRIPT_LIB_IMAGE
-#define SCRIPT_LIB_IMAGE
+#ifndef SCRIPT_LIB_IMAGE_H
+#define SCRIPT_LIB_IMAGE_H
 
 #include "script.h"
 
@@ -35,4 +35,4 @@ script_lib_image_data_t *script_lib_image_setup (script_state_t *state,
                                                  char           *image_dir);
 void script_lib_image_destroy (script_lib_image_data_t *data);
 
-#endif /* SCRIPT_LIB_IMAGE */
+#endif /* SCRIPT_LIB_IMAGE_H */

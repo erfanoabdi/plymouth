@@ -31,6 +31,8 @@ script_la_SOURCES = $(srcdir)/plugin.c                                        \
                     $(srcdir)/script-execute.h                                \
                     $(srcdir)/script-object.c                                 \
                     $(srcdir)/script-object.h                                 \
+                    $(srcdir)/script-debug.c                                  \
+                    $(srcdir)/script-debug.h                                  \
                     $(srcdir)/script-lib-image.c                              \
                     $(srcdir)/script-lib-image.h                              \
                     $(srcdir)/script-lib-image.script                         \

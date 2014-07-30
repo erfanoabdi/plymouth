@@ -36,9 +36,9 @@
 #include "script-parse.h"
 #include "script-object.h"
 
-script_function_t *script_function_script_new (script_op_t  *script,
-                                               void         *user_data,
-                                               ply_list_t   *parameter_list)
+script_function_t *script_function_script_new (script_op_t *script,
+                                               void        *user_data,
+                                               ply_list_t  *parameter_list)
 {
   script_function_t *function = malloc (sizeof (script_function_t));
 
@@ -50,9 +50,9 @@ script_function_t *script_function_script_new (script_op_t  *script,
   return function;
 }
 
-script_function_t *script_function_native_new (script_native_function_t   native_function,
-                                               void                      *user_data,
-                                               ply_list_t                *parameter_list)
+script_function_t *script_function_native_new (script_native_function_t  native_function,
+                                               void                     *user_data,
+                                               ply_list_t               *parameter_list)
 {
   script_function_t *function = malloc (sizeof (script_function_t));
 
@@ -114,21 +114,24 @@ void script_obj_native_class_destroy (script_obj_native_class_t *class)
 script_state_t *script_state_new (void *user_data)
 {
   script_state_t *state = malloc (sizeof (script_state_t));
-
-  state->global = script_obj_new_hash ();
-  script_obj_ref (state->global);
-  state->local = state->global;
+  script_obj_t *global_hash = script_obj_new_hash ();
+  state->global = script_obj_new_ref (global_hash);
+  script_obj_unref(global_hash);
+  state->local = script_obj_new_ref (global_hash);
+  state->this = script_obj_new_null();
   state->user_data = user_data;
   return state;
 }
 
-script_state_t *script_state_init_sub (script_state_t *oldstate)
+script_state_t *script_state_init_sub (script_state_t *oldstate, script_obj_t *this)
 {
   script_state_t *newstate = malloc (sizeof (script_state_t));
-
-  newstate->global = oldstate->global;
-  script_obj_ref (newstate->global);
-  newstate->local = script_obj_new_hash ();
+  script_obj_t *local_hash = script_obj_new_hash ();
+  newstate->local = script_obj_new_ref (local_hash);
+  script_obj_unref(local_hash);
+  newstate->global = script_obj_new_ref (oldstate->global);
+  if (this) newstate->this = script_obj_new_ref (this);
+  else newstate->this = script_obj_new_ref (oldstate->this);
   newstate->user_data = oldstate->user_data;
   return newstate;
 }
@@ -137,6 +140,7 @@ void script_state_destroy (script_state_t *state)
 {
   script_obj_unref (state->global);
   script_obj_unref (state->local);
+  script_obj_unref (state->this);
   free (state);
 }
 

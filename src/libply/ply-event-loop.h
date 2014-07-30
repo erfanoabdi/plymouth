@@ -81,6 +81,8 @@ void ply_event_loop_stop_watching_for_timeout (ply_event_loop_t    *loop,
 int ply_event_loop_run (ply_event_loop_t *loop);
 void ply_event_loop_exit (ply_event_loop_t *loop,
                           int               exit_code);
+void
+ply_event_loop_process_pending_events (ply_event_loop_t *loop);
 #endif
 
 #endif

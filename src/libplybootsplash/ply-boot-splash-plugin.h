@@ -36,6 +36,8 @@ typedef enum
 {
   PLY_BOOT_SPLASH_MODE_BOOT_UP,
   PLY_BOOT_SPLASH_MODE_SHUTDOWN,
+  PLY_BOOT_SPLASH_MODE_SUSPEND,
+  PLY_BOOT_SPLASH_MODE_RESUME,
 } ply_boot_splash_mode_t;
 
 typedef struct _ply_boot_splash_plugin ply_boot_splash_plugin_t;

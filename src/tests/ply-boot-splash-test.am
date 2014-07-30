@@ -11,5 +11,5 @@ ply_boot_splash_test_SOURCES =                                                  
                           $(srcdir)/../libplybootsplash/ply-boot-splash-plugin.h \
                           $(srcdir)/../libplybootsplash/ply-window.h             \
                           $(srcdir)/../libplybootsplash/ply-window.c             \
-                          $(srcdir)/../ply-boot-splash.h                         \
-                          $(srcdir)/../ply-boot-splash.c
+                          $(srcdir)/../libplybootsplash/ply-boot-splash.h        \
+                          $(srcdir)/../libplybootsplash/ply-boot-splash.c

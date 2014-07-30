@@ -1,4 +1,4 @@
-/* script-lib-math.h - math script functions library
+/* script-debug.h - Debug handling matching memory loaded data to source locations
  *
  * Copyright (C) 2009 Charlie Brej <cbrej@cs.man.ac.uk>
  *
@@ -19,17 +19,21 @@
  *
  * Written by: Charlie Brej <cbrej@cs.man.ac.uk>
  */
-#ifndef SCRIPT_LIB_MATH_H
-#define SCRIPT_LIB_MATH_H
+#ifndef SCRIPT_DEBUG_H
+#define SCRIPT_DEBUG_H
 
-#include "script.h"
 
 typedef struct
 {
-  script_op_t      *script_main_op;
-} script_lib_math_data_t;
+  int line_index;
+  int column_index;
+  char* name;
+} script_debug_location_t;
 
-script_lib_math_data_t *script_lib_math_setup (script_state_t *state);
-void script_lib_math_destroy (script_lib_math_data_t *data);
 
-#endif /* SCRIPT_LIB_MATH_H */
+void script_debug_add_element (void                    *element,
+                               script_debug_location_t *location);
+void script_debug_remove_element (void *element);
+script_debug_location_t *script_debug_lookup_element (void *element);
+
+#endif /* SCRIPT_DEBUG_H */

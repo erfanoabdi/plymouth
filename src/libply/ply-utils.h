@@ -104,6 +104,8 @@ int ply_utf8_character_get_size (const char   *string,
 int ply_utf8_string_get_length (const char   *string,
                                 size_t        n);
 
+void ply_switch_to_vt (int vt_number);
+
 #endif
 
 #endif /* PLY_UTILS_H */

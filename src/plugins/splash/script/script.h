@@ -24,11 +24,13 @@
 
 #include "ply-hashtable.h"
 #include "ply-list.h"
+#include <stdbool.h>
 
 typedef enum                        /* FIXME add _t to all types */
 {
   SCRIPT_RETURN_TYPE_NORMAL,
   SCRIPT_RETURN_TYPE_RETURN,
+  SCRIPT_RETURN_TYPE_FAIL,
   SCRIPT_RETURN_TYPE_BREAK,
   SCRIPT_RETURN_TYPE_CONTINUE,
 } script_return_type_t;
@@ -46,6 +48,7 @@ typedef struct
   void *user_data;
   struct script_obj_t *global;
   struct script_obj_t *local;
+  struct script_obj_t *this;
 } script_state_t;
 
 typedef enum
@@ -78,6 +81,8 @@ typedef struct
   void *user_data;
 } script_obj_native_class_t;
 
+typedef double script_number_t;
+
 typedef struct
 {
   void *object_data;
@@ -88,8 +93,8 @@ typedef enum
 {
   SCRIPT_OBJ_TYPE_NULL,
   SCRIPT_OBJ_TYPE_REF,
-  SCRIPT_OBJ_TYPE_INT,
-  SCRIPT_OBJ_TYPE_FLOAT,
+  SCRIPT_OBJ_TYPE_EXTEND,
+  SCRIPT_OBJ_TYPE_NUMBER,
   SCRIPT_OBJ_TYPE_STRING,
   SCRIPT_OBJ_TYPE_HASH,
   SCRIPT_OBJ_TYPE_FUNCTION,
@@ -102,10 +107,14 @@ typedef struct script_obj_t
   int refcount;
   union
   {
-    int integer;
-    float floatpoint;
+    script_number_t number;
     char *string;
     struct script_obj_t *obj;
+    struct
+      {
+        struct script_obj_t *obj_a;
+        struct script_obj_t *obj_b;
+      } dual_obj;
     script_function_t *function;
     ply_hashtable_t *hash;
     script_obj_native_t native;
@@ -115,12 +124,12 @@ typedef struct script_obj_t
 typedef enum
 {
   SCRIPT_EXP_TYPE_TERM_NULL,
-  SCRIPT_EXP_TYPE_TERM_INT,
-  SCRIPT_EXP_TYPE_TERM_FLOAT,
+  SCRIPT_EXP_TYPE_TERM_NUMBER,
   SCRIPT_EXP_TYPE_TERM_STRING,
   SCRIPT_EXP_TYPE_TERM_VAR,
   SCRIPT_EXP_TYPE_TERM_LOCAL,
   SCRIPT_EXP_TYPE_TERM_GLOBAL,
+  SCRIPT_EXP_TYPE_TERM_THIS,
   SCRIPT_EXP_TYPE_PLUS,
   SCRIPT_EXP_TYPE_MINUS,
   SCRIPT_EXP_TYPE_MUL,
@@ -134,6 +143,7 @@ typedef enum
   SCRIPT_EXP_TYPE_NE,
   SCRIPT_EXP_TYPE_AND,
   SCRIPT_EXP_TYPE_OR,
+  SCRIPT_EXP_TYPE_EXTEND,
   SCRIPT_EXP_TYPE_NOT,
   SCRIPT_EXP_TYPE_POS,
   SCRIPT_EXP_TYPE_NEG,
@@ -150,6 +160,7 @@ typedef enum
   SCRIPT_EXP_TYPE_ASSIGN_MUL,
   SCRIPT_EXP_TYPE_ASSIGN_DIV,
   SCRIPT_EXP_TYPE_ASSIGN_MOD,
+  SCRIPT_EXP_TYPE_ASSIGN_EXTEND,
 } script_exp_type_t;
 
 typedef struct script_exp_t
@@ -164,8 +175,7 @@ typedef struct script_exp_t
     } dual;
     struct script_exp_t *sub;
     char *string;
-    int integer;
-    float floatpoint;
+    script_number_t number;
     struct
     {
       struct script_exp_t *name;
@@ -182,8 +192,8 @@ typedef enum
   SCRIPT_OP_TYPE_IF,
   SCRIPT_OP_TYPE_WHILE,
   SCRIPT_OP_TYPE_FOR,
-  SCRIPT_OP_TYPE_FUNCTION_DEF,
   SCRIPT_OP_TYPE_RETURN,
+  SCRIPT_OP_TYPE_FAIL,
   SCRIPT_OP_TYPE_BREAK,
   SCRIPT_OP_TYPE_CONTINUE,
 } script_op_type_t;
@@ -201,11 +211,6 @@ typedef struct script_op_t
       struct script_op_t *op1;
       struct script_op_t *op2;
     } cond_op;
-    struct
-    {
-      script_exp_t *name;
-      script_function_t *function;
-    } function_def;
   } data;
 } script_op_t;
 
@@ -218,7 +223,9 @@ typedef struct
 
 #define script_return_obj(_return_object) ((script_return_t) {SCRIPT_RETURN_TYPE_RETURN, _return_object})
 #define script_return_obj_null() ((script_return_t) {SCRIPT_RETURN_TYPE_RETURN, script_obj_new_null ()})
+#define script_return_fail() ((script_return_t) {SCRIPT_RETURN_TYPE_FAIL, NULL})
 #define script_return_normal() ((script_return_t) {SCRIPT_RETURN_TYPE_NORMAL, NULL})
+#define script_return_normal_obj(_return_object) ((script_return_t) {SCRIPT_RETURN_TYPE_NORMAL, _return_object})
 #define script_return_break() ((script_return_t) {SCRIPT_RETURN_TYPE_BREAK, NULL})
 #define script_return_continue() ((script_return_t) {SCRIPT_RETURN_TYPE_CONTINUE, NULL})
 
@@ -240,7 +247,7 @@ script_obj_native_class_t *script_obj_native_class_new (script_obj_function_t fr
 
 void script_obj_native_class_destroy (script_obj_native_class_t * class);
 script_state_t *script_state_new (void *user_data);
-script_state_t *script_state_init_sub (script_state_t *oldstate);
+script_state_t *script_state_init_sub (script_state_t *oldstate, script_obj_t *this);
 void script_state_destroy (script_state_t *state);
 
 #endif /* SCRIPT_H */

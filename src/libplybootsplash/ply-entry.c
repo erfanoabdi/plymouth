@@ -126,7 +126,7 @@ get_max_number_of_visible_bullets (ply_entry_t *entry)
   bullet_width = ply_image_get_width (entry->bullet_image);
   text_field_width = ply_image_get_width (entry->text_field_image);
 
-  return (int) (text_field_width / bullet_width);
+  return (int) (text_field_width / bullet_width) - ((text_field_width % bullet_width) < (bullet_width / 2)? 1 : 0);
 }
 
 bool
