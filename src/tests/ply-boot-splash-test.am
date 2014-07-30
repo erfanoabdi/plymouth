@@ -1,0 +1,11 @@
+TESTS += ply-boot-splash-test
+
+ply_boot_splash_test_CFLAGS = $(PLYMOUTH_CFLAGS) -DPLY_BOOT_SPLASH_ENABLE_TEST -DPLYMOUTH_TIME_DIRECTORY=\"/var/lib/plymouth\"
+ply_boot_splash_test_LDADD = $(PLYMOUTH_LIBS) ../libply/libply.la
+
+ply_boot_splash_test_SOURCES =                                                   \
+                          $(srcdir)/../libplybootsplash/ply-boot-splash-plugin.h \
+                          $(srcdir)/../libplybootsplash/ply-window.h             \
+                          $(srcdir)/../libplybootsplash/ply-window.c             \
+                          $(srcdir)/../ply-boot-splash.h                         \
+                          $(srcdir)/../ply-boot-splash.c

@@ -1,0 +1,8 @@
+TESTS += ply-window-test
+
+ply_window_test_CFLAGS = $(PLYMOUTH_CFLAGS) -DPLY_WINDOW_ENABLE_TEST
+ply_window_test_LDADD = $(PLYMOUTH_LIBS) ../libply/libply.la
+
+ply_window_test_SOURCES =                                                \
+                          $(srcdir)/../libplybootsplash/ply-window.h     \
+                          $(srcdir)/../libplybootsplash/ply-window.c

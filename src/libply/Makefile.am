@@ -1,0 +1,47 @@
+SUBDIRS = tests
+INCLUDES = -I$(top_srcdir)                                                    \
+           -I$(srcdir)                                                        \
+           -DPLYMOUTH_TIME_DIRECTORY=\"$(localstatedir)/lib/plymouth/\"       
+
+if WITH_SYSTEM_ROOT_INSTALL
+librarydir = $(libdir:/usr%=%)
+else
+librarydir = $(libdir)
+endif
+library_LTLIBRARIES = libply.la
+
+libplydir = $(includedir)/plymouth-1/ply
+libply_HEADERS = \
+		    ply-event-loop.h                                          \
+		    ply-command-parser.h                                      \
+		    ply-frame-buffer.h                                        \
+		    ply-buffer.h                                              \
+		    ply-array.h                                               \
+		    ply-list.h                                                \
+		    ply-logger.h                                              \
+		    ply-progress.h                                            \
+		    ply-terminal.h                                            \
+		    ply-terminal-session.h                                    \
+		    ply-trigger.h                                             \
+		    ply-utils.h
+
+libply_la_CFLAGS = $(PLYMOUTH_CFLAGS)
+libply_la_LIBADD = $(PLYMOUTH_LIBS)
+libply_la_LDFLAGS = -export-symbols-regex '^[^_].*' \
+		    -version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE) \
+		    -no-undefined
+libply_la_SOURCES = ply-event-loop.c                                          \
+		    $(libply_HEADERS)                                         \
+		    ply-command-parser.c                                      \
+		    ply-frame-buffer.c                                        \
+		    ply-buffer.c                                              \
+		    ply-array.c                                               \
+		    ply-list.c                                                \
+		    ply-logger.c                                              \
+		    ply-progress.c                                            \
+		    ply-terminal.c                                            \
+		    ply-terminal-session.c                                    \
+		    ply-trigger.c                                             \
+		    ply-utils.c
+
+MAINTAINERCLEANFILES = Makefile.in
