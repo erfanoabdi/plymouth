@@ -613,7 +613,9 @@ ply_boot_splash_system_update (ply_boot_splash_t *splash,
   assert (splash->loop != NULL);
   assert (splash->plugin_interface != NULL);
   assert (splash->plugin != NULL);
-  assert (splash->plugin_interface->system_update != NULL);
+
+  if (splash->plugin_interface->system_update == NULL)
+    return false;
 
   ply_trace ("updating system %i%%", progress);
   splash->plugin_interface->system_update (splash->plugin,

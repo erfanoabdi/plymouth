@@ -54,9 +54,6 @@
 
 #include <linux/kd.h>
 
-#define CLEAR_LINE_SEQUENCE "\033[2K\r\n"
-#define BACKSPACE "\b\033[0K"
-
 typedef enum {
    PLY_BOOT_SPLASH_DISPLAY_NORMAL,
    PLY_BOOT_SPLASH_DISPLAY_QUESTION_ENTRY,

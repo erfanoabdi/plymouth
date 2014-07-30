@@ -219,8 +219,6 @@ view_new (ply_boot_splash_plugin_t *plugin,
   view->entry = ply_entry_new (plugin->image_dir);
   view->label = ply_label_new ();
   view->message_label = ply_label_new ();
-  ply_label_set_text (view->message_label, "");
-  ply_label_show (view->message_label, view->display, 10, 10);
 
   view->sprites = ply_list_new ();
 
@@ -1809,6 +1807,8 @@ show_message (ply_boot_splash_plugin_t *plugin,
       view = ply_list_node_get_data (node);
       next_node = ply_list_get_next_node (plugin->views, node);
       ply_label_set_text (view->message_label, message);
+      ply_label_show (view->message_label, view->display, 10, 10);
+
       ply_pixel_display_draw_area (view->display, 10, 10,
                                    ply_label_get_width (view->message_label),
                                    ply_label_get_height(view->message_label));

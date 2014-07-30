@@ -728,18 +728,15 @@ ply_terminal_get_color_hex_value (ply_terminal_t       *terminal,
                                   ply_terminal_color_t  color)
 {
   uint8_t red, green, blue;
-  uint32_t hex_value;
 
   assert (terminal != NULL);
   assert (color <= PLY_TERMINAL_COLOR_WHITE);
 
-  red = (uint8_t) *(terminal->color_palette + 3 * color);
-  green = (uint8_t) *(terminal->color_palette + 3 * color + 1);
-  blue = (uint8_t) *(terminal->color_palette + 3 * color + 2);
+  red   = terminal->color_palette[3*color];
+  green = terminal->color_palette[3*color+1];
+  blue  = terminal->color_palette[3*color+2];
 
-  hex_value = red << 16 | green << 8 | blue;
-
-  return hex_value;
+  return red << 16 | green << 8 | blue;
 }
 
 void
@@ -747,18 +744,12 @@ ply_terminal_set_color_hex_value (ply_terminal_t       *terminal,
                                   ply_terminal_color_t  color,
                                   uint32_t              hex_value)
 {
-  uint8_t red, green, blue;
-
   assert (terminal != NULL);
   assert (color <= PLY_TERMINAL_COLOR_WHITE);
 
-  red = (uint8_t) ((hex_value >> 16) & 0xff);
-  green = (uint8_t) ((hex_value >> 8) & 0xff);
-  blue = (uint8_t) (hex_value & 0xff);
-
-  *(terminal->color_palette + 3 * color) = red;
-  *(terminal->color_palette + 3 * color + 1) = green;
-  *(terminal->color_palette + 3 * color + 2) = blue;
+  terminal->color_palette[3*color]   = (hex_value >> 16) & 0xff;
+  terminal->color_palette[3*color+1] = (hex_value >> 8) & 0xff;
+  terminal->color_palette[3*color+2] = hex_value & 0xff;
 
   ply_terminal_change_color_palette (terminal);
 }

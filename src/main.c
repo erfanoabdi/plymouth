@@ -1857,23 +1857,24 @@ check_verbosity (state_t *state)
       if (stream != NULL)
         {
           char *end;
+          char *stream_copy;
 
-          stream = strdup (stream);
-          end = stream + strcspn (stream, " \n");
+          stream_copy = strdup (stream);
+          end = stream_copy + strcspn (stream_copy, " \n");
           *end = '\0';
 
-          ply_trace ("streaming debug output to %s instead of screen", stream);
-          fd = open (stream, O_RDWR | O_NOCTTY | O_CREAT, 0600);
+          ply_trace ("streaming debug output to %s instead of screen", stream_copy);
+          fd = open (stream_copy, O_RDWR | O_NOCTTY | O_CREAT, 0600);
 
           if (fd < 0)
             {
-              ply_trace ("could not stream output to %s: %m", stream);
+              ply_trace ("could not stream output to %s: %m", stream_copy);
             }
           else
             {
               ply_logger_set_output_fd (ply_logger_get_error_default (), fd);
             }
-          free (stream);
+          free (stream_copy);
         }
     }
   else
@@ -2478,6 +2479,17 @@ main (int    argc,
    */
   argv[0][0] = '@';
 
+  state.boot_server = start_boot_server (&state);
+
+  if (state.boot_server == NULL)
+    {
+      ply_trace ("plymouthd is already running");
+
+      if (daemon_handle != NULL)
+        ply_detach_daemon (daemon_handle, EX_OK);
+      return EX_OK;
+    }
+
   state.boot_buffer = ply_buffer_new ();
 
   if (attach_to_session)
@@ -2490,19 +2502,6 @@ main (int    argc,
             ply_detach_daemon (daemon_handle, EX_UNAVAILABLE);
           return EX_UNAVAILABLE;
         }
-    }
-
-  state.boot_server = start_boot_server (&state);
-
-  if (state.boot_server == NULL)
-    {
-      ply_trace ("could not log bootup: %m");
-
-      detach_from_running_session (&state);
-
-      if (daemon_handle != NULL)
-        ply_detach_daemon (daemon_handle, EX_UNAVAILABLE);
-      return EX_UNAVAILABLE;
     }
 
   state.progress = ply_progress_new ();
