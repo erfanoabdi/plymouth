@@ -163,6 +163,7 @@ typedef struct
   ply_pixel_display_t *display;
   ply_entry_t *entry;
   ply_label_t *label;
+  ply_label_t *message_label;
   ply_list_t *sprites;
   ply_rectangle_t box_area, lock_area, logo_area;
   ply_image_t *scaled_background_image;
@@ -217,6 +218,10 @@ view_new (ply_boot_splash_plugin_t *plugin,
 
   view->entry = ply_entry_new (plugin->image_dir);
   view->label = ply_label_new ();
+  view->message_label = ply_label_new ();
+  ply_label_set_text (view->message_label, "");
+  ply_label_show (view->message_label, view->display, 10, 10);
+
   view->sprites = ply_list_new ();
 
   return view;
@@ -230,6 +235,7 @@ view_free (view_t *view)
 
   ply_entry_free (view->entry);
   ply_label_free (view->label);
+  ply_label_free (view->message_label);
   view_free_sprites (view);
   ply_list_free (view->sprites);
 
@@ -1263,13 +1269,6 @@ stop_animation (ply_boot_splash_plugin_t *plugin)
 }
 
 static void
-on_interrupt (ply_boot_splash_plugin_t *plugin)
-{
-  ply_event_loop_exit (plugin->loop, 1);
-  stop_animation (plugin);
-}
-
-static void
 detach_from_event_loop (ply_boot_splash_plugin_t *plugin)
 {
   plugin->loop = NULL;
@@ -1372,6 +1371,9 @@ on_draw (view_t                   *view,
   if (single_pixel){
       ply_pixel_buffer_fill_with_color (pixel_buffer, &clip_area, pixel_r, pixel_g, pixel_b, 1.0);
       }
+  ply_label_draw_area (view->message_label,
+                       pixel_buffer,
+                       x, y, width, height);
 }
 
 static void
@@ -1697,11 +1699,6 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
                                  detach_from_event_loop,
                                  plugin);
 
-  ply_event_loop_watch_signal (plugin->loop,
-                               SIGINT,
-                               (ply_event_handler_t) 
-                               on_interrupt, plugin);
-
   ply_trace ("starting boot animation");
 
   start_animation (plugin);
@@ -1798,6 +1795,28 @@ become_idle (ply_boot_splash_plugin_t *plugin,
 }
 
 static void
+show_message (ply_boot_splash_plugin_t *plugin,
+              const char               *message)
+{
+  ply_trace ("Showing message '%s'", message);
+  ply_list_node_t *node;
+  node = ply_list_get_first_node (plugin->views);
+  while (node != NULL)
+    {
+      ply_list_node_t *next_node;
+      view_t *view;
+
+      view = ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (plugin->views, node);
+      ply_label_set_text (view->message_label, message);
+      ply_pixel_display_draw_area (view->display, 10, 10,
+                                   ply_label_get_width (view->message_label),
+                                   ply_label_get_height(view->message_label));
+      node = next_node;
+    }
+}
+
+static void
 display_normal (ply_boot_splash_plugin_t *plugin)
 {
   pause_views (plugin);
@@ -1840,6 +1859,13 @@ display_question (ply_boot_splash_plugin_t *plugin,
   unpause_views (plugin);
 }
 
+static void
+display_message (ply_boot_splash_plugin_t *plugin,
+                 const char               *message)
+{
+  show_message (plugin, message);
+}
+
 ply_boot_splash_plugin_interface_t *
 ply_boot_splash_plugin_get_interface (void)
 {
@@ -1858,6 +1884,7 @@ ply_boot_splash_plugin_get_interface (void)
       .display_normal = display_normal,
       .display_password = display_password,
       .display_question = display_question,      
+      .display_message = display_message,
     };
 
   return &plugin_interface;

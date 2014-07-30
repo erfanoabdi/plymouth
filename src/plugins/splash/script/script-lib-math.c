@@ -65,6 +65,8 @@ script_lib_math_data_t *script_lib_math_setup (script_state_t *state)
 {
   script_lib_math_data_t *data = malloc (sizeof (script_lib_math_data_t));
 
+  srand ((int) ply_get_timestamp ());
+
   script_obj_t *math_hash = script_obj_hash_get_element (state->global, "Math");
   script_add_native_function (math_hash,
                               "Cos",

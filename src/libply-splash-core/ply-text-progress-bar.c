@@ -102,13 +102,15 @@ get_os_string (void)
   char *buf, *pos, *pos2;
   struct stat sbuf;
 
+  buf = NULL;
+
   fd = open (RELEASE_FILE, O_RDONLY);
   if (fd == -1)
-    return;
+    goto out;
 
   if (fstat (fd, &sbuf) == -1) {
     close (fd);
-    return;
+    goto out;
   }
 
   buf = calloc (sbuf.st_size + 1, sizeof(char));
@@ -158,6 +160,9 @@ get_os_string (void)
 
 out:
   free (buf);
+
+  if (os_string == NULL)
+    os_string = strdup ("");
 }
 
 void

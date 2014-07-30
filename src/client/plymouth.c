@@ -863,6 +863,86 @@ on_update_request (state_t    *state,
     }
 }
 
+static void
+on_change_mode_request (state_t    *state,
+                        const char *command)
+{
+  bool boot_up;
+  bool shutdown;
+  bool updates;
+
+  boot_up = false;
+  shutdown = false;
+  updates = false;
+  ply_command_parser_get_command_options (state->command_parser,
+                                          command,
+                                          "boot-up", &boot_up,
+                                          "shutdown", &shutdown,
+                                          "updates", &updates,
+                                          NULL);
+
+  if (boot_up)
+    {
+      ply_boot_client_change_mode (state->client, "boot-up",
+                                   (ply_boot_client_response_handler_t)
+                                   on_success,
+                                   (ply_boot_client_response_handler_t)
+                                   on_failure, state);
+
+    }
+  else if (shutdown)
+    {
+      ply_boot_client_change_mode (state->client, "shutdown",
+                                   (ply_boot_client_response_handler_t)
+                                   on_success,
+                                   (ply_boot_client_response_handler_t)
+                                   on_failure, state);
+
+    }
+  else if (updates)
+    {
+      ply_boot_client_change_mode (state->client, "updates",
+                                   (ply_boot_client_response_handler_t)
+                                   on_success,
+                                   (ply_boot_client_response_handler_t)
+                                   on_failure, state);
+
+    }
+}
+
+static void
+on_system_update_request (state_t    *state,
+                          const char *command)
+{
+  int progress;
+
+  progress = 0;
+  ply_command_parser_get_command_options (state->command_parser,
+                                          command,
+                                          "progress", &progress,
+                                          NULL);
+
+  if (progress >= 0 && progress <= 100)
+    {
+      char *progress_string = NULL;
+
+      asprintf (&progress_string, "%d", progress);
+
+      ply_boot_client_system_update (state->client,
+                                     progress_string,
+                                     (ply_boot_client_response_handler_t)
+                                     on_success,
+                                     (ply_boot_client_response_handler_t)
+                                     on_failure, state);
+      free (progress_string);
+    }
+  else
+    {
+      ply_error ("couldn't set invalid percentage: %i", progress);
+      ply_event_loop_exit (state->loop, 1);
+    }
+}
+
 int
 main (int    argc,
       char **argv)
@@ -897,6 +977,26 @@ main (int    argc,
                                   "update", "Tell boot daemon an update about boot progress", PLY_COMMAND_OPTION_TYPE_STRING,
                                   "details", "Tell boot daemon there were errors during boot", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   "wait", "Wait for boot daemon to quit", PLY_COMMAND_OPTION_TYPE_FLAG,
+                                  NULL);
+
+  ply_command_parser_add_command (state.command_parser,
+                                  "change-mode", "Change the operation mode",
+                                  (ply_command_handler_t)
+                                  on_change_mode_request, &state,
+                                  "boot-up", "Starting the system up",
+                                  PLY_COMMAND_OPTION_TYPE_FLAG,
+                                  "shutdown", "Shutting the system down",
+                                  PLY_COMMAND_OPTION_TYPE_FLAG,
+                                  "updates", "Applying updates",
+                                  PLY_COMMAND_OPTION_TYPE_FLAG,
+                                  NULL);
+
+  ply_command_parser_add_command (state.command_parser,
+                                  "system-update", "Tell the daemon about updates progress",
+                                  (ply_command_handler_t)
+                                  on_system_update_request, &state,
+                                  "progress", "The percentage progress of the updates",
+                                  PLY_COMMAND_OPTION_TYPE_INTEGER,
                                   NULL);
 
   ply_command_parser_add_command (state.command_parser,

@@ -36,6 +36,14 @@ typedef void (* ply_boot_server_update_handler_t) (void              *user_data,
                                                    const char        *status,
                                                    ply_boot_server_t *server);
 
+typedef void (* ply_boot_server_change_mode_handler_t) (void              *user_data,
+                                                        const char        *mode,
+                                                        ply_boot_server_t *server);
+
+typedef void (* ply_boot_server_system_update_handler_t) (void              *user_data,
+                                                          int                progress,
+                                                          ply_boot_server_t *server);
+
 typedef void (* ply_boot_server_newroot_handler_t) (void              *user_data,
                                                     const char        *root_dir,
                                                     ply_boot_server_t *server);
@@ -97,6 +105,8 @@ typedef bool (* ply_boot_server_has_active_vt_handler_t) (void              *use
 
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
 ply_boot_server_t *ply_boot_server_new (ply_boot_server_update_handler_t update_handler,
+                                        ply_boot_server_change_mode_handler_t change_mode_handler,
+                                        ply_boot_server_system_update_handler_t system_update_handler,
                                         ply_boot_server_ask_for_password_handler_t ask_for_password_handler,
                                         ply_boot_server_ask_question_handler_t ask_question_handler,
                                         ply_boot_server_display_message_handler_t display_message_handler,

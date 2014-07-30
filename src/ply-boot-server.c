@@ -58,6 +58,8 @@ struct _ply_boot_server
   int socket_fd;
 
   ply_boot_server_update_handler_t update_handler;
+  ply_boot_server_change_mode_handler_t change_mode_handler;
+  ply_boot_server_system_update_handler_t system_update_handler;
   ply_boot_server_newroot_handler_t newroot_handler;
   ply_boot_server_system_initialized_handler_t system_initialized_handler;
   ply_boot_server_error_handler_t error_handler;
@@ -82,6 +84,8 @@ struct _ply_boot_server
 
 ply_boot_server_t *
 ply_boot_server_new (ply_boot_server_update_handler_t  update_handler,
+                     ply_boot_server_change_mode_handler_t  change_mode_handler,
+                     ply_boot_server_system_update_handler_t  system_update_handler,
                      ply_boot_server_ask_for_password_handler_t ask_for_password_handler,
                      ply_boot_server_ask_question_handler_t ask_question_handler,
                      ply_boot_server_display_message_handler_t display_message_handler,
@@ -109,6 +113,8 @@ ply_boot_server_new (ply_boot_server_update_handler_t  update_handler,
   server->loop = NULL;
   server->is_listening = false;
   server->update_handler = update_handler;
+  server->change_mode_handler = change_mode_handler;
+  server->system_update_handler = system_update_handler;
   server->ask_for_password_handler = ask_for_password_handler;
   server->ask_question_handler = ask_question_handler;
   server->display_message_handler = display_message_handler;
@@ -415,6 +421,44 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
       ply_trace ("got update request");
       if (server->update_handler != NULL)
         server->update_handler (server->user_data, argument, server);
+      free (argument);
+      free (command);
+      return;
+    }
+  else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_CHANGE_MODE) == 0)
+    {
+      if (!ply_write (connection->fd,
+                      PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK,
+                      strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK)))
+        ply_trace ("could not finish writing update reply: %m");
+
+      ply_trace ("got change mode notification");
+      if (server->change_mode_handler != NULL)
+        server->change_mode_handler (server->user_data, argument, server);
+      free (argument);
+      free (command);
+      return;
+    }
+  else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_SYSTEM_UPDATE) == 0)
+    {
+      long int value;
+      char *endptr = NULL;
+
+      value = strtol (argument, &endptr, 10);
+      if (endptr == NULL || *endptr != '\0' || value < 0 || value > 100)
+        {
+          ply_error ("failed to parse percentage %s", argument);
+          value = 0;
+        }
+
+      ply_trace ("got system-update notification %li%%", value);
+      if (!ply_write (connection->fd,
+                      PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK,
+                      strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK)))
+        ply_trace ("could not finish writing update reply: %m");
+
+      if (server->system_update_handler != NULL)
+        server->system_update_handler (server->user_data, value, server);
       free (argument);
       free (command);
       return;
@@ -931,6 +975,8 @@ main (int    argc,
   loop = ply_event_loop_new ();
 
   server = ply_boot_server_new ((ply_boot_server_update_handler_t) on_update,
+                                (ply_boot_server_change_mode_handler_t) on_change_mode,
+                                (ply_boot_server_system_update_handler_t) on_system_update,
                                 (ply_boot_server_ask_for_password_handler_t) on_ask_for_password,
                                 (ply_boot_server_ask_question_handler_t) on_ask_question,
                                 (ply_boot_server_display_message_handler_t) on_display_message,
