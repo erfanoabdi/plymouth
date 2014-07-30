@@ -32,6 +32,12 @@
 
 typedef struct _ply_label ply_label_t;
 
+typedef enum {
+  PLY_LABEL_ALIGN_LEFT,
+  PLY_LABEL_ALIGN_CENTER,
+  PLY_LABEL_ALIGN_RIGHT
+} ply_label_alignment_t;
+
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
 ply_label_t *ply_label_new (void);
 void ply_label_free (ply_label_t *label);
@@ -53,6 +59,12 @@ bool ply_label_is_hidden (ply_label_t *label);
 
 void ply_label_set_text (ply_label_t *label,
                          const char  *text);
+void ply_label_set_alignment (ply_label_t           *label,
+                              ply_label_alignment_t  alignment);
+void ply_label_set_width (ply_label_t   *label,
+                          long          width);
+void ply_label_set_font (ply_label_t *label,
+                         const char  *fontdesc);
 void ply_label_set_color (ply_label_t *label,
                           float        red,
                           float        green,

@@ -50,6 +50,20 @@
 #define TEXT_PALETTE_SIZE 48
 #endif
 
+#ifndef PLY_TERMINAL_REOPEN_TIMEOUT
+#define PLY_TERMINAL_REOPEN_TIMEOUT 1.0
+#endif
+
+#ifndef PLY_TERMINAL_REOPEN_INTERVAL
+#define PLY_TERMINAL_REOPEN_INTERVAL 0.05
+#endif
+
+typedef struct
+{
+  ply_terminal_input_handler_t handler;
+  void *user_data;
+} ply_terminal_input_closure_t;
+
 typedef struct
 {
   ply_terminal_active_vt_changed_handler_t handler;
@@ -67,8 +81,10 @@ struct _ply_terminal
   int   fd;
   int   vt_number;
   int   initial_vt_number;
+  int   number_of_reopen_tries;
 
   ply_list_t *vt_change_closures;
+  ply_list_t *input_closures;
   ply_fd_watch_t *fd_watch;
   ply_terminal_color_t foreground_color;
   ply_terminal_color_t background_color;
@@ -89,7 +105,14 @@ struct _ply_terminal
   uint32_t should_ignore_mode_changes : 1;
 };
 
-static bool ply_terminal_open_device (ply_terminal_t *terminal);
+typedef enum
+{
+  PLY_TERMINAL_OPEN_RESULT_INCOMPLETE,
+  PLY_TERMINAL_OPEN_RESULT_FAILURE,
+  PLY_TERMINAL_OPEN_RESULT_SUCCESS,
+} ply_terminal_open_result_t;
+
+static ply_terminal_open_result_t ply_terminal_open_device (ply_terminal_t *terminal);
 
 ply_terminal_t *
 ply_terminal_new (const char *device_name)
@@ -102,6 +125,7 @@ ply_terminal_new (const char *device_name)
 
   terminal->loop = ply_event_loop_get_default ();
   terminal->vt_change_closures = ply_list_new ();
+  terminal->input_closures = ply_list_new ();
 
   if (strncmp (device_name, "/dev/", strlen ("/dev/")) == 0)
     terminal->name = strdup (device_name);
@@ -166,11 +190,54 @@ ply_terminal_reset_colors (ply_terminal_t *terminal)
   ply_terminal_restore_color_palette (terminal);
 }
 
+static void
+ply_terminal_unlock (ply_terminal_t *terminal)
+{
+  struct termios locked_term_attributes;
+
+  assert (terminal != NULL);
+
+  if (terminal->original_locked_term_attributes_saved)
+    locked_term_attributes = terminal->original_locked_term_attributes;
+  else
+    memset (&locked_term_attributes, 0x0, sizeof (locked_term_attributes));
+
+  if (ioctl (terminal->fd, TIOCSLCKTRMIOS,
+             &locked_term_attributes) < 0)
+    {
+      ply_trace ("couldn't unlock terminal settings: %m");
+    }
+
+  terminal->original_locked_term_attributes_saved = false;
+}
+
+static void
+ply_terminal_lock (ply_terminal_t *terminal)
+{
+  struct termios locked_term_attributes;
+
+  assert (terminal != NULL);
+
+  if (!terminal->original_locked_term_attributes_saved &&
+      ioctl (terminal->fd, TIOCGLCKTRMIOS, &locked_term_attributes) == 0)
+    {
+      terminal->original_locked_term_attributes = locked_term_attributes;
+      terminal->original_locked_term_attributes_saved = true;
+
+      memset (&locked_term_attributes, 0xff, sizeof (locked_term_attributes));
+      if (ioctl (terminal->fd, TIOCSLCKTRMIOS, &locked_term_attributes) < 0)
+        {
+          ply_trace ("couldn't lock terminal settings: %m");
+        }
+    }
+}
+
 bool
 ply_terminal_set_unbuffered_input (ply_terminal_t *terminal)
 {
   struct termios term_attributes;
-  struct termios locked_term_attributes;
+
+  ply_terminal_unlock (terminal);
 
   tcgetattr (terminal->fd, &term_attributes);
 
@@ -182,23 +249,16 @@ ply_terminal_set_unbuffered_input (ply_terminal_t *terminal)
 
   cfmakeraw (&term_attributes);
 
+  /* Make return output new line like canonical mode */
+  term_attributes.c_iflag |= ICRNL;
+
   /* Make \n return go to the beginning of the next line */
-  term_attributes.c_oflag |= ONLCR;
+  term_attributes.c_oflag |= ONLCR | OPOST;
 
   if (tcsetattr (terminal->fd, TCSANOW, &term_attributes) != 0)
     return false;
 
-  if (ioctl (terminal->fd, TIOCGLCKTRMIOS, &locked_term_attributes) == 0)
-    {
-      terminal->original_locked_term_attributes = locked_term_attributes;
-      terminal->original_locked_term_attributes_saved = true;
-
-      memset (&locked_term_attributes, 0xff, sizeof (locked_term_attributes));
-      if (ioctl (terminal->fd, TIOCSLCKTRMIOS, &locked_term_attributes) < 0)
-        {
-          ply_trace ("couldn't lock terminal settings: %m");
-        }
-    }
+  ply_terminal_lock (terminal);
 
   terminal->is_unbuffered = true;
 
@@ -213,15 +273,7 @@ ply_terminal_set_buffered_input (ply_terminal_t *terminal)
   if (!terminal->is_unbuffered)
     return true;
 
-  if (terminal->original_locked_term_attributes_saved)
-    {
-      if (ioctl (terminal->fd, TIOCSLCKTRMIOS,
-                 &terminal->original_locked_term_attributes) < 0)
-        {
-          ply_trace ("couldn't unlock terminal settings: %m");
-        }
-      terminal->original_locked_term_attributes_saved = false;
-    }
+  ply_terminal_unlock (terminal);
 
   tcgetattr (terminal->fd, &term_attributes);
 
@@ -240,11 +292,11 @@ ply_terminal_set_buffered_input (ply_terminal_t *terminal)
    */
   if (!terminal->original_term_attributes_saved || !(terminal->original_term_attributes.c_lflag & ICANON))
     {
-      term_attributes.c_iflag |= BRKINT | IGNPAR | ISTRIP | ICRNL | IXON;
+      term_attributes.c_iflag |= BRKINT | IGNPAR | ICRNL | IXON;
       term_attributes.c_oflag |= OPOST;
       term_attributes.c_lflag |= ECHO | ICANON | ISIG | IEXTEN;
 
-      if (tcsetattr (terminal->fd, TCSAFLUSH, &term_attributes) != 0)
+      if (tcsetattr (terminal->fd, TCSANOW, &term_attributes) != 0)
         return false;
 
       terminal->is_unbuffered = false;
@@ -252,7 +304,7 @@ ply_terminal_set_buffered_input (ply_terminal_t *terminal)
       return true;
     }
 
-  if (tcsetattr (terminal->fd, TCSAFLUSH, &terminal->original_term_attributes) != 0)
+  if (tcsetattr (terminal->fd, TCSANOW, &terminal->original_term_attributes) != 0)
     return false;
 
   terminal->is_unbuffered = false;
@@ -267,17 +319,75 @@ ply_terminal_write (ply_terminal_t *terminal,
 {
   va_list args;
   char *string;
+  int size;
 
   assert (terminal != NULL);
   assert (format != NULL);
 
   string = NULL;
   va_start (args, format);
-  vasprintf (&string, format, args);
+  size = vasprintf (&string, format, args);
   va_end (args);
 
-  write (terminal->fd, string, strlen (string));
+  write (terminal->fd, string, size);
   free (string);
+}
+
+static void
+ply_terminal_reopen_device (ply_terminal_t *terminal)
+{
+  ply_terminal_open_result_t open_result;
+
+  ply_trace ("trying to reopen terminal '%s' (attempt %d)",
+             terminal->name,
+             terminal->number_of_reopen_tries);
+
+  terminal->number_of_reopen_tries++;
+
+  open_result = ply_terminal_open_device (terminal);
+
+  if (open_result == PLY_TERMINAL_OPEN_RESULT_INCOMPLETE)
+    {
+      int total_retries;
+
+      total_retries = (int) (PLY_TERMINAL_REOPEN_TIMEOUT / PLY_TERMINAL_REOPEN_INTERVAL);
+
+      if (terminal->number_of_reopen_tries < total_retries)
+        {
+          ply_event_loop_watch_for_timeout (terminal->loop,
+                                            PLY_TERMINAL_REOPEN_INTERVAL,
+                                            (ply_event_loop_timeout_handler_t)
+                                            ply_terminal_reopen_device,
+                                            terminal);
+        }
+      else
+        {
+          ply_trace ("couldn't reopen tty, giving up");
+          terminal->number_of_reopen_tries = 0;
+        }
+    }
+}
+
+static void
+on_tty_input (ply_terminal_t *terminal)
+{
+
+  ply_list_node_t *node;
+
+  node = ply_list_get_first_node (terminal->input_closures);
+  while (node != NULL)
+    {
+      ply_terminal_input_closure_t *closure;
+      ply_list_node_t *next_node;
+
+      closure = ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (terminal->input_closures, node);
+
+      if (closure->handler != NULL)
+        closure->handler (closure->user_data, terminal);
+
+      node = next_node;
+    }
 }
 
 static void
@@ -286,9 +396,9 @@ on_tty_disconnected (ply_terminal_t *terminal)
   ply_trace ("tty disconnected (fd %d)", terminal->fd);
   terminal->fd_watch = NULL;
   terminal->fd = -1;
+  terminal->number_of_reopen_tries = 0;
 
-  ply_trace ("trying to reopen terminal '%s'", terminal->name);
-  ply_terminal_open_device (terminal);
+  ply_terminal_reopen_device (terminal);
 }
 
 static bool
@@ -450,7 +560,7 @@ ply_terminal_stop_watching_for_vt_changes (ply_terminal_t *terminal)
   ioctl (terminal->fd, VT_SETMODE, &mode);
 }
 
-static bool
+static ply_terminal_open_result_t
 ply_terminal_open_device (ply_terminal_t *terminal)
 {
   assert (terminal != NULL);
@@ -461,25 +571,43 @@ ply_terminal_open_device (ply_terminal_t *terminal)
   terminal->fd = open (terminal->name, O_RDWR | O_NOCTTY);
 
   if (terminal->fd < 0)
-    return false;
+    {
+      ply_trace ("Unable to open terminal device '%s': %m", terminal->name);
+
+      /* The kernel will apparently return EIO spurriously when opening a tty that's
+       * in the process of closing down.  There's more information here:
+       *
+       * https://bugs.launchpad.net/ubuntu/+source/linux/+bug/554172/comments/245
+       *
+       * Work around it here.
+       */
+      if (errno == EIO)
+        return PLY_TERMINAL_OPEN_RESULT_INCOMPLETE;
+
+      terminal->number_of_reopen_tries = 0;
+      return PLY_TERMINAL_OPEN_RESULT_FAILURE;
+    }
 
   terminal->fd_watch = ply_event_loop_watch_fd (terminal->loop, terminal->fd,
-                                                   PLY_EVENT_LOOP_FD_STATUS_NONE,
-                                                   (ply_event_handler_t) NULL,
-                                                   (ply_event_handler_t) on_tty_disconnected,
-                                                   terminal);
+                                                PLY_EVENT_LOOP_FD_STATUS_HAS_DATA,
+                                                (ply_event_handler_t) on_tty_input,
+                                                (ply_event_handler_t) on_tty_disconnected,
+                                                terminal);
 
   ply_terminal_check_for_vt (terminal);
 
   if (!ply_terminal_set_unbuffered_input (terminal))
     ply_trace ("terminal '%s' will be line buffered", terminal->name);
 
-  return true;
+  terminal->number_of_reopen_tries = 0;
+  return PLY_TERMINAL_OPEN_RESULT_SUCCESS;
 }
 
 bool
 ply_terminal_open (ply_terminal_t *terminal)
 {
+  ply_terminal_open_result_t open_result;
+
   assert (terminal != NULL);
 
   if (terminal->is_open)
@@ -490,7 +618,8 @@ ply_terminal_open (ply_terminal_t *terminal)
 
   ply_trace ("trying to open terminal '%s'", terminal->name);
 
-  if (!ply_terminal_open_device (terminal))
+  open_result = ply_terminal_open_device (terminal);
+  if (open_result != PLY_TERMINAL_OPEN_RESULT_SUCCESS)
     {
       ply_trace ("could not open %s : %m", terminal->name);
       return false;
@@ -706,6 +835,26 @@ free_vt_change_closures (ply_terminal_t *terminal)
   ply_list_free (terminal->vt_change_closures);
 }
 
+static void
+free_input_closures (ply_terminal_t *terminal)
+{
+  ply_list_node_t *node;
+
+  node = ply_list_get_first_node (terminal->input_closures);
+  while (node != NULL)
+    {
+      ply_terminal_input_closure_t *closure;
+      ply_list_node_t *next_node;
+
+      closure = ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (terminal->input_closures, node);
+
+      free (closure);
+      node = next_node;
+    }
+  ply_list_free (terminal->input_closures);
+}
+
 void
 ply_terminal_free (ply_terminal_t *terminal)
 {
@@ -713,15 +862,25 @@ ply_terminal_free (ply_terminal_t *terminal)
     return;
 
   if (terminal->loop != NULL)
-    ply_event_loop_stop_watching_for_exit (terminal->loop,
-                                           (ply_event_loop_exit_handler_t)
-                                           ply_terminal_detach_from_event_loop,
-                                           terminal);
+    {
+      ply_event_loop_stop_watching_for_exit (terminal->loop,
+                                             (ply_event_loop_exit_handler_t)
+                                             ply_terminal_detach_from_event_loop,
+                                             terminal);
+
+      if (terminal->number_of_reopen_tries > 0)
+        {
+          ply_event_loop_stop_watching_for_timeout (terminal->loop,
+                                                    (ply_event_loop_timeout_handler_t)
+                                                    ply_terminal_reopen_device, terminal);
+        }
+    }
 
   if (terminal->is_open)
     ply_terminal_close (terminal);
 
   free_vt_change_closures (terminal);
+  free_input_closures (terminal);
   free (terminal->name);
   free (terminal);
 }
@@ -887,6 +1046,47 @@ ply_terminal_stop_watching_for_active_vt_change (ply_terminal_t *terminal,
         {
           free (closure);
           ply_list_remove_node (terminal->vt_change_closures, node);
+        }
+
+      node = next_node;
+    }
+}
+
+void
+ply_terminal_watch_for_input (ply_terminal_t               *terminal,
+                              ply_terminal_input_handler_t  input_handler,
+                              void                         *user_data)
+{
+  ply_terminal_input_closure_t *closure;
+
+  closure = calloc (1, sizeof (*closure));
+  closure->handler = input_handler;
+  closure->user_data = user_data;
+
+  ply_list_append_data (terminal->input_closures, closure);
+}
+
+void
+ply_terminal_stop_watching_for_input (ply_terminal_t               *terminal,
+                                      ply_terminal_input_handler_t  input_handler,
+                                      void                         *user_data)
+{
+  ply_list_node_t *node;
+
+  node = ply_list_get_first_node (terminal->input_closures);
+  while (node != NULL)
+    {
+      ply_terminal_input_closure_t *closure;
+      ply_list_node_t *next_node;
+
+      closure = ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (terminal->input_closures, node);
+
+      if (closure->handler == input_handler &&
+          closure->user_data == user_data)
+        {
+          free (closure);
+          ply_list_remove_node (terminal->input_closures, node);
         }
 
       node = next_node;

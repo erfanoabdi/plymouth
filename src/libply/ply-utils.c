@@ -29,6 +29,7 @@
 #include <fcntl.h>
 #include <limits.h>
 #include <poll.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -40,6 +41,8 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/un.h>
+#include <sys/user.h>
+#include <sys/wait.h>
 #include <time.h>
 #include <linux/fs.h>
 #include <linux/vt.h>
@@ -56,10 +59,6 @@
 #define PLY_ERRNO_STACK_SIZE 256
 #endif
 
-#ifndef PLY_SOCKET_CONNECTION_BACKLOG
-#define PLY_SOCKET_CONNECTION_BACKLOG 32
-#endif
-
 #ifndef PLY_SUPER_SECRET_LAZY_UNMOUNT_FLAG
 #define PLY_SUPER_SECRET_LAZY_UNMOUNT_FLAG 2
 #endif
@@ -70,6 +69,10 @@
 
 #ifndef PLY_ENABLE_CONSOLE_PRINTK
 #define PLY_ENABLE_CONSOLE_PRINTK 7
+#endif
+
+#ifndef PLY_MAX_COMMAND_LINE_SIZE
+#define PLY_MAX_COMMAND_LINE_SIZE 4096
 #endif
 
 static int errno_stack[PLY_ERRNO_STACK_SIZE];
@@ -144,9 +147,9 @@ ply_open_unix_socket (void)
 }
 
 static struct sockaddr *
-create_unix_address_from_path (const char *path,
-                               bool        is_abstract,
-                               size_t     *address_size)
+create_unix_address_from_path (const char             *path,
+                               ply_unix_socket_type_t  type,
+                               size_t                 *address_size)
 {
   struct sockaddr_un *address; 
 
@@ -157,26 +160,39 @@ create_unix_address_from_path (const char *path,
   address->sun_family = AF_UNIX;
 
   /* a socket is marked as abstract if its path has the
-   * NUL byte at the beginning of the buffer instead of
-   * the end
+   * NUL byte at the beginning of the buffer.
    * 
    * Note, we depend on the memory being zeroed by the calloc
    * call above.
    */
-  if (!is_abstract)
+  if (type == PLY_UNIX_SOCKET_TYPE_CONCRETE)
     strncpy (address->sun_path, path, sizeof (address->sun_path) - 1);
   else
     strncpy (address->sun_path + 1, path, sizeof (address->sun_path) - 1);
 
-  if (address_size != NULL)
-    *address_size = sizeof (struct sockaddr_un);
+  assert (address_size != NULL);
+
+  /* it's very popular to trim the trailing zeros off the end of the path these
+   * days for abstract sockets.  Unfortunately, the 0s are part of the name, so
+   * both client and server have to agree.
+   */
+  if (type == PLY_UNIX_SOCKET_TYPE_TRIMMED_ABSTRACT)
+    {
+      *address_size = offsetof (struct sockaddr_un, sun_path)
+                      + 1 /* NUL */ +
+                      strlen (address->sun_path + 1) /* path */;
+    }
+  else
+    {
+      *address_size = sizeof (struct sockaddr_un);
+    }
 
   return (struct sockaddr *) address;
 }
 
 int
-ply_connect_to_unix_socket (const char *path,
-                            bool        is_abstract)
+ply_connect_to_unix_socket (const char             *path,
+                            ply_unix_socket_type_t  type)
 {
   struct sockaddr *address; 
   size_t address_size;
@@ -190,7 +206,7 @@ ply_connect_to_unix_socket (const char *path,
   if (fd < 0)
     return -1;
 
-  address = create_unix_address_from_path (path, is_abstract, &address_size);
+  address = create_unix_address_from_path (path, type, &address_size);
 
   if (connect (fd, address, address_size) < 0)
     {
@@ -207,8 +223,8 @@ ply_connect_to_unix_socket (const char *path,
 }
 
 int
-ply_listen_to_unix_socket (const char *path,
-                           bool        is_abstract)
+ply_listen_to_unix_socket (const char             *path,
+                           ply_unix_socket_type_t  type)
 {
   struct sockaddr *address; 
   size_t address_size;
@@ -222,7 +238,7 @@ ply_listen_to_unix_socket (const char *path,
   if (fd < 0)
     return -1;
 
-  address = create_unix_address_from_path (path, is_abstract, &address_size);
+  address = create_unix_address_from_path (path, type, &address_size);
 
   if (bind (fd, address, address_size) < 0)
     {
@@ -236,7 +252,7 @@ ply_listen_to_unix_socket (const char *path,
 
   free (address);
 
-  if (listen (fd, PLY_SOCKET_CONNECTION_BACKLOG) < 0)
+  if (listen (fd, SOMAXCONN) < 0)
     {
       ply_save_errno ();
       close (fd);
@@ -244,7 +260,7 @@ ply_listen_to_unix_socket (const char *path,
       return -1;
     }
 
-  if (!is_abstract)
+  if (type == PLY_UNIX_SOCKET_TYPE_CONCRETE)
     {
       if (fchmod (fd, 0600) < 0)
         {
@@ -535,13 +551,12 @@ ply_close_open_fds (void)
       fd = -1;
       filename_as_number = strtol (entry->d_name, &byte_after_number, 10);
 
-      if (byte_after_number != NULL)
-        continue;
-
       if ((*byte_after_number != '\0') ||
           (filename_as_number < 0) ||
-          (filename_as_number > INT_MAX)) 
+          (filename_as_number > INT_MAX)) {
+        closedir (dir);
         return false;
+      }
 
       fd = (int) filename_as_number;
 
@@ -632,42 +647,15 @@ ply_file_exists (const char *file)
   return S_ISREG (file_info.st_mode);
 }
 
-void 
-ply_list_directory (const char *path)
+bool
+ply_character_device_exists (const char *device)
 {
-  DIR *dir;
-  struct dirent *entry;
-  static int level = 0;
+  struct stat file_info;
 
-  dir = opendir (path);
+  if (stat (device, &file_info) < 0)
+    return false;
 
-  if (dir == NULL)
-    return;
-
-  if (level > 5)
-    return;
-
-  int index = 0;
-  while ((entry = readdir (dir)) != NULL) 
-    {
-      char *subdir;
-
-      index++;
-
-      if (index > 10)
-        break;
-
-      subdir = NULL;
-      asprintf (&subdir, "%s/%s", path, entry->d_name);
-      ply_error ("%s ", subdir);
-      level++;
-      if (entry->d_name[0] != '.')
-        ply_list_directory (subdir);
-      level--;
-      free (subdir);
-    }
-
-  closedir (dir);
+  return S_ISCHR (file_info.st_mode);
 }
 
 ply_module_handle_t *
@@ -683,6 +671,24 @@ ply_open_module (const char *module_path)
   if (handle == NULL)
     {
       ply_trace("Could not load module \"%s\": %s\n", module_path, dlerror());
+      if (errno == 0)
+        errno = ELIBACC;
+    }
+
+  return handle;
+}
+
+ply_module_handle_t *
+ply_open_built_in_module (void)
+{
+  ply_module_handle_t *handle;
+
+  handle = (ply_module_handle_t *) dlopen (NULL,
+                                           RTLD_NODELETE |RTLD_NOW | RTLD_LOCAL);
+
+  if (handle == NULL)
+    {
+      ply_trace("Could not load built-in module: %s\n",  dlerror ());
       if (errno == 0)
         errno = ELIBACC;
     }
@@ -794,7 +800,7 @@ ply_show_new_kernel_messages (bool should_show)
 }
 
 ply_daemon_handle_t *
-ply_create_daemon (const char *pid_file)
+ply_create_daemon (void)
 {
   pid_t pid;
   int sender_fd, receiver_fd;
@@ -816,24 +822,21 @@ ply_create_daemon (const char *pid_file)
 
       if (!ply_read (receiver_fd, &byte, sizeof (uint8_t)))
         {
-          ply_error ("could not read byte from child: %m");
+          int status;
+
+          if (waitpid (pid, &status, WNOHANG) <= 0)
+            {
+              ply_error ("failed to read status from child immediately after starting to daemonize");
+            }
+          else if (WIFEXITED (status))
+            {
+              ply_error ("unexpectedly exited with status %d immediately after starting to daemonize", (int) WEXITSTATUS (status));
+            }
+          else if (WIFSIGNALED (status))
+            {
+              ply_error ("unexpectedly died from signal %s immediately after starting to daemonize", strsignal (WTERMSIG (status)));
+            }
           _exit (1);
-        }
-
-      if ((byte == 0) && (pid_file != NULL))
-        {
-          FILE *pidf;
-
-          pidf = fopen (pid_file, "w");
-          if (!pidf)
-            {
-              ply_error ("could not write pid file %s: %m", pid_file);
-            }
-          else
-            {
-              fprintf (pidf, "%d\n", (int)pid);
-              fclose (pidf);
-            }
         }
 
       _exit ((int) byte);
@@ -910,4 +913,91 @@ ply_utf8_string_get_length (const char   *string,
   return count;
 }
 
+char *
+ply_get_process_command_line (pid_t pid)
+{
+  char *path;
+  char *command_line;
+  ssize_t bytes_read;
+  int fd;
+  ssize_t i;
+
+  path = NULL;
+  command_line = NULL;
+
+  asprintf (&path, "/proc/%ld/cmdline", (long) pid);
+
+  fd = open (path, O_RDONLY);
+
+  if (fd < 0)
+    {
+      ply_trace ("Could not open %s: %m", path);
+      goto error;
+    }
+
+  command_line = calloc (PLY_MAX_COMMAND_LINE_SIZE, sizeof (char));
+  bytes_read = read (fd, command_line, PLY_MAX_COMMAND_LINE_SIZE - 1);
+  if (bytes_read < 0)
+    {
+      ply_trace ("Could not read %s: %m", path);
+      close (fd);
+      goto error;
+    }
+  close (fd);
+  free (path);
+
+  for (i = 0; i < bytes_read - 1; i++)
+    {
+      if (command_line[i] == '\0')
+        command_line[i] = ' ';
+    }
+  command_line[i] = '\0';
+
+  return command_line;
+
+error:
+  free (path);
+  free (command_line);
+  return NULL;
+}
+
+pid_t
+ply_get_process_parent_pid (pid_t pid)
+{
+  char *path;
+  FILE *fp;
+  int ppid;
+
+  asprintf (&path, "/proc/%ld/stat", (long) pid);
+
+  ppid = 0;
+  fp = fopen (path, "r");
+
+  if (fp == NULL)
+    {
+      ply_trace ("Could not open %s: %m", path);
+      goto out;
+    }
+
+  if (fscanf (fp, "%*d %*s %*c %d", &ppid) != 1)
+    {
+      ply_trace ("Could not parse %s: %m", path);
+      goto out;
+    }
+
+  if (ppid <= 0)
+    {
+      ply_trace ("%s is returning invalid parent pid %d", path, ppid);
+      ppid = 0;
+      goto out;
+    }
+
+out:
+  free (path);
+
+  if (fp != NULL)
+    fclose (fp);
+
+  return (pid_t) ppid;
+}
 /* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

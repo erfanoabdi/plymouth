@@ -94,6 +94,9 @@ struct _ply_boot_splash_plugin
   char *image_dir;
   ply_boot_splash_display_type_t state;
 
+  uint32_t background_start_color;
+  uint32_t background_end_color;
+
   ply_trigger_t *idle_trigger;
 
   uint32_t root_is_mounted : 1;
@@ -101,6 +104,7 @@ struct _ply_boot_splash_plugin
   uint32_t is_animating : 1;
 };
 
+ply_boot_splash_plugin_interface_t * ply_boot_splash_plugin_get_interface (void);
 static void detach_from_event_loop (ply_boot_splash_plugin_t *plugin);
 
 static view_t *
@@ -349,11 +353,7 @@ view_show_prompt (view_t     *view,
 
   if (prompt != NULL)
     {
-      int label_width, label_height;
-
       ply_label_set_text (view->label, prompt);
-      label_width = ply_label_get_width (view->label);
-      label_height = ply_label_get_height (view->label);
 
       x = view->box_area.x + view->lock_area.width / 2;
       y = view->box_area.y + view->box_area.height;
@@ -376,6 +376,7 @@ create_plugin (ply_key_file_t *key_file)
 {
   ply_boot_splash_plugin_t *plugin;
   char *image_dir, *image_path;
+  char *color;
 
   srand ((int) ply_get_timestamp ());
   plugin = calloc (1, sizeof (ply_boot_splash_plugin_t));
@@ -393,6 +394,24 @@ create_plugin (ply_key_file_t *key_file)
 
   plugin->image_dir = image_dir;
   plugin->views = ply_list_new ();
+
+  color = ply_key_file_get_value (key_file, "throbgress", "BackgroundStartColor");
+
+  if (color != NULL)
+    plugin->background_start_color = strtol (color, NULL, 0);
+  else
+    plugin->background_start_color = PLYMOUTH_BACKGROUND_START_COLOR;
+
+  free (color);
+
+  color = ply_key_file_get_value (key_file, "throbgress", "BackgroundEndColor");
+
+  if (color != NULL)
+    plugin->background_end_color = strtol (color, NULL, 0);
+  else
+    plugin->background_end_color = PLYMOUTH_BACKGROUND_END_COLOR;
+
+  free (color);
 
   return plugin;
 }
@@ -438,9 +457,13 @@ draw_background (view_t             *view,
   area.width = width;
   area.height = height;
 
-  ply_pixel_buffer_fill_with_gradient (pixel_buffer, &area,
-                                       PLYMOUTH_BACKGROUND_START_COLOR,
-                                       PLYMOUTH_BACKGROUND_END_COLOR);
+  if (plugin->background_start_color != plugin->background_end_color)
+    ply_pixel_buffer_fill_with_gradient (pixel_buffer, &area,
+                                         plugin->background_start_color,
+                                         plugin->background_end_color);
+  else
+    ply_pixel_buffer_fill_with_hex_color (pixel_buffer, &area,
+                                          plugin->background_start_color);
 }
 
 static void
@@ -552,13 +575,6 @@ on_draw (view_t                   *view,
          int                       height)
 {
   ply_boot_splash_plugin_t *plugin;
-  ply_rectangle_t area;
-
-  area.x = x;
-  area.y = y;
-  area.width = width;
-  area.height = height;
-
   plugin = view->plugin;
 
   draw_background (view, pixel_buffer, x, y, width, height);

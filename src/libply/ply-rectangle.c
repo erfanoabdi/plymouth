@@ -67,8 +67,6 @@ ply_rectangle_overlap_t
 ply_rectangle_find_overlap (ply_rectangle_t *rectangle1,
                             ply_rectangle_t *rectangle2)
 {
-  ply_rectangle_overlap_t overlap;
-
   enum {H_COLLISION_NONE, H_COLLISION_LEFT, H_COLLISION_RIGHT, H_COLLISION_BOTH, H_COLLISION_CONTAINED, H_COLLISION_EXACT}
         h_collision = H_COLLISION_NONE;
   enum {V_COLLISION_NONE, V_COLLISION_TOP, V_COLLISION_BOTTOM, V_COLLISION_BOTH, V_COLLISION_CONTAINED, V_COLLISION_EXACT}
@@ -99,7 +97,6 @@ ply_rectangle_find_overlap (ply_rectangle_t *rectangle1,
 
   if (h_collision != H_COLLISION_NONE)
     {
-      
       if (rectangle2->y >= rectangle1->y && (rectangle2->y + (int)rectangle2->height) <= (rectangle1->y + (int)rectangle1->height))
         {
           if (rectangle2->y == rectangle1->y && rectangle2->height == rectangle1->height)

@@ -1,2 +1,3 @@
-SUBDIRS = frame-buffer drm x11
+SUBDIRS = frame-buffer x11 drm
+
 MAINTAINERCLEANFILES = Makefile.in

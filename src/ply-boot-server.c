@@ -28,6 +28,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -38,11 +39,15 @@
 #include "ply-trigger.h"
 #include "ply-utils.h"
 
-typedef struct 
+typedef struct
 {
   int fd;
   ply_fd_watch_t *watch;
   ply_boot_server_t *server;
+  uid_t uid;
+  pid_t pid;
+
+  uint32_t credentials_read : 1;
 } ply_boot_connection_t;
 
 struct _ply_boot_server
@@ -61,6 +66,7 @@ struct _ply_boot_server
   ply_boot_server_ask_for_password_handler_t ask_for_password_handler;
   ply_boot_server_ask_question_handler_t ask_question_handler;
   ply_boot_server_display_message_handler_t display_message_handler;
+  ply_boot_server_hide_message_handler_t hide_message_handler;
   ply_boot_server_watch_for_keystroke_handler_t watch_for_keystroke_handler;
   ply_boot_server_ignore_keystroke_handler_t ignore_keystroke_handler;
   ply_boot_server_progress_pause_handler_t progress_pause_handler;
@@ -79,6 +85,7 @@ ply_boot_server_new (ply_boot_server_update_handler_t  update_handler,
                      ply_boot_server_ask_for_password_handler_t ask_for_password_handler,
                      ply_boot_server_ask_question_handler_t ask_question_handler,
                      ply_boot_server_display_message_handler_t display_message_handler,
+                     ply_boot_server_hide_message_handler_t hide_message_handler,
                      ply_boot_server_watch_for_keystroke_handler_t watch_for_keystroke_handler,
                      ply_boot_server_ignore_keystroke_handler_t ignore_keystroke_handler,
                      ply_boot_server_progress_pause_handler_t progress_pause_handler,
@@ -105,6 +112,7 @@ ply_boot_server_new (ply_boot_server_update_handler_t  update_handler,
   server->ask_for_password_handler = ask_for_password_handler;
   server->ask_question_handler = ask_question_handler;
   server->display_message_handler = display_message_handler;
+  server->hide_message_handler = hide_message_handler;
   server->watch_for_keystroke_handler = watch_for_keystroke_handler;
   server->ignore_keystroke_handler = ignore_keystroke_handler;
   server->progress_pause_handler = progress_pause_handler;
@@ -171,7 +179,8 @@ ply_boot_server_listen (ply_boot_server_t *server)
   assert (server != NULL);
 
   server->socket_fd =
-      ply_listen_to_unix_socket (PLY_BOOT_PROTOCOL_SOCKET_PATH + 1, true);
+      ply_listen_to_unix_socket (PLY_BOOT_PROTOCOL_TRIMMED_ABSTRACT_SOCKET_PATH,
+                                 PLY_UNIX_SOCKET_TYPE_TRIMMED_ABSTRACT);
 
   if (server->socket_fd < 0)
     return false;
@@ -194,6 +203,8 @@ ply_boot_connection_read_request (ply_boot_connection_t  *connection,
 
   assert (connection != NULL);
   assert (connection->fd >= 0);
+
+  connection->credentials_read = false;
 
   if (!ply_read (connection->fd, header, sizeof (header)))
     return false;
@@ -221,20 +232,30 @@ ply_boot_connection_read_request (ply_boot_connection_t  *connection,
           return false;
         }
     }
+
+  if (!ply_get_credentials_from_fd (connection->fd, &connection->pid, &connection->uid, NULL))
+    {
+      ply_trace ("couldn't read credentials from connection: %m");
+      free (*argument);
+      free (*command);
+      return false;
+    }
+  connection->credentials_read = true;
+
   return true;
 }
 
 static bool
 ply_boot_connection_is_from_root (ply_boot_connection_t *connection)
 {
-  uid_t uid;
+  if (!connection->credentials_read)
+    {
+      ply_trace ("Asked if connection is from root, but haven't checked credentials yet");
+      return false;
+    }
 
-  if (!ply_get_credentials_from_fd (connection->fd, NULL, &uid, NULL))
-    return false;
-
-  return uid == 0;
+  return connection->uid == 0;
 }
-
 
 static void
 ply_boot_connection_send_answer (ply_boot_connection_t *connection,
@@ -250,7 +271,7 @@ ply_boot_connection_send_answer (ply_boot_connection_t *connection,
       if (!ply_write (connection->fd,
                       PLY_BOOT_PROTOCOL_RESPONSE_TYPE_NO_ANSWER,
                       strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_NO_ANSWER)))
-        ply_error ("could not write bytes: %m");
+        ply_trace ("could not finish writing no answer reply: %m");
     }
   else
     {
@@ -263,7 +284,7 @@ ply_boot_connection_send_answer (ply_boot_connection_t *connection,
                              size) ||
           !ply_write (connection->fd,
                       answer, size))
-          ply_error ("could not write bytes: %m");
+          ply_trace ("could not finish writing answer: %m");
 
     }
 
@@ -290,7 +311,7 @@ ply_boot_connection_on_deactivated (ply_boot_connection_t *connection)
                   PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK,
                   strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK)))
     {
-      ply_error ("could not write bytes: %m");
+      ply_trace ("could not finish writing deactivate reply: %m");
     }
 }
 
@@ -302,7 +323,7 @@ ply_boot_connection_on_quit_complete (ply_boot_connection_t *connection)
                   PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK,
                   strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK)))
     {
-      ply_error ("could not write bytes: %m");
+      ply_trace ("could not finish writing quit reply: %m");
     }
 }
 
@@ -320,6 +341,32 @@ ply_boot_connection_on_keystroke_answer (ply_boot_connection_t *connection,
 {
   ply_trace ("got key: %s", key);
   ply_boot_connection_send_answer (connection, key);
+}
+
+static void
+print_connection_process_identity (ply_boot_connection_t *connection)
+{
+  char *command_line, *parent_command_line;
+  pid_t parent_pid;
+
+  command_line = ply_get_process_command_line (connection->pid);
+
+  if (connection->pid == 1)
+    {
+      ply_trace ("connection is from toplevel init process (%s)", command_line);
+    }
+  else
+    {
+      parent_pid = ply_get_process_parent_pid (connection->pid); parent_command_line = ply_get_process_command_line (parent_pid);
+
+      ply_trace ("connection is from pid %ld (%s) with parent pid %ld (%s)",
+                 (long) connection->pid, command_line,
+                 (long) parent_pid, parent_command_line);
+
+      free (parent_command_line);
+    }
+
+  free (command_line);
 }
 
 static void
@@ -341,6 +388,9 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
       return;
     }
 
+  if (ply_is_tracing ())
+    print_connection_process_identity (connection);
+
   if (!ply_boot_connection_is_from_root (connection))
     {
       ply_error ("request came from non-root user");
@@ -348,7 +398,7 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
       if (!ply_write (connection->fd,
                       PLY_BOOT_PROTOCOL_RESPONSE_TYPE_NAK,
                       strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_NAK)))
-        ply_error ("could not write bytes: %m");
+        ply_trace ("could not finish writing is-not-root nak: %m");
 
       free (command);
       return;
@@ -356,10 +406,18 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
 
   if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_UPDATE) == 0)
     {
+
+      if (!ply_write (connection->fd,
+                      PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK,
+                      strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK)))
+        ply_trace ("could not finish writing update reply: %m");
+
       ply_trace ("got update request");
       if (server->update_handler != NULL)
         server->update_handler (server->user_data, argument, server);
       free (argument);
+      free (command);
+      return;
     }
   else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_SYSTEM_INITIALIZED) == 0)
     {
@@ -495,10 +553,12 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
       */
       if (buffer_size == 0)
         {
+          ply_trace ("Responding with 'no answer' reply since there are currently "
+                     "no cached answers");
           if (!ply_write (connection->fd,
                           PLY_BOOT_PROTOCOL_RESPONSE_TYPE_NO_ANSWER,
                           strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_NO_ANSWER)))
-              ply_error ("could not write bytes: %m");
+              ply_trace ("could not finish writing no answer reply: %m");
         }
       else
         {
@@ -513,7 +573,7 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
                                  size) ||
               !ply_write (connection->fd,
                           ply_buffer_get_bytes (buffer), size))
-              ply_error ("could not write bytes: %m");
+              ply_trace ("could not finish writing cached answer reply: %m");
         }
 
       ply_buffer_free (buffer);
@@ -542,11 +602,17 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
       free(command);
       return;
     }
-  else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_MESSAGE) == 0)
+  else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_SHOW_MESSAGE) == 0)
     {
-      ply_trace ("got message request");
+      ply_trace ("got show message request");
       if (server->display_message_handler != NULL)
         server->display_message_handler(server->user_data, argument, server);
+    }
+  else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_HIDE_MESSAGE) == 0)
+    {
+      ply_trace ("got hide message request");
+      if (server->hide_message_handler != NULL)
+        server->hide_message_handler(server->user_data, argument, server);
     }
   else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_KEYSTROKE) == 0)
     {
@@ -611,7 +677,7 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
           if (!ply_write (connection->fd,
                           PLY_BOOT_PROTOCOL_RESPONSE_TYPE_NAK,
                           strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_NAK)))
-            ply_error ("could not write bytes: %m");
+            ply_trace ("could not finish writing nak: %m");
 
           free(command);
           return;
@@ -624,7 +690,7 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
       if (!ply_write (connection->fd,
                       PLY_BOOT_PROTOCOL_RESPONSE_TYPE_NAK,
                       strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_NAK)))
-        ply_error ("could not write bytes: %m");
+          ply_trace ("could not finish writing ping reply: %m");
 
       free(command);
       return;
@@ -634,7 +700,7 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
                   PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK,
                   strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK)))
     {
-      ply_error ("could not write bytes: %m");
+      ply_trace ("could not finish writing ack: %m");
     }
   free(command);
 }
@@ -807,6 +873,13 @@ on_display_message (ply_event_loop_t *loop)
 }
 
 static void
+on_hide_message (ply_event_loop_t *loop)
+{
+  printf ("got hide message request\n");
+  return;
+}
+
+static void
 on_watch_for_keystroke (ply_event_loop_t *loop)
 {
   printf ("got keystroke request\n");
@@ -861,6 +934,7 @@ main (int    argc,
                                 (ply_boot_server_ask_for_password_handler_t) on_ask_for_password,
                                 (ply_boot_server_ask_question_handler_t) on_ask_question,
                                 (ply_boot_server_display_message_handler_t) on_display_message,
+                                (ply_boot_server_hide_message_handler_t) on_hide_message,
                                 (ply_boot_server_watch_for_keystroke_handler_t) on_watch_for_keystroke,
                                 (ply_boot_server_ignore_keystroke_handler_t) on_ignore_keystroke,
                                 (ply_boot_server_progress_pause_handler_t) on_progress_pause,

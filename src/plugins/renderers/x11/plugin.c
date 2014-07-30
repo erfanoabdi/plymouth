@@ -451,7 +451,7 @@ on_key_event (GtkWidget   *widget,
 
   if (event->keyval == GDK_Return)          /* Enter */
     {
-      ply_buffer_append_bytes (input_source->key_buffer, "\r", 1);
+      ply_buffer_append_bytes (input_source->key_buffer, "\n", 1);
     }
   else if (event->keyval == GDK_Escape)     /* Esc */
     {

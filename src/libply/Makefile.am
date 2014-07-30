@@ -4,7 +4,7 @@ INCLUDES = -I$(top_srcdir)                                                    \
            -DPLYMOUTH_TIME_DIRECTORY=\"$(localstatedir)/lib/plymouth/\"       
 
 if WITH_SYSTEM_ROOT_INSTALL
-librarydir = $(libdir:/usr%=%)
+librarydir = $(subst /usr/lib,/lib,$(libdir))
 else
 librarydir = $(libdir)
 endif

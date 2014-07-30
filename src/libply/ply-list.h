@@ -55,7 +55,6 @@ ply_list_node_t *ply_list_get_nth_node (ply_list_t *list,
 ply_list_node_t *ply_list_get_next_node (ply_list_t      *list,
                                          ply_list_node_t *node);
 void *ply_list_node_get_data (ply_list_node_t *node);
-void ply_list_node_set_data (ply_list_node_t *node, void *data);
 #endif
 
 #endif /* PLY_LIST_H */

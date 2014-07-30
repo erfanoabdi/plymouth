@@ -12,6 +12,12 @@
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
 
+/* Define to 1 if you have the <ncursesw/term.h> header file. */
+#undef HAVE_NCURSESW_TERM_H
+
+/* Define to 1 if you have the <ncurses/term.h> header file. */
+#undef HAVE_NCURSES_TERM_H
+
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H
 
@@ -29,6 +35,9 @@
 
 /* Define to 1 if you have the <sys/types.h> header file. */
 #undef HAVE_SYS_TYPES_H
+
+/* Define to 1 if you have the <term.h> header file. */
+#undef HAVE_TERM_H
 
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
@@ -55,11 +64,29 @@
 /* Define to the one symbol short name of this package. */
 #undef PACKAGE_TARNAME
 
+/* Define to the home page for this package. */
+#undef PACKAGE_URL
+
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
 
-/* Enable smooth transition to GDM */
-#undef PLY_ENABLE_GDM_TRANSITION
+/* Enable deprecated smooth transition to GDM */
+#undef PLY_ENABLE_DEPRECATED_GDM_TRANSITION
+
+/* Enable support for libdrm_intel driver */
+#undef PLY_ENABLE_LIBDRM_INTEL
+
+/* Enable support for libdrm_nouveau driver */
+#undef PLY_ENABLE_LIBDRM_NOUVEAU
+
+/* Enable support for libdrm_radeon driver */
+#undef PLY_ENABLE_LIBDRM_RADEON
+
+/* Enable support for libkms abstraction over drm drivers */
+#undef PLY_ENABLE_LIBKMS
+
+/* Coordinate boot up with systemd */
+#undef PLY_ENABLE_SYSTEMD_INTEGRATION
 
 /* Build in verbose debug tracing spew */
 #undef PLY_ENABLE_TRACING
@@ -97,6 +124,12 @@
 
 /* Version number of package */
 #undef VERSION
+
+/* Number of bits in a file offset, on hosts where this is settable. */
+#undef _FILE_OFFSET_BITS
+
+/* Define for large files, on AIX-style hosts. */
+#undef _LARGE_FILES
 
 /* Define to 1 if on MINIX. */
 #undef _MINIX

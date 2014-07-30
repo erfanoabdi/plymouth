@@ -84,7 +84,7 @@ ply_progress_animation_new (const char *image_dir,
 
   progress_animation = calloc (1, sizeof (ply_progress_animation_t));
 
-  progress_animation->frames = ply_array_new ();
+  progress_animation->frames = ply_array_new (PLY_ARRAY_ELEMENT_TYPE_POINTER);
   progress_animation->frames_prefix = strdup (frames_prefix);
   progress_animation->image_dir = strdup (image_dir);
   progress_animation->is_hidden = true;
@@ -118,7 +118,7 @@ ply_progress_animation_remove_frames (ply_progress_animation_t *progress_animati
   int i;
   ply_image_t **frames;
 
-  frames = (ply_image_t **) ply_array_steal_elements (progress_animation->frames);
+  frames = (ply_image_t **) ply_array_steal_pointer_elements (progress_animation->frames);
   for (i = 0; frames[i] != NULL; i++)
     ply_image_free (frames[i]);
   free (frames);
@@ -228,7 +228,7 @@ ply_progress_animation_draw (ply_progress_animation_t *progress_animation)
       progress_animation->transition_start_time = ply_get_timestamp ();
     }
 
-  frames = (ply_image_t * const *) ply_array_get_elements (progress_animation->frames);
+  frames = (ply_image_t * const *) ply_array_get_pointer_elements (progress_animation->frames);
 
   progress_animation->frame_area.x = progress_animation->area.x;
   progress_animation->frame_area.y = progress_animation->area.y;
@@ -334,7 +334,7 @@ ply_progress_animation_add_frame (ply_progress_animation_t *progress_animation,
       return false;
     }
 
-  ply_array_add_element (progress_animation->frames, image);
+  ply_array_add_pointer_element (progress_animation->frames, image);
 
   progress_animation->area.width = MAX (progress_animation->area.width, (size_t) ply_image_get_width (image));
   progress_animation->area.height = MAX (progress_animation->area.height, (size_t) ply_image_get_height (image));
@@ -347,6 +347,7 @@ ply_progress_animation_add_frames (ply_progress_animation_t *progress_animation)
 {
   struct dirent **entries;
   int number_of_entries;
+  int number_of_frames;
   int i;
   bool load_finished;
 
@@ -367,27 +368,39 @@ ply_progress_animation_add_frames (ply_progress_animation_t *progress_animation)
           && strcmp (entries[i]->d_name + strlen (entries[i]->d_name) - 4, ".png") == 0)
         {
           char *filename;
+          bool r;
 
           filename = NULL;
           asprintf (&filename, "%s/%s", progress_animation->image_dir, entries[i]->d_name);
 
-          if (!ply_progress_animation_add_frame (progress_animation, filename))
-            goto out;
-
+          r = ply_progress_animation_add_frame (progress_animation, filename);
           free (filename);
+          if (!r)
+            goto out;
         }
 
       free (entries[i]);
       entries[i] = NULL;
     }
-  load_finished = true;
+
+  number_of_frames = ply_array_get_size (progress_animation->frames);
+  if (number_of_frames == 0)
+    {
+      ply_trace ("could not find any progress animation frames");
+      load_finished = false;
+    }
+  else
+    {
+      ply_trace ("found %d progress animation frames", number_of_frames);
+      load_finished = true;
+    }
 
 out:
   if (!load_finished)
     {
       ply_progress_animation_remove_frames (progress_animation);
 
-      while (entries[i] != NULL)
+      while (i < number_of_entries)
         {
           free (entries[i]);
           i++;

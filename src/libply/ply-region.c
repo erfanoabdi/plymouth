@@ -479,14 +479,12 @@ cover_with_rect(char             cover[COVER_SIZE][COVER_SIZE],
                 char             value)
 {      /* is value is not zero, the entry will be set to the value,
           otherwise entry is incremented*/
-  int x, y;
+  unsigned long x, y;
   for (y=0; y<rectangle->height; y++)
     {
       for (x=0; x<rectangle->width; x++)
         {
-          if (rectangle->x + x >= 0 &&
-              rectangle->y + y >= 0 &&
-              rectangle->x + x < COVER_SIZE &&
+          if (rectangle->x + x < COVER_SIZE &&
               rectangle->y + y < COVER_SIZE)
             {
               if (value)
@@ -498,12 +496,13 @@ cover_with_rect(char             cover[COVER_SIZE][COVER_SIZE],
     }
 }
 
-int
+static int
 do_test (void)
 {
   ply_rectangle_t rectangle;
   char cover[COVER_SIZE][COVER_SIZE];
-  int x, y, i, width, height;
+  int i;
+  unsigned long x, y;
   ply_region_t *region;
   ply_list_node_t *node;
 
@@ -516,14 +515,14 @@ do_test (void)
           cover[y][x] = 0;
         }
     }
-  
+
   for (i = 0; i < RECTANGLE_COUNT; i++)
     {
       rectangle.x = random() % COVER_SIZE-5;
       rectangle.y = random() % COVER_SIZE-5;
       rectangle.width = 1 + random() % 20;
       rectangle.height = 1 + random() % 20;
-      printf("Adding X=%d Y=%d W=%d H=%d\n",
+      printf("Adding X=%ld Y=%ld W=%ld H=%ld\n",
               rectangle.x,
               rectangle.y,
               rectangle.width,
@@ -531,17 +530,17 @@ do_test (void)
       cover_with_rect(cover, &rectangle, 100); /* 100 means covered by origial squares */
       ply_region_add_rectangle (region, &rectangle);
     }
-  
+
   printf("Converted to:\n");
   int count = 0;
-  
+
   ply_list_t *rectangle_list = ply_region_get_rectangle_list (region);
   for (node = ply_list_get_first_node (rectangle_list);
        node;
        node = ply_list_get_next_node (rectangle_list, node))
     {
       ply_rectangle_t *small_rectangle = ply_list_node_get_data (node);
-      printf("Processed X=%d Y=%d W=%d H=%d\n",
+      printf("Processed X=%ld Y=%ld W=%ld H=%ld\n",
              small_rectangle->x,
              small_rectangle->y, 
              small_rectangle->width, 
@@ -550,12 +549,12 @@ do_test (void)
       count++;
     }
   printf("Rectangles in:%d out:%d\n", RECTANGLE_COUNT, count);
-  
+
   count=0;
-  
+
   for (y = 0; y < COVER_SIZE; y++)
     {
-      printf("%03d ", y);
+      printf("%03ld ", y);
       for (x = 0; x < COVER_SIZE; x++)
         {
           if (cover[y][x] >= 100)

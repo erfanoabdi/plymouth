@@ -378,7 +378,6 @@ ply_event_loop_update_source_event_mask (ply_event_loop_t   *loop,
 {
   ply_list_node_t *node;
   struct epoll_event event = { 0 };
-  int status;
 
   assert (loop != NULL);
   assert (source != NULL);
@@ -410,7 +409,12 @@ ply_event_loop_update_source_event_mask (ply_event_loop_t   *loop,
 
   if (source->is_getting_polled)
     {
+      int status;
+
       status = epoll_ctl (loop->epoll_fd, EPOLL_CTL_MOD, source->fd, &event);
+
+      if (status < 0)
+         ply_trace ("failed to modify epoll event mask for fd %d: %m", source->fd);
     }
 }
 
@@ -637,7 +641,6 @@ ply_event_loop_remove_source_node (ply_event_loop_t *loop,
                                    ply_list_node_t  *source_node)
 {
   ply_event_source_t *source;
-  int status;
 
   source = (ply_event_source_t *) ply_list_node_get_data (source_node);
 
@@ -645,7 +648,12 @@ ply_event_loop_remove_source_node (ply_event_loop_t *loop,
 
   if (source->is_getting_polled)
     {
+      int status;
+
       status = epoll_ctl (loop->epoll_fd, EPOLL_CTL_DEL, source->fd, NULL);
+
+      if (status < 0)
+        ply_trace ("failed to delete fd %d from epoll watch list: %m", source->fd);
       source->is_getting_polled = false;
     }
 
@@ -676,9 +684,7 @@ ply_event_loop_free_sources (ply_event_loop_t *loop)
   while (node != NULL)
     {
       ply_list_node_t *next_node;
-      ply_event_source_t *source;
 
-      source = (ply_event_source_t *) ply_list_node_get_data (node);
       next_node = ply_list_get_next_node (loop->sources, node);
       ply_event_loop_remove_source_node (loop, node);
       node = next_node;
@@ -1121,11 +1127,9 @@ static void
 ply_event_loop_free_timeout_watches (ply_event_loop_t *loop)
 {
   ply_list_node_t *node;
-  double now;
 
   assert (loop != NULL);
 
-  now = ply_get_timestamp ();
   node = ply_list_get_first_node (loop->timeout_watches);
   while (node != NULL)
     {
@@ -1251,12 +1255,9 @@ void
 ply_event_loop_process_pending_events (ply_event_loop_t *loop)
 {
   int number_of_received_events, i;
-  struct epoll_event *events = NULL;
+  static struct epoll_event events[PLY_EVENT_LOOP_NUM_EVENT_HANDLERS];
 
   assert (loop != NULL);
-
-  events =
-        alloca (PLY_EVENT_LOOP_NUM_EVENT_HANDLERS * sizeof (struct epoll_event));
 
   memset (events, -1,
           PLY_EVENT_LOOP_NUM_EVENT_HANDLERS * sizeof (struct epoll_event));
@@ -1274,10 +1275,8 @@ ply_event_loop_process_pending_events (ply_event_loop_t *loop)
        }
 
      number_of_received_events = epoll_wait (loop->epoll_fd, events,
-                                             sizeof (events), timeout);
-
-     ply_event_loop_handle_timeouts (loop);
-
+                                             PLY_EVENT_LOOP_NUM_EVENT_HANDLERS,
+                                             timeout);
      if (number_of_received_events < 0)
        {
          if (errno != EINTR && errno != EAGAIN)
@@ -1286,19 +1285,24 @@ ply_event_loop_process_pending_events (ply_event_loop_t *loop)
              return;
            }
        }
-    }
-  while ((number_of_received_events < 0) && ((errno == EINTR) || (errno == EAGAIN)));
+     else
+       {
+         /* Reference all sources, so they stay alive for the duration of this
+          * iteration of the loop.
+          */
+         for (i = 0; i < number_of_received_events; i++)
+           {
+             ply_event_source_t *source;
+             source = (ply_event_source_t *) (events[i].data.ptr);
 
-  /* first reference all sources, so they stay alive for the duration of this
-   * iteration of the loop
-   */
-  for (i = 0; i < number_of_received_events; i++)
-    {
-      ply_event_source_t *source;
-      source = (ply_event_source_t *) (events[i].data.ptr);
+             ply_event_source_take_reference (source);
+           }
+       }
 
-      ply_event_source_take_reference (source);
+     /* First handle timeouts */
+     ply_event_loop_handle_timeouts (loop);
     }
+  while (number_of_received_events < 0);
 
   /* Then process the incoming events
    */

@@ -1,4 +1,5 @@
 #------------------------- Compatability Functions -------------------------
+Plymouth.SetMessageFunction = Plymouth.SetDisplayMessageFunction;
 
 PlymouthSetRefreshFunction = Plymouth.SetRefreshFunction;
 PlymouthSetBootProgressFunction = Plymouth.SetBootProgressFunction;

@@ -100,6 +100,7 @@ ply_progress_free (ply_progress_t* progress)
       next_node = ply_list_get_next_node (progress->current_message_list, node);
 
       free (message->string);
+      free (message);
       node = next_node;
     }
   ply_list_free (progress->current_message_list);
@@ -113,6 +114,7 @@ ply_progress_free (ply_progress_t* progress)
       next_node = ply_list_get_next_node (progress->previous_message_list, node);
 
       free (message->string);
+      free (message);
       node = next_node;
     }
   ply_list_free (progress->previous_message_list);

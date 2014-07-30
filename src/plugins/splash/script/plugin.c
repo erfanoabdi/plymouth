@@ -522,9 +522,20 @@ display_message (ply_boot_splash_plugin_t *plugin,
                  const char               *message)
 {
   pause_displays (plugin);
-  script_lib_plymouth_on_message (plugin->script_state,
-                                  plugin->script_plymouth_lib,
-                                  message);
+  script_lib_plymouth_on_display_message (plugin->script_state,
+                                          plugin->script_plymouth_lib,
+                                          message);
+  unpause_displays (plugin);
+}
+
+static void
+hide_message (ply_boot_splash_plugin_t *plugin,
+                 const char               *message)
+{
+  pause_displays (plugin);
+  script_lib_plymouth_on_hide_message (plugin->script_state,
+                                       plugin->script_plymouth_lib,
+                                       message);
   unpause_displays (plugin);
 }
 
@@ -549,6 +560,7 @@ ply_boot_splash_plugin_get_interface (void)
     .display_password = display_password,
     .display_question = display_question,
     .display_message = display_message,
+    .hide_message = hide_message,
   };
 
   return &plugin_interface;

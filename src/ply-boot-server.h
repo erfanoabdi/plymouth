@@ -63,6 +63,9 @@ typedef void (* ply_boot_server_ask_question_handler_t)      (void              
 typedef void (* ply_boot_server_display_message_handler_t)   (void              *user_data,
                                                               const char        *message,
                                                               ply_boot_server_t *server);
+typedef void (* ply_boot_server_hide_message_handler_t)   (void              *user_data,
+                                                           const char        *message,
+                                                           ply_boot_server_t *server);
 typedef void (* ply_boot_server_watch_for_keystroke_handler_t) (void              *user_data,
                                                                 const char        *keys,
                                                                 ply_trigger_t     *answer,
@@ -97,6 +100,7 @@ ply_boot_server_t *ply_boot_server_new (ply_boot_server_update_handler_t update_
                                         ply_boot_server_ask_for_password_handler_t ask_for_password_handler,
                                         ply_boot_server_ask_question_handler_t ask_question_handler,
                                         ply_boot_server_display_message_handler_t display_message_handler,
+                                        ply_boot_server_hide_message_handler_t hide_message_handler,
                                         ply_boot_server_watch_for_keystroke_handler_t watch_for_keystroke_handler,
                                         ply_boot_server_ignore_keystroke_handler_t ignore_keystroke_handler,
                                         ply_boot_server_progress_pause_handler_t on_progress_pause,

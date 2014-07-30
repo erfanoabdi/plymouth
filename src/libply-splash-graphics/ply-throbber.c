@@ -89,7 +89,7 @@ ply_throbber_new (const char *image_dir,
 
   throbber = calloc (1, sizeof (ply_throbber_t));
 
-  throbber->frames = ply_array_new ();
+  throbber->frames = ply_array_new (PLY_ARRAY_ELEMENT_TYPE_POINTER);
   throbber->frames_prefix = strdup (frames_prefix);
   throbber->image_dir = strdup (image_dir);
   throbber->is_stopped = true;
@@ -110,7 +110,7 @@ ply_throbber_remove_frames (ply_throbber_t *throbber)
   int i;
   ply_pixel_buffer_t **frames;
 
-  frames = (ply_pixel_buffer_t **) ply_array_steal_elements (throbber->frames);
+  frames = (ply_pixel_buffer_t **) ply_array_steal_pointer_elements (throbber->frames);
   for (i = 0; frames[i] != NULL; i++)
     ply_pixel_buffer_free (frames[i]);
   free (frames);
@@ -154,7 +154,7 @@ animate_at_time (ply_throbber_t *throbber,
         should_continue = false;
     }
 
-  frames = (ply_pixel_buffer_t * const *) ply_array_get_elements (throbber->frames);
+  frames = (ply_pixel_buffer_t * const *) ply_array_get_pointer_elements (throbber->frames);
   ply_pixel_buffer_get_size (frames[throbber->frame_number], &throbber->frame_area);
   throbber->frame_area.x = throbber->x;
   throbber->frame_area.y = throbber->y;
@@ -221,10 +221,10 @@ ply_throbber_add_frame (ply_throbber_t *throbber,
 
   frame = ply_image_convert_to_pixel_buffer (image);
 
-  ply_array_add_element (throbber->frames, frame);
+  ply_array_add_pointer_element (throbber->frames, frame);
 
-  throbber->width = MAX (throbber->width, ply_pixel_buffer_get_width (frame));
-  throbber->height = MAX (throbber->height, ply_pixel_buffer_get_height (frame));
+  throbber->width = MAX (throbber->width, (long) ply_pixel_buffer_get_width (frame));
+  throbber->height = MAX (throbber->height, (long)ply_pixel_buffer_get_height (frame));
 
   return true;
 }
@@ -373,16 +373,15 @@ ply_throbber_draw_area (ply_throbber_t     *throbber,
                         unsigned long       height)
 {
   ply_pixel_buffer_t * const * frames;
-  uint32_t *frame_data;
 
   if (throbber->is_stopped)
     return;
 
-  frames = (ply_image_t * const *) ply_array_get_elements (throbber->frames);
+  frames = (ply_pixel_buffer_t * const *) ply_array_get_pointer_elements (throbber->frames);
   ply_pixel_buffer_fill_with_buffer (buffer,
                                      frames[throbber->frame_number],
-                                     throbber->frame_area.x,
-                                     throbber->frame_area.y);
+                                     throbber->x,
+                                     throbber->y);
 }
 
 long
