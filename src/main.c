@@ -337,6 +337,7 @@ on_ask_for_password (state_t      *state,
    */
   if (state->boot_splash == NULL)
     {
+      ply_trace ("no splash loaded, replying immediately with no password");
       ply_trigger_pull (answer, NULL);
       return;
     }
@@ -345,6 +346,7 @@ on_ask_for_password (state_t      *state,
   entry_trigger->type = PLY_ENTRY_TRIGGER_TYPE_PASSWORD;
   entry_trigger->prompt = prompt;
   entry_trigger->trigger = answer;
+  ply_trace ("queuing password request with boot splash");
   ply_list_append_data (state->entry_triggers, entry_trigger);
   update_display (state);
 }
@@ -360,6 +362,7 @@ on_ask_question (state_t      *state,
   entry_trigger->type = PLY_ENTRY_TRIGGER_TYPE_QUESTION;
   entry_trigger->prompt = prompt;
   entry_trigger->trigger = answer;
+  ply_trace ("queuing question with boot splash");
   ply_list_append_data (state->entry_triggers, entry_trigger);
   update_display (state);
 }
@@ -368,6 +371,7 @@ static void
 on_display_message (state_t       *state,
                     const char    *message)
 {
+  ply_trace ("displaying message %s", message);
   if (state->boot_splash != NULL)
     ply_boot_splash_display_message (state->boot_splash, message);
 }
@@ -379,6 +383,7 @@ on_watch_for_keystroke (state_t      *state,
 {
   ply_keystroke_watch_t *keystroke_trigger =
                                   calloc (1, sizeof (ply_keystroke_watch_t));
+  ply_trace ("watching for keystroke");
   keystroke_trigger->keys = keys;
   keystroke_trigger->trigger = trigger;
   ply_list_append_data (state->keystroke_triggers, keystroke_trigger);
@@ -389,7 +394,9 @@ on_ignore_keystroke (state_t      *state,
                      const char    *keys)
 {
   ply_list_node_t *node;
-  
+
+  ply_trace ("ignoring for keystroke");
+
   for (node = ply_list_get_first_node (state->keystroke_triggers); node;
                     node = ply_list_get_next_node (state->keystroke_triggers, node))
     {
@@ -407,12 +414,14 @@ on_ignore_keystroke (state_t      *state,
 static void
 on_progress_pause (state_t *state)
 {
+  ply_trace ("pausing progress");
   ply_progress_pause (state->progress);
 }
 
 static void
 on_progress_unpause (state_t *state)
 {
+  ply_trace ("unpausing progress");
   ply_progress_unpause (state->progress);
 }
 
@@ -454,6 +463,7 @@ get_cache_file_for_mode (ply_mode_t mode)
       break;
     }
 
+  ply_trace ("returning cache file '%s'", filename);
   return filename;
 }
 
@@ -476,6 +486,7 @@ get_log_file_for_mode (ply_mode_t mode)
       break;
     }
 
+  ply_trace ("returning log file '%s'", filename);
   return filename;
 }
 
@@ -498,6 +509,7 @@ get_log_spool_file_for_mode (ply_mode_t mode)
       break;
     }
 
+  ply_trace ("returning spool file '%s'", filename);
   return filename;
 }
 
@@ -526,14 +538,21 @@ prepare_logging (state_t *state)
   const char *logfile;
 
   if (!state->system_initialized)
-    return;
+    {
+      ply_trace ("not preparing logging yet, system not initialized");
+      return;
+    }
 
   if (state->session == NULL)
-    return;
+    {
+      ply_trace ("not preparing logging, no session");
+      return;
+    }
 
   logfile = get_log_file_for_mode (state->mode);
   if (logfile != NULL)
     {
+      ply_trace ("opening log '%s'", logfile);
       ply_terminal_session_open_log (state->session, logfile);
 
       if (state->number_of_errors > 0)
@@ -614,6 +633,7 @@ static void
 remove_displays_and_keyboard (state_t *state)
 {
   ply_list_node_t *node;
+  ply_trace ("removing displays and keyboard");
 
   node = ply_list_get_first_node (state->pixel_displays);
   while (node != NULL)
@@ -621,6 +641,7 @@ remove_displays_and_keyboard (state_t *state)
       ply_list_node_t *next_node;
       ply_pixel_display_t *display;
 
+      ply_trace ("removing pixel display");
       next_node = ply_list_get_next_node (state->pixel_displays, node);
       display = ply_list_node_get_data (node);
       ply_pixel_display_free (display);
@@ -636,6 +657,7 @@ remove_displays_and_keyboard (state_t *state)
       ply_list_node_t *next_node;
       ply_text_display_t *display;
 
+      ply_trace ("removing text display");
       next_node = ply_list_get_next_node (state->text_displays, node);
       display = ply_list_node_get_data (node);
       ply_text_display_free (display);
@@ -647,6 +669,7 @@ remove_displays_and_keyboard (state_t *state)
 
   if (state->keyboard != NULL)
     {
+      ply_trace ("removing keyboard");
       ply_keyboard_stop_watching_for_input (state->keyboard);
       ply_keyboard_free (state->keyboard);
       state->keyboard = NULL;
@@ -659,10 +682,14 @@ on_show_splash (state_t *state)
   bool has_display;
 
   if (state->is_inactive)
-    return;
+    {
+      ply_trace ("show splash called while inactive");
+      return;
+    }
 
   if (plymouth_should_ignore_show_splash_calls (state))
     {
+      ply_trace ("show splash called while ignoring show splash calls");
       dump_details_and_quit_splash (state);
       return;
     }
@@ -1182,6 +1209,22 @@ on_enter (state_t                  *state,
       free (entry_trigger);
       update_display (state);
     }
+  else
+    {
+      for (node = ply_list_get_first_node (state->keystroke_triggers); node;
+                        node = ply_list_get_next_node (state->keystroke_triggers, node))
+        {
+          ply_keystroke_watch_t* keystroke_trigger = ply_list_node_get_data (node);
+          if (!keystroke_trigger->keys || strstr(keystroke_trigger->keys, "\n"))  /* assume strstr works on utf8 arrays */
+            {
+              ply_trigger_pull (keystroke_trigger->trigger, line);
+              ply_list_remove_node (state->keystroke_triggers, node);
+              free(keystroke_trigger);
+              return;
+            }
+        }
+      return;
+    }
 }
 
 static void
@@ -1204,7 +1247,6 @@ set_keyboard (state_t        *state,
   ply_keyboard_add_enter_handler (keyboard,
                                   (ply_keyboard_enter_handler_t)
                                   on_enter, state);
-  ply_keyboard_watch_for_input (keyboard);
 }
 static void
 add_display_and_keyboard_for_terminal (state_t    *state,
@@ -1379,6 +1421,8 @@ start_boot_splash (state_t    *state,
       return NULL;
     }
 
+  ply_keyboard_watch_for_input (state->keyboard);
+
   update_display (state);
   return splash;
 }
@@ -1547,7 +1591,8 @@ check_for_consoles (state_t    *state,
   char *console_key;
   char *remaining_command_line;
 
-  ply_trace ("checking if splash screen should be disabled");
+  ply_trace ("checking for consoles%s",
+             should_add_displays? " and adding displays": "");
 
   remaining_command_line = state->kernel_command_line;
   while ((console_key = strstr (remaining_command_line, " console=")) != NULL)
@@ -1578,6 +1623,8 @@ check_for_consoles (state_t    *state,
         add_display_and_keyboard_for_terminal (state, state->kernel_console_tty);
     }
 
+    ply_trace ("There are currently %d text displays",
+               ply_list_get_length (state->text_displays));
     if (should_add_displays && ply_list_get_length (state->text_displays) == 0)
       add_default_displays_and_keyboard (state);
 }
@@ -1692,9 +1739,9 @@ on_crash (int signum)
 
     tcgetattr (fd, &term_attributes);
 
-    term_attributes.c_iflag |= IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON;
+    term_attributes.c_iflag |= BRKINT | IGNPAR | ISTRIP | ICRNL | IXON;
     term_attributes.c_oflag |= OPOST;
-    term_attributes.c_lflag |= ECHO | ECHONL | ICANON | ISIG | IEXTEN;
+    term_attributes.c_lflag |= ECHO | ICANON | ISIG | IEXTEN;
 
     tcsetattr (fd, TCSAFLUSH, &term_attributes);
 

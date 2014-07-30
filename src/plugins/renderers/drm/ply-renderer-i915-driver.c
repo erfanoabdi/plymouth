@@ -40,8 +40,8 @@
 #include <values.h>
 #include <unistd.h>
 
-#include <drm/drm.h>
-#include <drm/i915_drm.h>
+#include <drm.h>
+#include <i915_drm.h>
 #include <intel_bufmgr.h>
 #include <xf86drm.h>
 #include <xf86drmMode.h>

@@ -74,6 +74,7 @@ struct _ply_boot_splash_plugin
   ply_event_loop_t      *loop;
   ply_boot_splash_mode_t mode;
   ply_list_t            *displays;
+  ply_keyboard_t        *keyboard;
 
   char *script_filename;
   char *image_dir;
@@ -93,7 +94,9 @@ struct _ply_boot_splash_plugin
 static void detach_from_event_loop (ply_boot_splash_plugin_t *plugin);
 static void stop_animation (ply_boot_splash_plugin_t *plugin);
 ply_boot_splash_plugin_interface_t *ply_boot_splash_plugin_get_interface (void);
-
+static void on_keyboard_input (ply_boot_splash_plugin_t *plugin,
+                               const char               *keyboard_input,
+                               size_t                    character_size);
 
 static void
 pause_displays (ply_boot_splash_plugin_t *plugin)
@@ -221,6 +224,10 @@ start_script_animation (ply_boot_splash_plugin_t *plugin)
   script_return_t ret = script_execute (plugin->script_state,
                                         plugin->script_main_op);
   script_obj_unref (ret.object);
+  if (plugin->keyboard != NULL)
+    ply_keyboard_add_input_handler (plugin->keyboard,
+                                    (ply_keyboard_input_handler_t)
+                                    on_keyboard_input, plugin);
   on_timeout (plugin);
 
   return true;
@@ -255,6 +262,14 @@ stop_script_animation (ply_boot_splash_plugin_t *plugin)
     ply_event_loop_stop_watching_for_timeout (plugin->loop,
                                               (ply_event_loop_timeout_handler_t)
                                               on_timeout, plugin);
+
+  if (plugin->keyboard != NULL)
+    {
+      ply_keyboard_remove_input_handler (plugin->keyboard,
+                                         (ply_keyboard_input_handler_t)
+                                         on_keyboard_input);
+      plugin->keyboard = NULL;
+    }
 
   script_state_destroy (plugin->script_state);
   script_lib_sprite_destroy (plugin->script_sprite_lib);
@@ -311,19 +326,14 @@ static void
 set_keyboard (ply_boot_splash_plugin_t *plugin,
               ply_keyboard_t           *keyboard)
 {
-
-  ply_keyboard_add_input_handler (keyboard,
-                                  (ply_keyboard_input_handler_t)
-                                  on_keyboard_input, plugin);
+  plugin->keyboard = keyboard;
 }
 
 static void
 unset_keyboard (ply_boot_splash_plugin_t *plugin,
                 ply_keyboard_t           *keyboard)
 {
-  ply_keyboard_remove_input_handler (keyboard,
-                                     (ply_keyboard_input_handler_t)
-                                     on_keyboard_input);
+  plugin->keyboard = NULL;
 }
 
 static void

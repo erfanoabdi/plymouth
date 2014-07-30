@@ -40,10 +40,10 @@
 #include <values.h>
 #include <unistd.h>
 
-#include <drm/drm.h>
-#include <drm/radeon_drm.h>
-#include <drm/radeon_bo.h>
-#include <drm/radeon_bo_gem.h>
+#include <drm.h>
+#include <radeon_drm.h>
+#include <radeon_bo.h>
+#include <radeon_bo_gem.h>
 #include <xf86drm.h>
 #include <xf86drmMode.h>
 

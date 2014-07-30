@@ -182,7 +182,7 @@ ply_terminal_set_unbuffered_input (ply_terminal_t *terminal)
   /* Make \n return go to the beginning of the next line */
   term_attributes.c_oflag |= ONLCR;
 
-  if (tcsetattr (terminal->fd, TCSAFLUSH, &term_attributes) != 0)
+  if (tcsetattr (terminal->fd, TCSANOW, &term_attributes) != 0)
     return false;
 
   terminal->is_unbuffered = true;

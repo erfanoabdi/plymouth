@@ -261,6 +261,7 @@ create_backend (const char *device_name,
   ply_trace ("creating renderer backend for device %s", backend->device_name);
 
   backend->loop = ply_event_loop_get_default ();
+  backend->head.map_address = MAP_FAILED;
   backend->heads = ply_list_new ();
   backend->input_source.key_buffer = ply_buffer_new ();
   backend->terminal = terminal;

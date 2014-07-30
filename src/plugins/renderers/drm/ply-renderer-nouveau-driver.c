@@ -40,10 +40,10 @@
 #include <values.h>
 #include <unistd.h>
 
-#include <drm/drm.h>
-#include <drm/nouveau_drm.h>
-#include <drm/nouveau_drmif.h>
-#include <nouveau/nouveau_bo.h>
+#include <drm.h>
+#include <nouveau_drm.h>
+#include <nouveau_drmif.h>
+#include <nouveau_bo.h>
 #include <xf86drm.h>
 #include <xf86drmMode.h>
 
