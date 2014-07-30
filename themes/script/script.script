@@ -35,7 +35,7 @@ PlymouthSetRefreshFunction (refresh_callback);
 
 status = "normal";
 
-fun dialogue_setup()
+fun dialog_setup()
   {
     local.box;
     local.lock;
@@ -66,50 +66,53 @@ fun dialogue_setup()
     entry.z = box.z + 1;
     SpriteSetPosition(entry.sprite, entry.x, entry.y, entry.z);
     
-    global.dialogue.box = box;
-    global.dialogue.lock = lock;
-    global.dialogue.entry = entry;
-    global.dialogue.bullet_image = ImageNew("bullet.png");
-    dialogue_opacity (1);
+    global.dialog.box = box;
+    global.dialog.lock = lock;
+    global.dialog.entry = entry;
+    global.dialog.bullet_image = ImageNew("bullet.png");
+    dialog_opacity (1);
   }
     
-fun dialogue_opacity(opacity)
+fun dialog_opacity(opacity)
   {
-    SpriteSetOpacity (dialogue.box.sprite, opacity);
-    SpriteSetOpacity (dialogue.lock.sprite, opacity);
-    SpriteSetOpacity (dialogue.entry.sprite, opacity);
-    for (index = 0; dialogue.bullet[index]; index++)
+    SpriteSetOpacity (dialog.box.sprite, opacity);
+    SpriteSetOpacity (dialog.lock.sprite, opacity);
+    SpriteSetOpacity (dialog.entry.sprite, opacity);
+    for (index = 0; dialog.bullet[index]; index++)
       {
-        SpriteSetOpacity(dialogue.bullet[index].sprite, opacity);
+        SpriteSetOpacity(dialog.bullet[index].sprite, opacity);
       }
   }
 
 fun display_normal_callback ()
   {
     global.status = "normal";
-    if (global.dialogue)
-      dialogue_opacity (0);
+    if (global.dialog)
+      dialog_opacity (0);
   }
 
 fun display_password_callback (prompt, bullets)
   {
     global.status = "password";
-    if (!global.dialogue) dialogue_setup();
-    for (index = 0; dialogue.bullet[index] || index < bullets; index++)
+    if (!global.dialog)
+	dialog_setup();
+    else
+	dialog_opacity(1);
+    for (index = 0; dialog.bullet[index] || index < bullets; index++)
       {
-        if (!dialogue.bullet[index])
+        if (!dialog.bullet[index])
           {
-            dialogue.bullet[index].sprite = SpriteNew();
-            SpriteSetImage(dialogue.bullet[index].sprite, dialogue.bullet_image);
-            dialogue.bullet[index].x = dialogue.entry.x + index * ImageGetWidth(dialogue.bullet_image);
-            dialogue.bullet[index].y = dialogue.entry.y + ImageGetHeight(dialogue.entry.image) / 2 - ImageGetHeight(dialogue.bullet_image) / 2;
-            dialogue.bullet[index].z = dialogue.entry.z + 1;
-            SpriteSetPosition(dialogue.bullet[index].sprite, dialogue.bullet[index].x, dialogue.bullet[index].y, dialogue.bullet[index].z);
+            dialog.bullet[index].sprite = SpriteNew();
+            SpriteSetImage(dialog.bullet[index].sprite, dialog.bullet_image);
+            dialog.bullet[index].x = dialog.entry.x + index * ImageGetWidth(dialog.bullet_image);
+            dialog.bullet[index].y = dialog.entry.y + ImageGetHeight(dialog.entry.image) / 2 - ImageGetHeight(dialog.bullet_image) / 2;
+            dialog.bullet[index].z = dialog.entry.z + 1;
+            SpriteSetPosition(dialog.bullet[index].sprite, dialog.bullet[index].x, dialog.bullet[index].y, dialog.bullet[index].z);
           }
         if (index < bullets)
-          SpriteSetOpacity(dialogue.bullet[index].sprite, 1);
+          SpriteSetOpacity(dialog.bullet[index].sprite, 1);
         else
-          SpriteSetOpacity(dialogue.bullet[index].sprite, 0);
+          SpriteSetOpacity(dialog.bullet[index].sprite, 0);
       }
   }
 

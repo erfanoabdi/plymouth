@@ -342,8 +342,8 @@ ply_image_resize (ply_image_t *image,
   old_width = ply_image_get_width (image);
   old_height = ply_image_get_height (image);
 
-  scale_x = ((double) old_width) / width;
-  scale_y = ((double) old_height) / height;
+  scale_x = ((double) old_width - 1) / MAX (width - 1, 1);
+  scale_y = ((double) old_height - 1) / MAX (height - 1, 1);
 
   for (y = 0; y < height; y++)
     {

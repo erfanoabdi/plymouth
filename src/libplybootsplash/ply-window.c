@@ -146,6 +146,8 @@ struct _ply_window
   void *erase_handler_user_data;
 };
 
+static bool ply_window_open_tty (ply_window_t *window);
+
 ply_window_t *
 ply_window_new (const char *tty_name)
 {
@@ -422,6 +424,13 @@ on_tty_disconnected (ply_window_t *window)
 {
   ply_trace ("tty disconnected (fd %d)", window->tty_fd);
   window->tty_fd_watch = NULL;
+  window->tty_fd = -1;
+
+  if (window->tty_name != NULL)
+    {
+      ply_trace ("trying to reopen window '%s'", window->tty_name);
+      ply_window_open_tty (window);
+    }
 }
 
 static bool
@@ -528,12 +537,33 @@ ply_window_look_up_geometry (ply_window_t *window)
     return true;
 }
 
-bool
-ply_window_open (ply_window_t *window)
+static bool
+ply_window_open_tty (ply_window_t *window)
 {
   assert (window != NULL);
   assert (window->tty_name != NULL);
   assert (window->tty_fd < 0);
+  assert (window->tty_fd_watch == NULL);
+
+  window->tty_fd = open (window->tty_name, O_RDWR | O_NOCTTY);
+
+  if (window->tty_fd < 0)
+    return false;
+
+  if (window->loop != NULL)
+    window->tty_fd_watch = ply_event_loop_watch_fd (window->loop, window->tty_fd,
+                                                    PLY_EVENT_LOOP_FD_STATUS_HAS_DATA,
+                                                    (ply_event_handler_t) on_key_event,
+                                                    (ply_event_handler_t) on_tty_disconnected,
+                                                    window);
+
+  return true;
+}
+
+bool
+ply_window_open (ply_window_t *window)
+{
+  assert (window != NULL);
 
   if (window->tty_name == NULL)
     {
@@ -552,9 +582,7 @@ ply_window_open (ply_window_t *window)
 
   ply_trace ("trying to open window '%s'", window->tty_name);
 
-  window->tty_fd = open (window->tty_name, O_RDWR | O_NOCTTY);
-
-  if (window->tty_fd < 0)
+  if (!ply_window_open_tty (window))
     {
       ply_trace ("could not open %s : %m", window->tty_name);
       return false;
@@ -575,13 +603,6 @@ ply_window_open (ply_window_t *window)
                                (ply_event_handler_t)
                                ply_window_look_up_geometry,
                                window);
-
-  if (window->loop != NULL)
-    window->tty_fd_watch = ply_event_loop_watch_fd (window->loop, window->tty_fd,
-                                                    PLY_EVENT_LOOP_FD_STATUS_HAS_DATA,
-                                                    (ply_event_handler_t) on_key_event,
-                                                    (ply_event_handler_t) on_tty_disconnected,
-                                                    window);
 
   /* We try to open the frame buffer, but it may fail. splash plugins can check
    * to see if it's open and react accordingly

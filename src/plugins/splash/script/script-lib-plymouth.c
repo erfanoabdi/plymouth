@@ -66,6 +66,7 @@ script_lib_plymouth_data_t *script_lib_plymouth_setup (script_state_t *state)
   data->script_display_normal_func = script_obj_new_null ();
   data->script_display_password_func = script_obj_new_null ();
   data->script_display_question_func = script_obj_new_null ();
+  data->script_message_func = script_obj_new_null ();
 
   script_add_native_function (state->global,
                               "PlymouthSetRefreshFunction",
@@ -115,6 +116,12 @@ script_lib_plymouth_data_t *script_lib_plymouth_setup (script_state_t *state)
                               &data->script_display_question_func,
                               "function",
                               NULL);
+  script_add_native_function (state->global,
+                              "PlymouthSetMessageFunction",
+                              plymouth_set_function,
+                              &data->script_message_func,
+                              "function",
+                              NULL);
   data->script_main_op = script_parse_string (script_lib_plymouth_string);
   script_return_t ret = script_execute (state, data->script_main_op);
   script_obj_unref (ret.object);                /* Throw anything sent back away */
@@ -133,6 +140,7 @@ void script_lib_plymouth_destroy (script_lib_plymouth_data_t *data)
   script_obj_unref (data->script_display_normal_func);
   script_obj_unref (data->script_display_password_func);
   script_obj_unref (data->script_display_question_func);
+  script_obj_unref (data->script_message_func);
   free (data);
 }
 
@@ -268,6 +276,23 @@ void script_lib_plymouth_on_display_question (script_state_t             *state,
                                                      NULL);
       script_obj_unref (prompt_obj);
       script_obj_unref (entry_text_obj);
+      script_obj_unref (ret.object);
+    }
+}
+
+void script_lib_plymouth_on_message (script_state_t             *state,
+                                     script_lib_plymouth_data_t *data,
+                                     const char                 *message)
+{
+  script_function_t *function = script_obj_as_function (data->script_message_func);
+  if (function)
+    {
+      script_obj_t *new_message_obj = script_obj_new_string (message);
+      script_return_t ret = script_execute_function (state,
+                                                     function,
+                                                     new_message_obj,
+                                                     NULL);
+      script_obj_unref (new_message_obj);
       script_obj_unref (ret.object);
     }
 }
