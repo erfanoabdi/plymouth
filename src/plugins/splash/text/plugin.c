@@ -48,36 +48,270 @@
 #include "ply-key-file.h"
 #include "ply-list.h"
 #include "ply-logger.h"
-#include "ply-frame-buffer.h"
-#include "ply-image.h"
+#include "ply-text-display.h"
 #include "ply-text-progress-bar.h"
 #include "ply-utils.h"
-#include "ply-window.h"
 
 #include <linux/kd.h>
 
 #define CLEAR_LINE_SEQUENCE "\033[2K\r\n"
 #define BACKSPACE "\b\033[0K"
 
+typedef enum {
+   PLY_BOOT_SPLASH_DISPLAY_NORMAL,
+   PLY_BOOT_SPLASH_DISPLAY_QUESTION_ENTRY,
+   PLY_BOOT_SPLASH_DISPLAY_PASSWORD_ENTRY
+} ply_boot_splash_display_type_t;
 
 struct _ply_boot_splash_plugin
 {
   ply_event_loop_t *loop;
   ply_boot_splash_mode_t mode;
 
-  ply_window_t *window;
+  ply_list_t *views;
 
-  ply_text_progress_bar_t *progress_bar;
+  ply_boot_splash_display_type_t state;
 
   char *message;
 
   uint32_t is_animating : 1;
 };
 
+typedef struct
+{
+  ply_boot_splash_plugin_t *plugin;
+  ply_text_display_t *display;
+  ply_text_progress_bar_t *progress_bar;
+
+} view_t;
+
 static void hide_splash_screen (ply_boot_splash_plugin_t *plugin,
                                 ply_event_loop_t         *loop);
-static void add_handlers (ply_boot_splash_plugin_t *plugin);
-static void remove_handlers (ply_boot_splash_plugin_t *plugin);
+
+static view_t *
+view_new (ply_boot_splash_plugin_t *plugin,
+          ply_text_display_t       *display)
+{
+  view_t *view;
+
+  view = calloc (1, sizeof (view_t));
+  view->plugin = plugin;
+  view->display = display;
+
+  view->progress_bar = ply_text_progress_bar_new ();
+
+  return view;
+}
+
+static void
+view_free (view_t *view)
+{
+  ply_text_progress_bar_free (view->progress_bar);
+
+  free (view);
+}
+
+static void
+view_show_message (view_t *view)
+{
+  ply_boot_splash_plugin_t *plugin;
+  int display_width, display_height;
+
+  plugin = view->plugin;
+
+  display_width = ply_text_display_get_number_of_columns (view->display);
+  display_height = ply_text_display_get_number_of_rows (view->display);
+
+  ply_text_display_set_cursor_position (view->display, 0,
+                                        display_height / 2);
+  ply_text_display_clear_line (view->display);
+  ply_text_display_set_cursor_position (view->display,
+                                        (display_width -
+                                        strlen (plugin->message)) / 2,
+                                        display_height / 2);
+
+  ply_text_display_write (view->display, "%s", plugin->message);
+}
+
+static void
+view_show_prompt (view_t     *view,
+                  const char *prompt,
+                  const char *entered_text)
+{
+
+  ply_boot_splash_plugin_t *plugin;
+  int display_width, display_height;
+  int i;
+
+  plugin = view->plugin;
+
+  display_width = ply_text_display_get_number_of_columns (view->display);
+  display_height = ply_text_display_get_number_of_rows (view->display);
+  ply_text_display_set_background_color (view->display, PLY_TERMINAL_COLOR_DEFAULT);
+  ply_text_display_clear_screen (view->display);
+
+  ply_text_display_set_cursor_position (view->display, 0, display_height / 2);
+
+  for (i=0; i < display_width; i++)
+    ply_text_display_write (view->display, "%c", ' ');
+
+  ply_text_display_set_cursor_position (view->display,
+                                        display_width / 2 - (strlen (prompt)),
+                                        display_height / 2);
+
+  ply_text_display_write (view->display, "%s:%s", prompt, entered_text);
+
+  ply_text_display_show_cursor (view->display);
+}
+
+static void
+view_start_animation (view_t *view)
+{
+  ply_boot_splash_plugin_t *plugin;
+  ply_terminal_t *terminal;
+
+  assert (view != NULL);
+
+  plugin = view->plugin;
+
+  terminal = ply_text_display_get_terminal (view->display);
+
+  ply_terminal_set_color_hex_value (terminal,
+                                    PLY_TERMINAL_COLOR_BLACK,
+                                    0x000000);
+  ply_terminal_set_color_hex_value (terminal,
+                                    PLY_TERMINAL_COLOR_WHITE,
+                                    0xffffff);
+  ply_terminal_set_color_hex_value (terminal,
+                                    PLY_TERMINAL_COLOR_BLUE,
+                                    0x0073B3);
+  ply_terminal_set_color_hex_value (terminal,
+                                    PLY_TERMINAL_COLOR_BROWN,
+                                    0x00457E);
+
+  ply_text_display_set_background_color (view->display,
+                                         PLY_TERMINAL_COLOR_BLACK);
+  ply_text_display_clear_screen (view->display);
+  ply_text_display_hide_cursor (view->display);
+
+  if (plugin->mode == PLY_BOOT_SPLASH_MODE_SHUTDOWN)
+    {
+      ply_text_progress_bar_hide (view->progress_bar);
+      return;
+    }
+
+  ply_text_progress_bar_show (view->progress_bar,
+                              view->display);
+}
+
+static void
+view_redraw (view_t *view)
+{
+  unsigned long screen_width, screen_height;
+
+  screen_width = ply_text_display_get_number_of_columns (view->display);
+  screen_height = ply_text_display_get_number_of_rows (view->display);
+
+  ply_text_display_draw_area (view->display, 0, 0,
+                              screen_width, screen_height);
+}
+
+static void
+redraw_views (ply_boot_splash_plugin_t *plugin)
+{
+  ply_list_node_t *node;
+
+  node = ply_list_get_first_node (plugin->views);
+  while (node != NULL)
+    {
+      ply_list_node_t *next_node;
+      view_t *view;
+
+      view = ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (plugin->views, node);
+
+      view_redraw (view);
+
+      node = next_node;
+    }
+}
+
+static void
+view_hide (view_t *view)
+{
+  if (view->display != NULL)
+    {
+      ply_terminal_t *terminal;
+
+      terminal = ply_text_display_get_terminal (view->display);
+
+      ply_text_display_set_background_color (view->display, PLY_TERMINAL_COLOR_DEFAULT);
+      ply_text_display_clear_screen (view->display);
+      ply_text_display_show_cursor (view->display);
+
+      ply_terminal_reset_colors (terminal);
+    }
+}
+
+static void
+hide_views (ply_boot_splash_plugin_t *plugin)
+{
+  ply_list_node_t *node;
+
+  node = ply_list_get_first_node (plugin->views);
+  while (node != NULL)
+    {
+      ply_list_node_t *next_node;
+      view_t *view;
+
+      view = ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (plugin->views, node);
+
+      view_hide (view);
+
+      node = next_node;
+    }
+}
+
+static void
+pause_views (ply_boot_splash_plugin_t *plugin)
+{
+  ply_list_node_t *node;
+
+  node = ply_list_get_first_node (plugin->views);
+  while (node != NULL)
+    {
+      ply_list_node_t *next_node;
+      view_t *view;
+
+      view = ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (plugin->views, node);
+
+      ply_text_display_pause_updates (view->display);
+
+      node = next_node;
+    }
+}
+
+static void
+unpause_views (ply_boot_splash_plugin_t *plugin)
+{
+  ply_list_node_t *node;
+
+  node = ply_list_get_first_node (plugin->views);
+  while (node != NULL)
+    {
+      ply_list_node_t *next_node;
+      view_t *view;
+
+      view = ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (plugin->views, node);
+
+      ply_text_display_unpause_updates (view->display);
+
+      node = next_node;
+    }
+}
 
 static ply_boot_splash_plugin_t *
 create_plugin (ply_key_file_t *key_file)
@@ -87,8 +321,9 @@ create_plugin (ply_key_file_t *key_file)
   ply_trace ("creating plugin");
 
   plugin = calloc (1, sizeof (ply_boot_splash_plugin_t));
-  plugin->progress_bar = ply_text_progress_bar_new ();
   plugin->message = NULL;
+
+  plugin->views = ply_list_new ();
 
   return plugin;
 }
@@ -102,6 +337,31 @@ detach_from_event_loop (ply_boot_splash_plugin_t *plugin)
 }
 
 static void
+free_views (ply_boot_splash_plugin_t *plugin)
+{
+  ply_list_node_t *node;
+
+  node = ply_list_get_first_node (plugin->views);
+
+  while (node != NULL)
+    {
+      ply_list_node_t *next_node;
+      view_t *view;
+
+      view = ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (plugin->views, node);
+
+      view_free (view);
+      ply_list_remove_node (plugin->views, node);
+
+      node = next_node;
+    }
+
+  ply_list_free (plugin->views);
+  plugin->views = NULL;
+}
+
+static void
 destroy_plugin (ply_boot_splash_plugin_t *plugin)
 {
   ply_trace ("destroying plugin");
@@ -109,14 +369,12 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
   if (plugin == NULL)
     return;
 
-  remove_handlers (plugin);
-
   /* It doesn't ever make sense to keep this plugin on screen
    * after exit
    */
   hide_splash_screen (plugin, plugin->loop);
 
-  ply_text_progress_bar_free (plugin->progress_bar);
+  free_views (plugin);
   if (plugin->message != NULL)
     free (plugin->message);
 
@@ -126,27 +384,32 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
 static void
 show_message (ply_boot_splash_plugin_t *plugin)
 {
-      int window_width, window_height;
+  ply_list_node_t *node;
 
-      window_width = ply_window_get_number_of_text_columns (plugin->window);
-      window_height = ply_window_get_number_of_text_rows (plugin->window);
+  node = ply_list_get_first_node (plugin->views);
+  while (node != NULL)
+    {
+      ply_list_node_t *next_node;
+      view_t *view;
 
-      ply_window_set_text_cursor_position (plugin->window,
-                                           0, window_height / 2);
-      ply_window_clear_text_line (plugin->window);
-      ply_window_set_text_cursor_position (plugin->window,
-                                           (window_width - strlen (plugin->message)) / 2,
-                                           window_height / 2);
+      view = ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (plugin->views, node);
 
-      write (STDOUT_FILENO, plugin->message, strlen (plugin->message));
+      view_show_message (view);
+
+      node = next_node;
+    }
 }
 
 static void
 start_animation (ply_boot_splash_plugin_t *plugin)
 {
+  ply_list_node_t *node;
 
   assert (plugin != NULL);
   assert (plugin->loop != NULL);
+
+  redraw_views (plugin);
 
   if (plugin->message != NULL)
     show_message (plugin);
@@ -154,39 +417,19 @@ start_animation (ply_boot_splash_plugin_t *plugin)
   if (plugin->is_animating)
      return;
 
-  ply_window_set_color_hex_value (plugin->window,
-                                  PLY_WINDOW_COLOR_BLACK,
-                                  0x000000);
-  ply_window_set_color_hex_value (plugin->window,
-                                  PLY_WINDOW_COLOR_WHITE,
-                                  0xffffff);
-  ply_window_set_color_hex_value (plugin->window,
-                                  PLY_WINDOW_COLOR_BLUE,
-                                  0x0073B3);
-  ply_window_set_color_hex_value (plugin->window,
-                                  PLY_WINDOW_COLOR_BROWN,
-                                  0x00457E);
-#if 0
-  ply_window_set_color_hex_value (plugin->window,
-                                  PLY_WINDOW_COLOR_BLUE,
-                                  PLYMOUTH_BACKGROUND_START_COLOR);
-  ply_window_set_color_hex_value (plugin->window,
-                                  PLY_WINDOW_COLOR_GREEN,
-                                  PLYMOUTH_BACKGROUND_COLOR);
-#endif
-
-  ply_window_set_background_color (plugin->window, PLY_WINDOW_COLOR_BLACK);
-  ply_window_clear_screen (plugin->window);
-  ply_window_hide_text_cursor (plugin->window);
-
-  if (plugin->mode == PLY_BOOT_SPLASH_MODE_SHUTDOWN)
+  node = ply_list_get_first_node (plugin->views);
+  while (node != NULL)
     {
-      ply_text_progress_bar_hide (plugin->progress_bar);
-      return;
-    }
+      ply_list_node_t *next_node;
+      view_t *view;
 
-  ply_text_progress_bar_show (plugin->progress_bar,
-                              plugin->window);
+      view = ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (plugin->views, node);
+
+      view_start_animation (view);
+
+      node = next_node;
+    }
 
   plugin->is_animating = true;
 }
@@ -194,6 +437,8 @@ start_animation (ply_boot_splash_plugin_t *plugin)
 static void
 stop_animation (ply_boot_splash_plugin_t *plugin)
 {
+  ply_list_node_t *node;
+
   assert (plugin != NULL);
   assert (plugin->loop != NULL);
 
@@ -202,64 +447,79 @@ stop_animation (ply_boot_splash_plugin_t *plugin)
 
   plugin->is_animating = false;
 
+  node = ply_list_get_first_node (plugin->views);
+  while (node != NULL)
+    {
+      ply_list_node_t *next_node;
+      view_t *view;
 
-  ply_text_progress_bar_hide (plugin->progress_bar);
+      view = ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (plugin->views, node);
+
+      ply_text_progress_bar_hide (view->progress_bar);
+
+      node = next_node;
+    }
+  redraw_views (plugin);
 }
 
 static void
-on_draw (ply_boot_splash_plugin_t *plugin,
+on_draw (view_t                   *view,
+         ply_terminal_t           *terminal,
          int                       x,
          int                       y,
          int                       width,
          int                       height)
 {
-  ply_window_set_background_color (plugin->window, PLY_WINDOW_COLOR_BLUE);
-  ply_window_clear_screen (plugin->window);
+  ply_text_display_clear_screen (view->display);
 }
 
 static void
-on_erase (ply_boot_splash_plugin_t *plugin,
-          int                       x,
-          int                       y,
-          int                       width,
-          int                       height)
+add_text_display (ply_boot_splash_plugin_t *plugin,
+                  ply_text_display_t       *display)
 {
-  ply_window_set_background_color (plugin->window, PLY_WINDOW_COLOR_BLUE);
-  ply_window_clear_screen (plugin->window);
+  view_t *view;
+  ply_terminal_t *terminal;
+
+  view = view_new (plugin, display);
+
+  terminal = ply_text_display_get_terminal (view->display);
+  if (ply_terminal_open (terminal))
+    ply_terminal_activate_vt (terminal);
+
+  ply_text_display_set_draw_handler (view->display,
+                                     (ply_text_display_draw_handler_t)
+                                     on_draw, view);
+
+  ply_list_append_data (plugin->views, view);
 }
 
 static void
-add_handlers (ply_boot_splash_plugin_t *plugin)
+remove_text_display (ply_boot_splash_plugin_t *plugin,
+                     ply_text_display_t       *display)
 {
-  ply_window_set_draw_handler (plugin->window,
-                               (ply_window_draw_handler_t)
-                                on_draw, plugin);
-  ply_window_set_erase_handler (plugin->window,
-                                (ply_window_erase_handler_t)
-                                on_erase, plugin);
-}
+  ply_list_node_t *node;
 
-static void
-remove_handlers (ply_boot_splash_plugin_t *plugin)
-{
+  node = ply_list_get_first_node (plugin->views);
+  while (node != NULL)
+    {
+      view_t *view;
+      ply_list_node_t *next_node;
 
-  ply_window_set_draw_handler (plugin->window, NULL, NULL);
-  ply_window_set_erase_handler (plugin->window, NULL, NULL);
+      view = ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (plugin->views, node);
 
-}
+      if (view->display == display)
+        {
+          ply_text_display_set_draw_handler (view->display,
+                                             NULL, NULL);
+          view_free (view);
+          ply_list_remove_node (plugin->views, node);
+          return;
+        }
 
-static void
-add_window (ply_boot_splash_plugin_t *plugin,
-            ply_window_t             *window)
-{
-  plugin->window = window;
-}
-
-static void
-remove_window (ply_boot_splash_plugin_t *plugin,
-               ply_window_t             *window)
-{
-  plugin->window = NULL;
+      node = next_node;
+    }
 }
 
 static bool
@@ -269,11 +529,6 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
                     ply_boot_splash_mode_t    mode)
 {
   assert (plugin != NULL);
-
-  add_handlers (plugin);
-
-  ply_window_hide_text_cursor (plugin->window);
-  ply_window_set_text_cursor_position (plugin->window, 0, 0);
 
   plugin->loop = loop;
   plugin->mode = mode;
@@ -301,15 +556,30 @@ on_boot_progress (ply_boot_splash_plugin_t *plugin,
                   double                    duration,
                   double                    percent_done)
 {
+  ply_list_node_t *node;
   double total_duration;
 
   total_duration = duration / percent_done;
 
-  /* Hi Will! */
+  /* Fun made-up smoothing function to make the growth asymptotic:
+   * fraction(time,estimate)=1-2^(-(time^1.45)/estimate) */
   percent_done = 1.0 - pow (2.0, -pow (duration, 1.45) / total_duration) * (1.0 - percent_done);
 
-  ply_text_progress_bar_set_percent_done (plugin->progress_bar, percent_done);
-  ply_text_progress_bar_draw (plugin->progress_bar);
+  node = ply_list_get_first_node (plugin->views);
+
+  while (node != NULL)
+    {
+      ply_list_node_t *next_node;
+      view_t *view;
+
+      view = ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (plugin->views, node);
+
+      ply_text_progress_bar_set_percent_done (view->progress_bar, percent_done);
+      ply_text_progress_bar_draw (view->progress_bar);
+
+      node = next_node;
+    }
 }
 
 static void
@@ -331,23 +601,21 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin,
       detach_from_event_loop (plugin);
     }
 
-  if (plugin->window != NULL)
-    {
-      remove_handlers (plugin);
-
-      ply_window_set_background_color (plugin->window, PLY_WINDOW_COLOR_DEFAULT);
-      ply_window_clear_screen (plugin->window);
-      ply_window_show_text_cursor (plugin->window);
-      ply_window_reset_colors (plugin->window);
-    }
-
+  hide_views (plugin);
   ply_show_new_kernel_messages (true);
 }
 
 static void
 display_normal (ply_boot_splash_plugin_t *plugin)
 {
-  start_animation(plugin);
+  pause_views (plugin);
+  if (plugin->state != PLY_BOOT_SPLASH_DISPLAY_NORMAL)
+    {
+      plugin->state = PLY_BOOT_SPLASH_DISPLAY_NORMAL;
+      start_animation (plugin);
+      redraw_views (plugin);
+    }
+  unpause_views (plugin);
 }
 
 static void
@@ -362,39 +630,74 @@ display_message (ply_boot_splash_plugin_t *plugin,
 }
 
 static void
+show_password_prompt (ply_boot_splash_plugin_t *plugin,
+                      const char               *prompt,
+                      int                       bullets)
+{
+  ply_list_node_t *node;
+  int i;
+  char *entered_text;
+
+  entered_text = calloc (bullets + 1, sizeof (char));
+
+  for (i = 0; i < bullets; i++)
+    entered_text[i] = '*';
+
+  node = ply_list_get_first_node (plugin->views);
+  while (node != NULL)
+    {
+      ply_list_node_t *next_node;
+      view_t *view;
+
+      view = ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (plugin->views, node);
+
+      view_show_prompt (view, prompt, entered_text);
+
+      node = next_node;
+    }
+  free (entered_text);
+}
+
+static void
+show_prompt (ply_boot_splash_plugin_t *plugin,
+             const char               *prompt,
+             const char               *text)
+{
+  ply_list_node_t *node;
+
+  node = ply_list_get_first_node (plugin->views);
+  while (node != NULL)
+    {
+      ply_list_node_t *next_node;
+      view_t *view;
+
+      view = ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (plugin->views, node);
+
+      view_show_prompt (view, prompt, text);
+
+      node = next_node;
+    }
+}
+
+static void
 display_password (ply_boot_splash_plugin_t *plugin,
                   const char               *prompt,
                   int                       bullets)
 {
-      int window_width, window_height;
-      int i;
-      stop_animation (plugin);
-      ply_window_set_background_color (plugin->window, PLY_WINDOW_COLOR_DEFAULT);
-      ply_window_clear_screen (plugin->window);
+  pause_views (plugin);
+  if (plugin->state == PLY_BOOT_SPLASH_DISPLAY_NORMAL)
+    stop_animation (plugin);
 
-      window_width = ply_window_get_number_of_text_columns (plugin->window);
-      window_height = ply_window_get_number_of_text_rows (plugin->window);
-      
-      if (!prompt)
-        prompt = "Password";
-      
-      ply_window_set_text_cursor_position (plugin->window, 0, window_height / 2);
-      
-      for (i=0; i < window_width; i++)
-        {
-          write (STDOUT_FILENO, " ", strlen (" "));
-        }
-      ply_window_set_text_cursor_position (plugin->window,
-                                        window_width / 2 - (strlen (prompt)),
-                                        window_height / 2);
-      write (STDOUT_FILENO, prompt, strlen (prompt));
-      write (STDOUT_FILENO, ":", strlen (":"));
-      
-      for (i=0; i < bullets; i++)
-        {
-          write (STDOUT_FILENO, "*", strlen ("*"));
-        }
-      ply_window_show_text_cursor (plugin->window);
+  plugin->state = PLY_BOOT_SPLASH_DISPLAY_PASSWORD_ENTRY;
+
+  if (!prompt)
+    prompt = "Password";
+
+  show_password_prompt (plugin, prompt, bullets);
+
+  unpause_views (plugin);
 }
 
 static void
@@ -402,35 +705,19 @@ display_question (ply_boot_splash_plugin_t *plugin,
                   const char               *prompt,
                   const char               *entry_text)
 {
-      int window_width, window_height;
-      int i;
-      stop_animation (plugin);
-      ply_window_set_background_color (plugin->window, PLY_WINDOW_COLOR_DEFAULT);
-      ply_window_clear_screen (plugin->window);
+  pause_views (plugin);
+  if (plugin->state == PLY_BOOT_SPLASH_DISPLAY_NORMAL)
+    stop_animation (plugin);
 
-      window_width = ply_window_get_number_of_text_columns (plugin->window);
-      window_height = ply_window_get_number_of_text_rows (plugin->window);
-      
-      if (!prompt)
-        prompt = "";
-      
-      ply_window_set_text_cursor_position (plugin->window,
-                                        0, window_height / 2);
-      
-      for (i=0; i < window_width; i++)
-        {
-          write (STDOUT_FILENO, " ", strlen (" "));
-        }
-      ply_window_set_text_cursor_position (plugin->window,
-                                        window_width / 2 - (strlen (prompt)),
-                                        window_height / 2);
-      write (STDOUT_FILENO, prompt, strlen (prompt));
-      write (STDOUT_FILENO, ":", strlen (":"));
-      
-      write (STDOUT_FILENO, entry_text, strlen (entry_text));
-      ply_window_show_text_cursor (plugin->window);
+  plugin->state = PLY_BOOT_SPLASH_DISPLAY_PASSWORD_ENTRY;
+
+  if (!prompt)
+    prompt = "Password";
+
+  show_prompt (plugin, prompt, entry_text);
+
+  unpause_views (plugin);
 }
-
 
 ply_boot_splash_plugin_interface_t *
 ply_boot_splash_plugin_get_interface (void)
@@ -439,8 +726,8 @@ ply_boot_splash_plugin_get_interface (void)
     {
       .create_plugin = create_plugin,
       .destroy_plugin = destroy_plugin,
-      .add_window = add_window,
-      .remove_window = remove_window,
+      .add_text_display = add_text_display,
+      .remove_text_display = remove_text_display,
       .show_splash_screen = show_splash_screen,
       .update_status = update_status,
       .on_boot_progress = on_boot_progress,

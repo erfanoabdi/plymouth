@@ -44,7 +44,6 @@ static script_return_t script_lib_math_double_from_double_function (script_state
   return script_return_obj (script_obj_new_number (reply_double));
 }
 
-
 static script_return_t script_lib_math_double_from_double_double_function (script_state_t *state,
                                                                            void           *user_data)
 {
@@ -55,9 +54,11 @@ static script_return_t script_lib_math_double_from_double_double_function (scrip
   return script_return_obj (script_obj_new_number (reply_double));
 }
 
-static double double_to_int (double value)
+static script_return_t script_lib_math_random (script_state_t *state,
+                                               void           *user_data)
 {
-  return (double) (int) value;
+  double reply_double = random() / ((double)RAND_MAX + 1);
+  return script_return_obj (script_obj_new_number (reply_double));
 }
 
 script_lib_math_data_t *script_lib_math_setup (script_state_t *state)
@@ -99,8 +100,13 @@ script_lib_math_data_t *script_lib_math_setup (script_state_t *state)
   script_add_native_function (math_hash,
                               "Int",
                               script_lib_math_double_from_double_function,
-                              double_to_int,
+                              floor,
                               "value",
+                              NULL);
+  script_add_native_function (math_hash,
+                              "Random",
+                              script_lib_math_random,
+                              NULL,
                               NULL);
   script_obj_unref (math_hash);
 

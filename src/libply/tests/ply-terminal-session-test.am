@@ -14,7 +14,5 @@ ply_terminal_session_test_SOURCES =                                             
                           $(srcdir)/../ply-list.c                                     \
                           $(srcdir)/../ply-event-loop.h                               \
                           $(srcdir)/../ply-event-loop.c                               \
-                          $(srcdir)/../ply-terminal.h                                 \
-                          $(srcdir)/../ply-terminal.c                                 \
                           $(srcdir)/../ply-terminal-session.h                         \
                           $(srcdir)/../ply-terminal-session.c

@@ -37,6 +37,7 @@ typedef struct
   script_obj_t           *script_display_password_func; 
   script_obj_t           *script_display_question_func; 
   script_obj_t           *script_message_func;          
+  script_obj_t           *script_quit_func;          
   ply_boot_splash_mode_t  mode;
 } script_lib_plymouth_data_t;
 
@@ -71,5 +72,7 @@ void script_lib_plymouth_on_display_question (script_state_t             *state,
 void script_lib_plymouth_on_message (script_state_t             *state,
                                      script_lib_plymouth_data_t *data,
                                      const char                 *new_message);
+void script_lib_plymouth_on_quit (script_state_t             *state,
+                                  script_lib_plymouth_data_t *data);
 
 #endif /* SCRIPT_LIB_PLYMOUTH_H */

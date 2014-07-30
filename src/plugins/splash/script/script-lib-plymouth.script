@@ -9,4 +9,5 @@ PlymouthSetDisplayNormalFunction = Plymouth.SetDisplayNormalFunction;
 PlymouthSetDisplayPasswordFunction = Plymouth.SetDisplayPasswordFunction;
 PlymouthSetDisplayQuestionFunction = Plymouth.SetDisplayQuestionFunction;
 PlymouthSetMessageFunction = Plymouth.SetMessageFunction;
+PlymouthSetQuitFunction = Plymouth.SetQuitFunction;
 PlymouthGetMode = Plymouth.GetMode;

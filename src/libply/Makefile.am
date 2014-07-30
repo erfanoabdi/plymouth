@@ -14,7 +14,6 @@ libplydir = $(includedir)/plymouth-1/ply
 libply_HEADERS = \
 		    ply-event-loop.h                                          \
 		    ply-command-parser.h                                      \
-		    ply-frame-buffer.h                                        \
 		    ply-buffer.h                                              \
 		    ply-array.h                                               \
 		    ply-bitarray.h                                            \
@@ -23,7 +22,8 @@ libply_HEADERS = \
 		    ply-logger.h                                              \
 		    ply-key-file.h                                            \
 		    ply-progress.h                                            \
-		    ply-terminal.h                                            \
+		    ply-rectangle.h                                           \
+		    ply-region.h                                              \
 		    ply-terminal-session.h                                    \
 		    ply-trigger.h                                             \
 		    ply-utils.h
@@ -36,7 +36,6 @@ libply_la_LDFLAGS = -export-symbols-regex '^[^_].*' \
 libply_la_SOURCES = ply-event-loop.c                                          \
 		    $(libply_HEADERS)                                         \
 		    ply-command-parser.c                                      \
-		    ply-frame-buffer.c                                        \
 		    ply-buffer.c                                              \
 		    ply-array.c                                               \
 		    ply-bitarray.c                                            \
@@ -45,7 +44,8 @@ libply_la_SOURCES = ply-event-loop.c                                          \
 		    ply-logger.c                                              \
 		    ply-key-file.c                                            \
 		    ply-progress.c                                            \
-		    ply-terminal.c                                            \
+		    ply-rectangle.c                                           \
+		    ply-region.c                                              \
 		    ply-terminal-session.c                                    \
 		    ply-trigger.c                                             \
 		    ply-utils.c

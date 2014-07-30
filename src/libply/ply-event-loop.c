@@ -489,6 +489,17 @@ ply_event_loop_new (void)
   return loop;
 }
 
+ply_event_loop_t *
+ply_event_loop_get_default (void)
+{
+  static ply_event_loop_t *loop = NULL;
+
+  if (loop == NULL)
+    loop = ply_event_loop_new ();
+
+  return loop;
+}
+
 static void
 ply_event_loop_free_exit_closures (ply_event_loop_t *loop)
 {
@@ -903,9 +914,11 @@ ply_event_loop_stop_watching_for_timeout (ply_event_loop_t *loop,
                                           void             *user_data)
 {
   ply_list_node_t *node;
+  bool timeout_removed;
 
   loop->wakeup_time = PLY_EVENT_LOOP_NO_TIMED_WAKEUP;
 
+  timeout_removed = false;
   node = ply_list_get_first_node (loop->timeout_watches);
   while (node != NULL)
     {
@@ -916,19 +929,29 @@ ply_event_loop_stop_watching_for_timeout (ply_event_loop_t *loop,
       next_node = ply_list_get_next_node (loop->timeout_watches, node);
 
       if (timeout_watch->handler == timeout_handler &&
-          timeout_watch->user_data == user_data) {
-              ply_list_remove_node (loop->timeout_watches, node);
-              free (timeout_watch);
-      }
-      else {
-        if (fabs (loop->wakeup_time - PLY_EVENT_LOOP_NO_TIMED_WAKEUP) <= 0)
-          loop->wakeup_time = timeout_watch->timeout;
-        else
-          loop->wakeup_time = MIN (loop->wakeup_time, timeout_watch->timeout);
-      }
+          timeout_watch->user_data == user_data)
+        {
+          ply_list_remove_node (loop->timeout_watches, node);
+          free (timeout_watch);
+
+          if (timeout_removed)
+            ply_trace ("multiple matching timeouts found for removal");
+
+          timeout_removed = true;
+        }
+      else
+        {
+          if (fabs (loop->wakeup_time - PLY_EVENT_LOOP_NO_TIMED_WAKEUP) <= 0)
+            loop->wakeup_time = timeout_watch->timeout;
+          else
+            loop->wakeup_time = MIN (loop->wakeup_time, timeout_watch->timeout);
+        }
 
       node = next_node;
     }
+
+  if (!timeout_removed)
+    ply_trace ("no matching timeout found for removal");
 }
 
 static ply_event_loop_fd_status_t
@@ -1154,7 +1177,6 @@ ply_event_loop_disconnect_source (ply_event_loop_t           *loop,
 static void
 ply_event_loop_handle_timeouts (ply_event_loop_t *loop)
 {
-  ply_list_t *watches_to_dispatch;
   ply_list_node_t *node;
   double now;
 
@@ -1162,8 +1184,6 @@ ply_event_loop_handle_timeouts (ply_event_loop_t *loop)
 
   now = ply_get_timestamp ();
   node = ply_list_get_first_node (loop->timeout_watches);
-
-  watches_to_dispatch = ply_list_new ();
   loop->wakeup_time = PLY_EVENT_LOOP_NO_TIMED_WAKEUP;
   while (node != NULL)
     {
@@ -1176,10 +1196,18 @@ ply_event_loop_handle_timeouts (ply_event_loop_t *loop)
       if (watch->timeout <= now)
         {
           assert (watch->handler != NULL);
-          ply_list_append_data (watches_to_dispatch, watch);
+
           ply_list_remove_node (loop->timeout_watches, node);
+
+          watch->handler (watch->user_data, loop);
+          free (watch);
+
+          /* start over in case the handler invalidated the list
+           */
+          next_node = ply_list_get_first_node (loop->timeout_watches);
         }
-      else {
+      else
+        {
           if (fabs (loop->wakeup_time - PLY_EVENT_LOOP_NO_TIMED_WAKEUP) <= 0)
             loop->wakeup_time = watch->timeout;
           else
@@ -1188,23 +1216,6 @@ ply_event_loop_handle_timeouts (ply_event_loop_t *loop)
 
       node = next_node;
     }
-
-  node = ply_list_get_first_node (watches_to_dispatch);
-  while (node != NULL)
-    {
-      ply_list_node_t *next_node;
-      ply_event_loop_timeout_watch_t *watch;
-
-      watch = (ply_event_loop_timeout_watch_t *) ply_list_node_get_data (node);
-      next_node = ply_list_get_next_node (loop->timeout_watches, node);
-
-      watch->handler (watch->user_data, loop);
-      free (watch);
-
-      node = next_node;
-    }
-
-  ply_list_free (watches_to_dispatch);
 
 }
 
@@ -1241,14 +1252,14 @@ ply_event_loop_process_pending_events (ply_event_loop_t *loop)
 
      if (number_of_received_events < 0)
        {
-         if (errno != EINTR)
+         if (errno != EINTR && errno != EAGAIN)
            {
              ply_event_loop_exit (loop, 255);
              return;
            }
        }
     }
-  while ((number_of_received_events < 0) && (errno == EINTR));
+  while ((number_of_received_events < 0) && ((errno == EINTR) || (errno == EAGAIN)));
 
   for (i = 0; i < number_of_received_events; i++)
     {

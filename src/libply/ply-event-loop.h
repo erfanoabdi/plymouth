@@ -48,6 +48,7 @@ typedef void (* ply_event_loop_timeout_handler_t) (void             *user_data,
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
 ply_event_loop_t *ply_event_loop_new (void);
 void ply_event_loop_free (ply_event_loop_t *loop);
+ply_event_loop_t *ply_event_loop_get_default (void);
 ply_fd_watch_t *ply_event_loop_watch_fd (ply_event_loop_t *loop,
                                          int               fd,
                                          ply_event_loop_fd_status_t status,

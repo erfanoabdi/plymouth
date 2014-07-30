@@ -466,16 +466,14 @@ ply_boot_client_queue_request (ply_boot_client_t                  *client,
                                ply_boot_client_response_handler_t  failed_handler,
                                void                               *user_data)
 {
-  ply_boot_client_request_t *request;
-
   assert (client != NULL);
   assert (client->loop != NULL);
-  assert (client->socket_fd >= 0);
   assert (request_command != NULL);
   assert (request_argument == NULL || strlen (request_argument) <= UCHAR_MAX);
   assert (handler != NULL);
 
-  if (client->daemon_can_take_request_watch == NULL)
+  if (client->daemon_can_take_request_watch == NULL &&
+      client->socket_fd >= 0)
     {
       assert (ply_list_get_length (client->requests_to_send) == 0);
       client->daemon_can_take_request_watch = 
@@ -486,10 +484,22 @@ ply_boot_client_queue_request (ply_boot_client_t                  *client,
                                    NULL, client);
     }
 
-  request = ply_boot_client_request_new (client, request_command,
-                                         request_argument, 
-                                         handler, failed_handler, user_data);
-  ply_list_append_data (client->requests_to_send, request);
+  if (!client->is_connected)
+    {
+      if (failed_handler != NULL)
+        {
+          failed_handler (user_data, client);
+        }
+    }
+  else
+    {
+      ply_boot_client_request_t *request;
+
+      request = ply_boot_client_request_new (client, request_command,
+                                             request_argument,
+                                             handler, failed_handler, user_data);
+      ply_list_append_data (client->requests_to_send, request);
+    }
 }
 
 void
@@ -653,6 +663,30 @@ ply_boot_client_tell_daemon_to_hide_splash (ply_boot_client_t                  *
 }
 
 void
+ply_boot_client_tell_daemon_to_deactivate (ply_boot_client_t                  *client,
+                                           ply_boot_client_response_handler_t  handler,
+                                           ply_boot_client_response_handler_t  failed_handler,
+                                           void                               *user_data)
+{
+  assert (client != NULL);
+
+  ply_boot_client_queue_request (client, PLY_BOOT_PROTOCOL_REQUEST_TYPE_DEACTIVATE,
+                                 NULL, handler, failed_handler, user_data);
+}
+
+void
+ply_boot_client_tell_daemon_to_reactivate (ply_boot_client_t                  *client,
+                                           ply_boot_client_response_handler_t  handler,
+                                           ply_boot_client_response_handler_t  failed_handler,
+                                           void                               *user_data)
+{
+  assert (client != NULL);
+
+  ply_boot_client_queue_request (client, PLY_BOOT_PROTOCOL_REQUEST_TYPE_REACTIVATE,
+                                 NULL, handler, failed_handler, user_data);
+}
+
+void
 ply_boot_client_tell_daemon_to_quit (ply_boot_client_t                  *client,
                                      bool                                retain_splash,
                                      ply_boot_client_response_handler_t  handler,
@@ -685,6 +719,16 @@ ply_boot_client_tell_daemon_to_progress_unpause (ply_boot_client_t              
                                                  void                               *user_data)
 {
   ply_boot_client_queue_request (client, PLY_BOOT_PROTOCOL_REQUEST_TYPE_PROGRESS_UNPAUSE,
+                                 NULL, handler, failed_handler, user_data);
+}
+
+void
+ply_boot_client_ask_daemon_has_active_vt (ply_boot_client_t                  *client,
+                                          ply_boot_client_response_handler_t  handler,
+                                          ply_boot_client_response_handler_t  failed_handler,
+                                          void                               *user_data)
+{
+  ply_boot_client_queue_request (client, PLY_BOOT_PROTOCOL_REQUEST_TYPE_HAS_ACTIVE_VT,
                                  NULL, handler, failed_handler, user_data);
 }
 
@@ -736,15 +780,17 @@ ply_boot_client_attach_to_event_loop (ply_boot_client_t *client,
   assert (client != NULL);
   assert (loop != NULL);
   assert (client->loop == NULL);
-  assert (client->socket_fd >= 0);
 
   client->loop = loop;
 
-  ply_event_loop_watch_fd (client->loop, client->socket_fd,
-                           PLY_EVENT_LOOP_FD_STATUS_NONE,
-                           NULL, 
-                           (ply_event_handler_t) ply_boot_client_on_hangup,
-                           client);
+  if (client->socket_fd >= 0)
+    {
+      ply_event_loop_watch_fd (client->loop, client->socket_fd,
+                               PLY_EVENT_LOOP_FD_STATUS_NONE,
+                               NULL,
+                               (ply_event_handler_t) ply_boot_client_on_hangup,
+                               client);
+    }
 
   ply_event_loop_watch_for_exit (loop, (ply_event_loop_exit_handler_t) 
                                  ply_boot_client_detach_from_event_loop,

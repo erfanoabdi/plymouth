@@ -125,6 +125,29 @@ static script_obj_t *script_evaluate_var (script_state_t *state,
   return obj;
 }
 
+static script_obj_t *script_evaluate_set (script_state_t *state,
+                                          script_exp_t   *exp)
+{
+
+  ply_list_t *parameter_data = exp->data.parameters;
+  ply_list_node_t *node_data = ply_list_get_first_node (parameter_data);
+  int index = 0;
+  script_obj_t *obj = script_obj_new_hash ();
+  while (node_data)
+    {
+      script_exp_t *data_exp = ply_list_node_get_data (node_data);
+      script_obj_t *data_obj = script_evaluate (state, data_exp);
+      char *name;
+      asprintf (&name, "%d", index);
+      index++;
+      script_obj_hash_add_element (obj, data_obj, name);
+      free(name);
+      
+      node_data = ply_list_get_next_node (parameter_data, node_data);
+    }
+  return obj;
+}
+
 static script_obj_t *script_evaluate_assign (script_state_t *state,
                                              script_exp_t   *exp)
 {
@@ -279,7 +302,18 @@ static script_obj_t *script_evaluate_func (script_state_t *state,
       this_obj = script_evaluate (state, name_exp->data.dual.sub_a);
       char *this_key_name = script_obj_as_string (this_key);
       script_obj_unref (this_key);
-      func_obj = script_obj_hash_get_element (this_obj, this_key_name);
+      func_obj = script_obj_hash_peek_element (this_obj, this_key_name);
+
+      if (!func_obj && script_obj_is_string (this_obj))
+        {
+          script_obj_t *string_hash = script_obj_hash_peek_element (state->global, "String");
+          func_obj = script_obj_hash_peek_element (string_hash, this_key_name);
+          script_obj_unref (string_hash);
+        }
+
+      if (!func_obj)
+        func_obj = script_obj_hash_get_element (this_obj, this_key_name);
+
       free(this_key_name);
     }
   else if (name_exp->type == SCRIPT_EXP_TYPE_TERM_VAR)
@@ -300,7 +334,7 @@ static script_obj_t *script_evaluate_func (script_state_t *state,
     }
   else
     {
-      func_obj = script_evaluate (state, exp->data.function_exe.name);
+      func_obj = script_evaluate (state, name_exp);
     }
   
   ply_list_t *parameter_expressions = exp->data.function_exe.parameters;
@@ -442,6 +476,11 @@ static script_obj_t *script_evaluate (script_state_t *state,
         {
           script_obj_ref (state->this);
           return state->this;
+        }
+
+      case SCRIPT_EXP_TYPE_TERM_SET:
+        {
+          return script_evaluate_set (state, exp);
         }
 
       case SCRIPT_EXP_TYPE_TERM_VAR:
@@ -658,18 +697,26 @@ script_return_t script_execute (script_state_t *state,
           break;
         }
 
+      case SCRIPT_OP_TYPE_DO_WHILE:
       case SCRIPT_OP_TYPE_WHILE:
       case SCRIPT_OP_TYPE_FOR:
         {
-          script_obj_t *obj;
+          script_obj_t *obj = NULL;
+          bool cond = false;
+          if (op->type == SCRIPT_OP_TYPE_DO_WHILE) cond = true;
           while (1)
             {
-              obj = script_evaluate (state, op->data.cond_op.cond);
-              if (script_obj_as_bool (obj))
+              if (!cond)
+                {
+                  obj = script_evaluate (state, op->data.cond_op.cond);
+                  cond = script_obj_as_bool (obj);
+                  script_obj_unref (obj);
+                }
+               
+              if (cond)
                 {
                   script_obj_unref (reply.object);
                   reply = script_execute (state, op->data.cond_op.op1);
-                  script_obj_unref (obj);
                   switch (reply.type)
                     {
                       case SCRIPT_RETURN_TYPE_NORMAL:
@@ -693,9 +740,9 @@ script_return_t script_execute (script_state_t *state,
                 }
               else
                 {
-                  script_obj_unref (obj);
                   break;
                 }
+              cond = false;
             }
           break;
         }

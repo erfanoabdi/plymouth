@@ -122,6 +122,14 @@ static script_exp_t *script_parse_new_exp_function_def (script_function_t       
   return exp;
 }
 
+static script_exp_t *script_parse_new_exp_set (ply_list_t              *parameters,
+                                               script_debug_location_t *location)
+{
+  script_exp_t *exp = script_parse_new_exp(SCRIPT_EXP_TYPE_TERM_SET, location);
+  exp->data.parameters = parameters;
+  return exp;
+}
+
 static script_op_t *script_parse_new_op (script_op_type_t         type,
                                          script_debug_location_t *location)
 {
@@ -301,6 +309,33 @@ static script_exp_t *script_parse_exp_tm (script_scan_t *scan)
       script_scan_get_next_token (scan);
       return exp;
     }
+  
+  if (script_scan_token_is_symbol_of_value (curtoken, '['))
+    {
+      ply_list_t *parameters = ply_list_new ();
+      script_debug_location_t location = curtoken->location;
+      script_scan_get_next_token (scan);
+      while (true)
+        {
+          if (script_scan_token_is_symbol_of_value (curtoken, ']')) break;
+          script_exp_t *parameter = script_parse_exp (scan);
+
+          ply_list_append_data (parameters, parameter);
+
+          curtoken = script_scan_get_current_token (scan);
+          if (script_scan_token_is_symbol_of_value (curtoken, ']')) break;
+          if (!script_scan_token_is_symbol_of_value (curtoken, ','))
+            {
+              script_parse_error (&curtoken->location,
+                "Set parameters should be separated with a ',' and terminated with a ']'");
+              return NULL;
+            }
+          curtoken = script_scan_get_next_token (scan);
+        }
+      script_scan_get_next_token (scan);
+      exp = script_parse_new_exp_set (parameters, &location);
+      return exp;
+    }
   if (script_scan_token_is_symbol_of_value (curtoken, '('))
     {
       script_scan_get_next_token (scan);
@@ -379,6 +414,12 @@ static script_exp_t *script_parse_exp_pi (script_scan_t *scan)
         {
           script_scan_get_next_token (scan);
           key = script_parse_exp (scan);
+          if (!key)
+            {
+              script_parse_error (&curtoken->location,
+                "Expected a valid index expression");
+              return NULL;
+            }
           curtoken = script_scan_get_current_token (scan);
           if (!script_scan_token_is_symbol_of_value (curtoken, ']'))
             {
@@ -592,6 +633,57 @@ static script_op_t *script_parse_if_while (script_scan_t *scan)
   return op;
 }
 
+static script_op_t *script_parse_do_while (script_scan_t *scan)
+{
+  script_scan_token_t *curtoken = script_scan_get_current_token (scan);
+
+  if (!script_scan_token_is_identifier_of_value (curtoken, "do"))
+    return NULL;
+  script_debug_location_t location = curtoken->location;
+  curtoken = script_scan_get_next_token (scan);
+  script_op_t *cond_op = script_parse_op (scan);
+  curtoken = script_scan_get_current_token (scan);
+
+  if (!script_scan_token_is_identifier_of_value (curtoken, "while"))
+    {
+      script_parse_error (&curtoken->location,
+                          "Expected a 'while' after a 'do' block");
+      return NULL;
+    }
+  curtoken = script_scan_get_next_token (scan);
+
+  if (!script_scan_token_is_symbol_of_value (curtoken, '('))
+    {
+      script_parse_error (&curtoken->location,
+                          "Expected a '(' at the start of a do-while condition block");
+      return NULL;
+    }
+  curtoken = script_scan_get_next_token (scan);
+  script_exp_t *cond = script_parse_exp (scan);
+  curtoken = script_scan_get_current_token (scan);
+  if (!cond)
+    {
+      script_parse_error (&curtoken->location, "Expected a valid condition expression");
+      return NULL;
+    }
+  if (!script_scan_token_is_symbol_of_value (curtoken, ')'))
+    {
+      script_parse_error (&curtoken->location,
+                          "Expected a ')' at the end of a condition block");
+      return NULL;
+    }
+  curtoken = script_scan_get_next_token (scan);
+  if (!script_scan_token_is_symbol_of_value (curtoken, ';'))
+    {
+      script_parse_error (&curtoken->location,
+                          "Expected a ';' after a do-while expression");
+      return NULL;
+    }
+  script_scan_get_next_token (scan);
+  script_op_t *op = script_parse_new_op_cond (SCRIPT_OP_TYPE_DO_WHILE, cond, cond_op, NULL, &location);
+  return op;
+}
+
 static script_op_t *script_parse_for (script_scan_t *scan)
 {
   script_scan_token_t *curtoken = script_scan_get_current_token (scan);
@@ -734,6 +826,8 @@ static script_op_t *script_parse_op (script_scan_t *scan)
   if (reply) return reply;
   reply = script_parse_if_while (scan);
   if (reply) return reply;
+  reply = script_parse_do_while (scan);
+  if (reply) return reply;
   reply = script_parse_for (scan);
   if (reply) return reply;
   reply = script_parse_return (scan);
@@ -824,7 +918,19 @@ static void script_parse_exp_free (script_exp_t *exp)
       case SCRIPT_EXP_TYPE_TERM_GLOBAL:
       case SCRIPT_EXP_TYPE_TERM_THIS:
         break;
-
+      case SCRIPT_EXP_TYPE_TERM_SET:
+        {
+          ply_list_node_t *node;
+          for (node = ply_list_get_first_node (exp->data.parameters);
+               node;
+               node = ply_list_get_next_node (exp->data.parameters, node))
+            {
+              script_exp_t *sub = ply_list_node_get_data (node);
+              script_parse_exp_free (sub);
+            }
+          ply_list_free (exp->data.parameters);
+          break;
+        }
       case SCRIPT_EXP_TYPE_FUNCTION_EXE:
         {
           ply_list_node_t *node;
@@ -880,6 +986,7 @@ void script_parse_op_free (script_op_t *op)
 
       case SCRIPT_OP_TYPE_IF:
       case SCRIPT_OP_TYPE_WHILE:
+      case SCRIPT_OP_TYPE_DO_WHILE:
       case SCRIPT_OP_TYPE_FOR:
         script_parse_exp_free (op->data.cond_op.cond);
         script_parse_op_free  (op->data.cond_op.op1);

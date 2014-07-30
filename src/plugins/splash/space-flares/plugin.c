@@ -49,13 +49,11 @@
 #include "ply-label.h"
 #include "ply-list.h"
 #include "ply-logger.h"
-#include "ply-frame-buffer.h"
 #include "ply-image.h"
+#include "ply-pixel-buffer.h"
+#include "ply-pixel-display.h"
 #include "ply-trigger.h"
 #include "ply-utils.h"
-#include "ply-window.h"
-
-#include <linux/kd.h>
 
 #ifndef FRAMES_PER_SECOND
 #define FRAMES_PER_SECOND 40
@@ -159,12 +157,21 @@ typedef struct
   int frame_count;
 } star_bg_t;
 
+typedef struct
+{
+  ply_boot_splash_plugin_t *plugin;
+  ply_pixel_display_t *display;
+  ply_entry_t *entry;
+  ply_label_t *label;
+  ply_list_t *sprites;
+  ply_rectangle_t box_area, lock_area, logo_area;
+  ply_image_t *scaled_background_image;
+} view_t;
+
 struct _ply_boot_splash_plugin
 {
   ply_event_loop_t *loop;
   ply_boot_splash_mode_t mode;
-  ply_frame_buffer_t *frame_buffer;
-  ply_frame_buffer_area_t box_area, lock_area, logo_area;
   ply_image_t *logo_image;
   ply_image_t *lock_image;
   ply_image_t *box_image;
@@ -177,18 +184,13 @@ struct _ply_boot_splash_plugin
   ply_image_t *progress_barimage;
 #endif
 
-  ply_image_t *scaled_background_image;
 #ifdef SHOW_LOGO_HALO
   ply_image_t *highlight_logo_image;
 #endif
 
-  ply_window_t *window;
-
-  ply_entry_t *entry;
-  ply_label_t *label;
+  char *image_dir;
   ply_boot_splash_display_type_t state;
-
-  ply_list_t *sprites;
+  ply_list_t *views;
 
   double now;
   
@@ -200,12 +202,298 @@ struct _ply_boot_splash_plugin
   uint32_t is_animating : 1;
 };
 
-static void add_handlers (ply_boot_splash_plugin_t *plugin);
-static void remove_handlers (ply_boot_splash_plugin_t *plugin);
 
 static void detach_from_event_loop (ply_boot_splash_plugin_t *plugin);
 
+static view_t *
+view_new (ply_boot_splash_plugin_t *plugin,
+          ply_pixel_display_t      *display)
+{
+  view_t *view;
 
+  view = calloc (1, sizeof (view_t));
+  view->plugin = plugin;
+  view->display = display;
+
+  view->entry = ply_entry_new (plugin->image_dir);
+  view->label = ply_label_new ();
+  view->sprites = ply_list_new ();
+
+  return view;
+}
+
+static void view_free_sprites (view_t *view);
+
+static void
+view_free (view_t *view)
+{
+
+  ply_entry_free (view->entry);
+  ply_label_free (view->label);
+  view_free_sprites (view);
+  ply_list_free (view->sprites);
+
+  ply_image_free (view->scaled_background_image);
+
+  free (view);
+}
+
+static void
+free_views (ply_boot_splash_plugin_t *plugin)
+{
+  ply_list_node_t *node;
+
+  node = ply_list_get_first_node (plugin->views);
+  while (node != NULL)
+    {
+      ply_list_node_t *next_node;
+      view_t *view;
+
+      view = ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (plugin->views, node);
+
+      view_free (view);
+
+      node = next_node;
+    }
+
+  ply_list_free (plugin->views);
+  plugin->views = NULL;
+}
+
+static bool
+view_load (view_t *view)
+{
+  ply_trace ("loading entry");
+  if (!ply_entry_load (view->entry))
+    return false;
+
+  return true;
+}
+
+static bool
+load_views (ply_boot_splash_plugin_t *plugin)
+{
+  ply_list_node_t *node;
+  bool view_loaded;
+
+  view_loaded = false;
+  node = ply_list_get_first_node (plugin->views);
+
+  while (node != NULL)
+    {
+      ply_list_node_t *next_node;
+      view_t *view;
+
+      view = ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (plugin->views, node);
+
+      if (view_load (view))
+        view_loaded = true;
+
+      node = next_node;
+    }
+
+  return view_loaded;
+}
+
+static void
+view_redraw (view_t *view)
+{
+  unsigned long screen_width, screen_height;
+
+  screen_width = ply_pixel_display_get_width (view->display);
+  screen_height = ply_pixel_display_get_height (view->display);
+
+  ply_pixel_display_draw_area (view->display, 0, 0,
+                               screen_width, screen_height);
+}
+
+static void
+redraw_views (ply_boot_splash_plugin_t *plugin)
+{
+  ply_list_node_t *node;
+
+  node = ply_list_get_first_node (plugin->views);
+  while (node != NULL)
+    {
+      ply_list_node_t *next_node;
+      view_t *view;
+
+      view = ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (plugin->views, node);
+
+      view_redraw (view);
+
+      node = next_node;
+    }
+}
+
+static void
+pause_views (ply_boot_splash_plugin_t *plugin)
+{
+  ply_list_node_t *node;
+
+  node = ply_list_get_first_node (plugin->views);
+  while (node != NULL)
+    {
+      ply_list_node_t *next_node;
+      view_t *view;
+
+      view = ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (plugin->views, node);
+
+      ply_pixel_display_pause_updates (view->display);
+
+      node = next_node;
+    }
+}
+
+static void
+unpause_views (ply_boot_splash_plugin_t *plugin)
+{
+  ply_list_node_t *node;
+
+  node = ply_list_get_first_node (plugin->views);
+  while (node != NULL)
+    {
+      ply_list_node_t *next_node;
+      view_t *view;
+
+      view = ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (plugin->views, node);
+
+      ply_pixel_display_unpause_updates (view->display);
+
+      node = next_node;
+    }
+}
+
+static sprite_t*
+add_sprite (view_t      *view,
+            ply_image_t *image,
+            int          type,
+            void        *data)
+{
+ sprite_t *new_sprite = calloc (1, sizeof (sprite_t));
+
+ new_sprite->x = 0;
+ new_sprite->y = 0;
+ new_sprite->z = 0;
+ new_sprite->oldx = 0;
+ new_sprite->oldy = 0;
+ new_sprite->oldz = 0;
+ new_sprite->opacity = 1;
+ new_sprite->refresh_me = 0;
+ new_sprite->image = image;
+ new_sprite->type = type;
+ new_sprite->data = data;
+
+ ply_list_append_data (view->sprites, new_sprite);
+
+ return new_sprite;
+}
+
+static void view_setup_scene (view_t *view);
+
+static void
+view_start_animation (view_t *view)
+{
+  unsigned long screen_width, screen_height;
+
+  assert (view != NULL);
+
+  view_setup_scene (view);
+
+  screen_width = ply_pixel_display_get_width (view->display);
+  screen_height = ply_pixel_display_get_height (view->display);
+
+  ply_pixel_display_draw_area (view->display, 0, 0,
+                               screen_width, screen_height);
+}
+
+static void
+view_show_prompt (view_t     *view,
+                  const char *prompt)
+{
+  ply_boot_splash_plugin_t *plugin;
+  int x, y;
+  int entry_width, entry_height;
+
+  assert (view != NULL);
+
+  plugin = view->plugin;
+
+  if (ply_entry_is_hidden (view->entry))
+    {
+      unsigned long screen_width, screen_height;
+
+      screen_width = ply_pixel_display_get_width (view->display);
+      screen_height = ply_pixel_display_get_height (view->display);
+
+      view->box_area.width = ply_image_get_width (plugin->box_image);
+      view->box_area.height = ply_image_get_height (plugin->box_image);
+      view->box_area.x = screen_width / 2.0 - view->box_area.width / 2.0;
+      view->box_area.y = screen_height / 2.0 - view->box_area.height / 2.0;
+
+      view->lock_area.width = ply_image_get_width (plugin->lock_image);
+      view->lock_area.height = ply_image_get_height (plugin->lock_image);
+
+      entry_width = ply_entry_get_width (view->entry);
+      entry_height = ply_entry_get_height (view->entry);
+
+      x = screen_width / 2.0 - (view->lock_area.width + entry_width) / 2.0 + view->lock_area.width;
+      y = screen_height / 2.0 - entry_height / 2.0;
+
+      view->lock_area.x = screen_width / 2.0 - (view->lock_area.width + entry_width) / 2.0;
+      view->lock_area.y = screen_height / 2.0 - view->lock_area.height / 2.0;
+
+      ply_entry_show (view->entry, plugin->loop, view->display, x, y);
+    }
+
+  if (prompt != NULL)
+    {
+      int label_width, label_height;
+
+      ply_label_set_text (view->label, prompt);
+      label_width = ply_label_get_width (view->label);
+      label_height = ply_label_get_height (view->label);
+
+      x = view->box_area.x + view->lock_area.width / 2;
+      y = view->box_area.y + view->box_area.height;
+
+      ply_label_show (view->label, view->display, x, y);
+    }
+}
+
+static void
+view_hide_prompt (view_t *view)
+{
+  assert (view != NULL);
+
+  ply_entry_hide (view->entry);
+  ply_label_hide (view->label);
+}
+
+static void
+hide_prompt (ply_boot_splash_plugin_t *plugin)
+{
+  ply_list_node_t *node;
+
+  node = ply_list_get_first_node (plugin->views);
+  while (node != NULL)
+    {
+      ply_list_node_t *next_node;
+      view_t *view;
+
+      view = ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (plugin->views, node);
+
+      view_hide_prompt (view);
+
+      node = next_node;
+    }
+}
 
 static ply_boot_splash_plugin_t *
 create_plugin (ply_key_file_t *key_file)
@@ -227,8 +515,6 @@ create_plugin (ply_key_file_t *key_file)
   asprintf (&image_path, "%s/box.png", image_dir);
   plugin->box_image = ply_image_new (image_path);
   free (image_path);
-
-  plugin->scaled_background_image = NULL;
 
   asprintf (&image_path, "%s/star.png", image_dir);
   plugin->star_image = ply_image_new (image_path);
@@ -263,13 +549,14 @@ create_plugin (ply_key_file_t *key_file)
   plugin->progress_barimage = ply_image_new (image_path);
   free (image_path);
 #endif
-  plugin->entry = ply_entry_new (image_dir);
-  plugin->label = ply_label_new ();
   plugin->state = PLY_BOOT_SPLASH_DISPLAY_NORMAL;
-  plugin->sprites = ply_list_new();
   plugin->progress = 0;
   plugin->progress_target = -1;
-  free(image_dir);
+
+  plugin->image_dir = image_dir;
+
+  plugin->views = ply_list_new ();
+
   return plugin;
 }
 
@@ -279,7 +566,7 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
   if (plugin == NULL)
     return;
 
-  remove_handlers (plugin);
+  free (plugin->image_dir);
 
   if (plugin->loop != NULL)
     {
@@ -293,7 +580,6 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
   ply_image_free (plugin->lock_image);
   ply_image_free (plugin->box_image);
 
-  ply_image_free (plugin->scaled_background_image);
   ply_image_free (plugin->star_image);
 #ifdef  SHOW_PLANETS
   ply_image_free (plugin->planet_image[0]);
@@ -306,13 +592,10 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
   ply_image_free (plugin->progress_barimage);
 #endif
 
-  ply_entry_free (plugin->entry);
-  ply_label_free (plugin->label);
-  ply_list_free (plugin->sprites);
+  free_views (plugin);
 
   free (plugin);
 }
-
 
 static void
 free_sprite (sprite_t* sprite)
@@ -357,44 +640,6 @@ free_sprite (sprite_t* sprite)
       free(sprite);
     }
  return;
-}
-
-
-
-static sprite_t* 
-add_sprite (ply_boot_splash_plugin_t *plugin, ply_image_t *image, int type, void* data)
-{
- sprite_t* new_sprite = calloc (1, sizeof (sprite_t));
- new_sprite->x = 0;
- new_sprite->y = 0;
- new_sprite->z = 0;
- new_sprite->oldx = 0;
- new_sprite->oldy = 0;
- new_sprite->oldz = 0;
- new_sprite->opacity = 1;
- new_sprite->refresh_me = 0;
- new_sprite->image = image;
- new_sprite->type = type;
- new_sprite->data = data;
- ply_list_append_data (plugin->sprites, new_sprite);
- return new_sprite;
-}
-
-
-static void
-draw_background (ply_boot_splash_plugin_t *plugin,
-                 ply_frame_buffer_area_t  *area)
-{
-  ply_frame_buffer_area_t screen_area;
-
-  if (area == NULL)
-    {
-      ply_frame_buffer_get_size (plugin->frame_buffer, &screen_area);
-      area = &screen_area;
-    }
-
-  ply_window_erase_area (plugin->window, area->x, area->y,
-                         area->width, area->height);
 }
 
 int sprite_compare_z(void *data_a, void *data_b)
@@ -444,10 +689,12 @@ stretch_image(ply_image_t *scaled_image, ply_image_t *orig_image, int width)
 }
 
 static void
-progress_update (ply_boot_splash_plugin_t *plugin, sprite_t* sprite, double time)
+progress_update (view_t *view, sprite_t* sprite, double time)
 {
   progress_t *progress = sprite->data;
-  int newwidth = plugin->progress*(progress->end_width-progress->start_width)+progress->start_width;
+  ply_boot_splash_plugin_t *plugin = view->plugin;
+  int newwidth = plugin->progress * (progress->end_width - progress->start_width) + progress->start_width;
+
   if (progress->current_width >newwidth) return;
   progress->current_width = newwidth;
   stretch_image(progress->image_altered, progress->image, newwidth);
@@ -511,7 +758,7 @@ star_bg_gradient_colour (int x, int y, int width, int height, bool star, float t
 
 
 static void
-star_bg_update (ply_boot_splash_plugin_t *plugin, sprite_t* sprite, double time)
+star_bg_update (view_t *view, sprite_t* sprite, double time)
 {
   star_bg_t *star_bg = sprite->data;
   int width = ply_image_get_width (sprite->image);
@@ -536,15 +783,14 @@ star_bg_update (ply_boot_splash_plugin_t *plugin, sprite_t* sprite, double time)
 }
 
 static void
-satellite_move (ply_boot_splash_plugin_t *plugin, sprite_t* sprite, double time)
+satellite_move (view_t *view, sprite_t* sprite, double time)
 {
+  ply_boot_splash_plugin_t *plugin = view->plugin;
   satellite_t *satellite = sprite->data;
-  ply_frame_buffer_area_t screen_area;
-  
-  ply_frame_buffer_get_size (plugin->frame_buffer, &screen_area);
 
   int width = ply_image_get_width (sprite->image);
   int height = ply_image_get_height (sprite->image);
+  unsigned long screen_width, screen_height;
 
   sprite->x=cos(satellite->theta+(1-plugin->progress)*2000/(satellite->distance))*satellite->distance;
   sprite->y=sin(satellite->theta+(1-plugin->progress)*2000/(satellite->distance))*satellite->distance;
@@ -557,12 +803,14 @@ satellite_move (ply_boot_splash_plugin_t *plugin, sprite_t* sprite, double time)
 
   float angle_offset = atan2 (sprite->x, sprite->y);
   float cresent_angle = atan2 (sqrt(sprite->x*sprite->x+sprite->y*sprite->y), sprite->z);
-  
+  screen_width = ply_pixel_display_get_width (view->display);
+  screen_height = ply_pixel_display_get_height (view->display);
+
   sprite->x+=(float)satellite->end_x*plugin->progress+(float)satellite->start_x*(1-plugin->progress)-width/2;
   sprite->y+=(float)satellite->end_y*plugin->progress+(float)satellite->start_y*(1-plugin->progress)-height/2;
   
-  if (sprite->x > (signed int)screen_area.width) return;
-  if (sprite->y > (signed int)screen_area.height) return;
+  if (sprite->x > (signed int) screen_width) return;
+  if (sprite->y > (signed int) screen_height) return;
   
   if (satellite->type == SATELLITE_TYPE_PLANET)
     {
@@ -660,9 +908,9 @@ satellite_move (ply_boot_splash_plugin_t *plugin, sprite_t* sprite, double time)
 
 
 static void
-sprite_list_sort (ply_boot_splash_plugin_t *plugin)
+sprite_list_sort (view_t *view)
 {
-  ply_list_sort (plugin->sprites, &sprite_compare_z);
+  ply_list_sort_stable (view->sprites, &sprite_compare_z);
 }
 
 static void
@@ -803,11 +1051,8 @@ flare_update (sprite_t* sprite, double time)
   return;
 }
 
-
-
-
 static void
-sprite_move (ply_boot_splash_plugin_t *plugin, sprite_t* sprite, double time)
+sprite_move (view_t *view, sprite_t* sprite, double time)
 {
   sprite->oldx = sprite->x;
   sprite->oldy = sprite->y;
@@ -816,48 +1061,42 @@ sprite_move (ply_boot_splash_plugin_t *plugin, sprite_t* sprite, double time)
       case SPRITE_TYPE_STATIC:
           break;
       case SPRITE_TYPE_PROGRESS:
-          progress_update (plugin, sprite, time);
+          progress_update (view, sprite, time);
           break;
       case SPRITE_TYPE_FLARE:
           flare_update (sprite, time);
           break;
       case SPRITE_TYPE_SATELLITE:
-          satellite_move (plugin, sprite, time);
+          satellite_move (view, sprite, time);
           break;
       case SPRITE_TYPE_STAR_BG:
-          star_bg_update (plugin, sprite, time);
+          star_bg_update (view, sprite, time);
           break;
     }
 }
 
-void
-on_draw (ply_boot_splash_plugin_t *plugin,
-         int                       x,
-         int                       y,
-         int                       width,
-         int                       height);
-
 static void
-animate_attime (ply_boot_splash_plugin_t *plugin, double time)
+view_animate_attime (view_t *view, double time)
 {
   ply_list_node_t *node;
-  
-  ply_window_set_mode (plugin->window, PLY_WINDOW_MODE_GRAPHICS);
+  ply_boot_splash_plugin_t *plugin;
+
+  plugin = view->plugin;
 
   if (plugin->progress_target>=0)
       plugin->progress = (plugin->progress*10 + plugin->progress_target) /11;
     
-  node = ply_list_get_first_node (plugin->sprites);
+  node = ply_list_get_first_node (view->sprites);
   while(node)
     {
       sprite_t* sprite = ply_list_node_get_data (node);
-      sprite_move (plugin, sprite, time);
-      node = ply_list_get_next_node (plugin->sprites, node);
+      sprite_move (view, sprite, time);
+      node = ply_list_get_next_node (view->sprites, node);
     }
 
-  sprite_list_sort (plugin);
+  sprite_list_sort (view);
 
-  for(node = ply_list_get_first_node (plugin->sprites); node; node = ply_list_get_next_node (plugin->sprites, node))
+  for(node = ply_list_get_first_node (view->sprites); node; node = ply_list_get_next_node (view->sprites, node))
     {
       sprite_t* sprite = ply_list_node_get_data (node);
       if (sprite->x != sprite->oldx ||
@@ -875,7 +1114,8 @@ animate_attime (ply_boot_splash_plugin_t *plugin, double time)
             int i;
             for (i=0; i<star_bg->star_count; i++){
                 if (star_bg->star_refresh[i]){
-                    ply_window_draw_area (plugin->window, sprite->x+star_bg->star_x[i], sprite->y+star_bg->star_y[i], 1, 1);
+                    ply_pixel_display_draw_area (view->display,
+                                                 sprite->x+star_bg->star_x[i], sprite->y+star_bg->star_y[i], 1, 1);
                     star_bg->star_refresh[i]=0;
                     }
               }
@@ -893,12 +1133,15 @@ animate_attime (ply_boot_splash_plugin_t *plugin, double time)
               y=MIN(sprite->y, sprite->oldy);
               width =(MAX(sprite->x, sprite->oldx)-x)+ply_image_get_width (sprite->image);
               height=(MAX(sprite->y, sprite->oldy)-y)+ply_image_get_height (sprite->image);
-              ply_window_draw_area (plugin->window, x, y, width, height);
+              ply_pixel_display_draw_area (view->display,
+                                           x, y, width, height);
             }
           else
             {
-              ply_window_draw_area (plugin->window, sprite->x, sprite->y, width, height);
-              ply_window_draw_area (plugin->window, sprite->oldx, sprite->oldy, width, height);
+              ply_pixel_display_draw_area (view->display,
+                                           sprite->x, sprite->y, width, height);
+              ply_pixel_display_draw_area (view->display,
+                                           sprite->oldx, sprite->oldy, width, height);
             }
         }
     }
@@ -907,12 +1150,26 @@ animate_attime (ply_boot_splash_plugin_t *plugin, double time)
 static void
 on_timeout (ply_boot_splash_plugin_t *plugin)
 {
+  ply_list_node_t *node;
   double sleep_time;
   double now;
 
   now = ply_get_timestamp ();
 
-  animate_attime (plugin, now);
+  node = ply_list_get_first_node (plugin->views);
+
+  while (node != NULL)
+    {
+      ply_list_node_t *next_node;
+      view_t *view;
+
+      view = ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (plugin->views, node);
+
+      view_animate_attime (view, now);
+
+      node = next_node;
+    }
   plugin->now = now;
 
   sleep_time = 1.0 / FRAMES_PER_SECOND;
@@ -933,32 +1190,46 @@ on_boot_progress (ply_boot_splash_plugin_t *plugin,
   plugin->progress_target = percent_done;
 }
 
-void 
-setup_scene (ply_boot_splash_plugin_t *plugin);
-
 static void
 start_animation (ply_boot_splash_plugin_t *plugin)
 {
-
-  ply_frame_buffer_area_t area;
-  assert (plugin != NULL);
-  assert (plugin->loop != NULL);
+  ply_list_node_t *node;
 
   if (plugin->is_animating)
      return;
 
-  ply_frame_buffer_get_size (plugin->frame_buffer, &area);
+  node = ply_list_get_first_node (plugin->views);
+  while (node != NULL)
+    {
+      ply_list_node_t *next_node;
+      view_t *view;
 
-  plugin->now = ply_get_timestamp ();
-  setup_scene (plugin);
-  ply_window_draw_area (plugin->window, area.x, area.y, area.width, area.height);
+      view = ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (plugin->views, node);
 
-  if (plugin->mode == PLY_BOOT_SPLASH_MODE_SHUTDOWN)
-    return;
+      view_start_animation (view);
+
+      node = next_node;
+    }
 
   on_timeout (plugin);
 
   plugin->is_animating = true;
+}
+
+static void
+view_free_sprites (view_t *view)
+{
+  ply_list_node_t *node;
+
+  for (node = ply_list_get_first_node (view->sprites);
+       node != NULL;
+       node = ply_list_get_next_node (view->sprites, node))
+    {
+      sprite_t* sprite = ply_list_node_get_data (node);
+      free_sprite (sprite);
+    }
+  ply_list_remove_all_nodes (view->sprites);
 }
 
 static void
@@ -985,12 +1256,11 @@ stop_animation (ply_boot_splash_plugin_t *plugin)
   ply_image_free(plugin->highlight_logo_image);
 #endif
 
-  for(node = ply_list_get_first_node (plugin->sprites); node; node = ply_list_get_next_node (plugin->sprites, node))
+  for(node = ply_list_get_first_node (plugin->views); node; node = ply_list_get_next_node (plugin->views, node))
     {
-      sprite_t* sprite = ply_list_node_get_data (node);
-      free_sprite (sprite);
+      view_t *view = ply_list_node_get_data (node);
+      view_free_sprites (view);
     }
-  ply_list_remove_all_nodes (plugin->sprites);
 }
 
 static void
@@ -998,7 +1268,6 @@ on_interrupt (ply_boot_splash_plugin_t *plugin)
 {
   ply_event_loop_exit (plugin->loop, 1);
   stop_animation (plugin);
-  ply_window_set_mode (plugin->window, PLY_WINDOW_MODE_TEXT);
 }
 
 static void
@@ -1007,33 +1276,23 @@ detach_from_event_loop (ply_boot_splash_plugin_t *plugin)
   plugin->loop = NULL;
 }
 
+static void
+draw_background (view_t             *view,
+                 ply_pixel_buffer_t *pixel_buffer,
+                 int                 x,
+                 int                 y,
+                 int                 width,
+                 int                 height);
 void
-on_keyboard_input (ply_boot_splash_plugin_t *plugin,
-                   const char               *keyboard_input,
-                   size_t                    character_size)
-{
-}
-
-void
-on_backspace (ply_boot_splash_plugin_t *plugin)
-{
-}
-
-void
-on_enter (ply_boot_splash_plugin_t *plugin,
-          const char               *text)
-{
-}
-
-
-void
-on_draw (ply_boot_splash_plugin_t *plugin,
+on_draw (view_t                   *view,
+         ply_pixel_buffer_t       *pixel_buffer,
          int                       x,
          int                       y,
          int                       width,
          int                       height)
 {
-  ply_frame_buffer_area_t clip_area;
+  ply_boot_splash_plugin_t *plugin;
+  ply_rectangle_t clip_area;
   clip_area.x = x;
   clip_area.y = y;
   clip_area.width = width;
@@ -1043,25 +1302,40 @@ on_draw (ply_boot_splash_plugin_t *plugin,
   float pixel_r=0;
   float pixel_g=0;
   float pixel_b=0;
+
+  plugin = view->plugin;
+
   if (width==1 && height==1)
       single_pixel = true;
-  else 
-      ply_frame_buffer_pause_updates (plugin->frame_buffer);
 
   if (plugin->state == PLY_BOOT_SPLASH_DISPLAY_QUESTION_ENTRY || 
       plugin->state == PLY_BOOT_SPLASH_DISPLAY_PASSWORD_ENTRY  )
     {
-      draw_background (plugin, &clip_area);
-      ply_entry_draw (plugin->entry);
-      ply_label_draw (plugin->label);
+      uint32_t *box_data, *lock_data;
+
+      draw_background (view, pixel_buffer, x, y, width, height);
+
+      box_data = ply_image_get_data (plugin->box_image);
+      ply_pixel_buffer_fill_with_argb32_data (pixel_buffer,
+                                              &view->box_area, 0, 0,
+                                              box_data);
+      ply_entry_draw_area (view->entry, pixel_buffer, x, y, width, height);
+      ply_label_draw_area (view->label, pixel_buffer, x, y, width, height);
+      lock_data = ply_image_get_data (plugin->lock_image);
+      ply_pixel_buffer_fill_with_argb32_data (pixel_buffer,
+                                              &view->lock_area, 0, 0,
+                                              lock_data);
     }
   else
     {
       ply_list_node_t *node;
-      for(node = ply_list_get_first_node (plugin->sprites); node; node = ply_list_get_next_node (plugin->sprites, node))
+
+      draw_background (view, pixel_buffer, x, y, width, height);
+
+      for(node = ply_list_get_first_node (view->sprites); node; node = ply_list_get_next_node (view->sprites, node))
         {
           sprite_t* sprite = ply_list_node_get_data (node);
-          ply_frame_buffer_area_t sprite_area;
+          ply_rectangle_t sprite_area;
 
 
           sprite_area.x = sprite->x;
@@ -1090,29 +1364,30 @@ on_draw (ply_boot_splash_plugin_t *plugin,
             }
           else
             {
-              ply_frame_buffer_fill_with_argb32_data_at_opacity_with_clip (plugin->frame_buffer,
-                                                     &sprite_area, &clip_area, 0, 0,
-                                                     ply_image_get_data (sprite->image), sprite->opacity);
+              ply_pixel_buffer_fill_with_argb32_data_at_opacity_with_clip (pixel_buffer,
+                                                                           &sprite_area, &clip_area, 0, 0,
+                                                                           ply_image_get_data (sprite->image), sprite->opacity);
             }
         }
     }
   if (single_pixel){
-      ply_frame_buffer_fill_with_color (plugin->frame_buffer, &clip_area, pixel_r, pixel_g, pixel_b, 1.0);
-      }
-  else {
-      ply_frame_buffer_unpause_updates (plugin->frame_buffer);
+      ply_pixel_buffer_fill_with_color (pixel_buffer, &clip_area, pixel_r, pixel_g, pixel_b, 1.0);
       }
 }
 
-void
-on_erase (ply_boot_splash_plugin_t *plugin,
-          int                       x,
-          int                       y,
-          int                       width,
-          int                       height)
+static void
+draw_background (view_t             *view,
+                 ply_pixel_buffer_t *pixel_buffer,
+                 int                 x,
+                 int                 y,
+                 int                 width,
+                 int                 height)
 {
-  ply_frame_buffer_area_t area;
-  ply_frame_buffer_area_t image_area;
+  ply_boot_splash_plugin_t *plugin;
+  ply_rectangle_t area;
+  ply_rectangle_t image_area;
+
+  plugin = view->plugin;
 
   area.x = x;
   area.y = y;
@@ -1121,12 +1396,12 @@ on_erase (ply_boot_splash_plugin_t *plugin,
 
   image_area.x = 0;
   image_area.y = 0;
-  image_area.width = ply_image_get_width(plugin->scaled_background_image);
-  image_area.height = ply_image_get_height(plugin->scaled_background_image);
+  image_area.width = ply_image_get_width (view->scaled_background_image);
+  image_area.height = ply_image_get_height (view->scaled_background_image);
 
-  ply_frame_buffer_fill_with_argb32_data_with_clip (plugin->frame_buffer,
-                                                     &image_area, &area, 0, 0,
-                                                     ply_image_get_data (plugin->scaled_background_image));
+  ply_pixel_buffer_fill_with_argb32_data_with_clip (pixel_buffer,
+                                                    &image_area, &area, 0, 0,
+                                                    ply_image_get_data (view->scaled_background_image));
   
   image_area.x = image_area.width-ply_image_get_width(plugin->star_image);
   image_area.y = image_area.height-ply_image_get_height(plugin->star_image);
@@ -1134,7 +1409,7 @@ on_erase (ply_boot_splash_plugin_t *plugin,
   image_area.height = ply_image_get_height(plugin->star_image);
   
   
-  ply_frame_buffer_fill_with_argb32_data_with_clip (plugin->frame_buffer,
+  ply_pixel_buffer_fill_with_argb32_data_with_clip (pixel_buffer,
                                                      &image_area, &area, 0, 0,
                                                      ply_image_get_data (plugin->star_image));
                                                      
@@ -1144,57 +1419,54 @@ on_erase (ply_boot_splash_plugin_t *plugin,
   image_area.height = ply_image_get_height(plugin->logo_image);
   
   
-  ply_frame_buffer_fill_with_argb32_data_with_clip (plugin->frame_buffer,
+  ply_pixel_buffer_fill_with_argb32_data_with_clip (pixel_buffer,
                                                      &image_area, &area, 0, 0,
                                                      ply_image_get_data (plugin->logo_image));
 }
 
 static void
-add_handlers (ply_boot_splash_plugin_t *plugin)
+add_pixel_display (ply_boot_splash_plugin_t *plugin,
+                   ply_pixel_display_t      *display)
 {
-  ply_window_add_keyboard_input_handler (plugin->window,
-                                         (ply_window_keyboard_input_handler_t)
-                                         on_keyboard_input, plugin);
-  ply_window_add_backspace_handler (plugin->window,
-                                    (ply_window_backspace_handler_t)
-                                    on_backspace, plugin);
-  ply_window_add_enter_handler (plugin->window,
-                                (ply_window_enter_handler_t)
-                                on_enter, plugin);
+  view_t *view;
 
-  ply_window_set_draw_handler (plugin->window,
-                               (ply_window_draw_handler_t)
-                               on_draw, plugin);
+  view = view_new (plugin, display);
 
-  ply_window_set_erase_handler (plugin->window,
-                               (ply_window_erase_handler_t)
-                               on_erase, plugin);
+  ply_pixel_display_set_draw_handler (view->display,
+                                      (ply_pixel_display_draw_handler_t)
+                                      on_draw, view);
+
+  ply_list_append_data (plugin->views, view);
 }
 
 static void
-remove_handlers (ply_boot_splash_plugin_t *plugin)
+remove_pixel_display (ply_boot_splash_plugin_t *plugin,
+                      ply_pixel_display_t      *display)
 {
+  ply_list_node_t *node;
 
-  ply_window_remove_keyboard_input_handler (plugin->window, (ply_window_keyboard_input_handler_t) on_keyboard_input);
-  ply_window_remove_backspace_handler (plugin->window, (ply_window_backspace_handler_t) on_backspace);
-  ply_window_remove_enter_handler (plugin->window, (ply_window_enter_handler_t) on_enter);
-  ply_window_set_draw_handler (plugin->window, NULL, NULL);
-  ply_window_set_erase_handler (plugin->window, NULL, NULL);
+  node = ply_list_get_first_node (plugin->views);
+  while (node != NULL)
+    {
+      view_t *view;
+      ply_list_node_t *next_node;
+
+      view = ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (plugin->views, node);
+
+      if (view->display == display)
+        {
+
+          ply_pixel_display_set_draw_handler (view->display, NULL, NULL);
+          view_free (view);
+          ply_list_remove_node (plugin->views, node);
+          return;
+        }
+
+      node = next_node;
+    }
 }
 
-static void
-add_window (ply_boot_splash_plugin_t *plugin,
-            ply_window_t             *window)
-{
-  plugin->window = window;
-}
-
-static void
-remove_window (ply_boot_splash_plugin_t *plugin,
-               ply_window_t             *window)
-{
-  plugin->window = NULL;
-}
 
 void highlight_image (ply_image_t *highlighted_image, ply_image_t *orig_image, int distance)
 {
@@ -1232,93 +1504,97 @@ void highlight_image (ply_image_t *highlighted_image, ply_image_t *orig_image, i
  
  
 }
-void 
-setup_scene (ply_boot_splash_plugin_t *plugin)
+
+static void 
+view_setup_scene (view_t *view)
 {
-  ply_frame_buffer_area_t screen_area;
+  ply_boot_splash_plugin_t *plugin;
   sprite_t *sprite;
   int i;
   int x, y;
   int width = 360;
   int height = 460;
+  unsigned long screen_width, screen_height;
 
-  ply_frame_buffer_get_size (plugin->frame_buffer, &screen_area);
-  
+  plugin = view->plugin;
+
+  screen_width = ply_pixel_display_get_width (view->display);
+  screen_height = ply_pixel_display_get_height (view->display);
+
     {
       star_bg_t* star_bg;
-      if (plugin->scaled_background_image)
-          ply_image_free(plugin->scaled_background_image);
-      
-      plugin->scaled_background_image = ply_image_resize (plugin->logo_image, screen_area.width, screen_area.height);
+      if (view->scaled_background_image)
+        ply_image_free (view->scaled_background_image);
+      view->scaled_background_image = ply_image_resize (plugin->logo_image, screen_width, screen_height);
       star_bg = malloc(sizeof(star_bg_t));
-      star_bg->star_count = (screen_area.width * screen_area.height)/400;
+      star_bg->star_count = (screen_width * screen_height)/400;
       star_bg->star_x = malloc(sizeof(int)*star_bg->star_count);
       star_bg->star_y = malloc(sizeof(int)*star_bg->star_count);
       star_bg->star_refresh = malloc(sizeof(int)*star_bg->star_count);
       star_bg->frame_count=0;
-      sprite = add_sprite (plugin, plugin->scaled_background_image, SPRITE_TYPE_STAR_BG, star_bg);
+      sprite = add_sprite (view, view->scaled_background_image, SPRITE_TYPE_STAR_BG, star_bg);
       sprite->z = -10000;
       
-      uint32_t* image_data = ply_image_get_data (plugin->scaled_background_image);
-      for (y=0; y< (int) screen_area.height; y++) for (x=0; x< (int) screen_area.width; x++){
-          image_data[x + y * screen_area.width] = star_bg_gradient_colour(x, y, screen_area.width, screen_area.height, false, 0);
+      uint32_t* image_data = ply_image_get_data (view->scaled_background_image);
+      for (y=0; y< (int) screen_height; y++) for (x=0; x< (int) screen_width; x++){
+          image_data[x + y * screen_width] = star_bg_gradient_colour(x, y, screen_width, screen_height, false, 0);
         }
       
       for (i=0; i<star_bg->star_count; i++){
           do
             {
-              x = rand()%screen_area.width;
-              y = rand()%screen_area.height;
+              x = rand()%screen_width;
+              y = rand()%screen_height;
             }
-          while (image_data[x + y * screen_area.width] == 0xFFFFFFFF);
+          while (image_data[x + y * screen_width] == 0xFFFFFFFF);
           star_bg->star_refresh[i] = 0;
           star_bg->star_x[i] = x;
           star_bg->star_y[i] = y;
-          image_data[x + y * screen_area.width] = 0xFFFFFFFF;
+          image_data[x + y * screen_width] = 0xFFFFFFFF;
         }
-      for (i=0; i<(int) (screen_area.width * screen_area.height)/400; i++){
-        x = rand()%screen_area.width;
-        y = rand()%screen_area.height;
-        image_data[x + y * screen_area.width] = star_bg_gradient_colour(x, y, screen_area.width, screen_area.height, true, ((float)x*y*13/10000));
+      for (i=0; i<(int) (screen_width * screen_height)/400; i++){
+        x = rand()%screen_width;
+        y = rand()%screen_height;
+        image_data[x + y * screen_width] = star_bg_gradient_colour(x, y, screen_width, screen_height, true, ((float)x*y*13/10000));
         }
       
       for (i=0; i<star_bg->star_count; i++){
-        image_data[star_bg->star_x[i]  + star_bg->star_y[i] * screen_area.width] = 
-            star_bg_gradient_colour(star_bg->star_x[i], star_bg->star_y[i], screen_area.width, screen_area.height, true, 0.0);
+        image_data[star_bg->star_x[i]  + star_bg->star_y[i] * screen_width] = 
+            star_bg_gradient_colour(star_bg->star_x[i], star_bg->star_y[i], screen_width, screen_height, true, 0.0);
         }
     }
 
-  sprite = add_sprite (plugin, plugin->logo_image, SPRITE_TYPE_STATIC, NULL);
-  sprite->x=screen_area.width/2-ply_image_get_width(plugin->logo_image)/2;
-  sprite->y=screen_area.height/2-ply_image_get_height(plugin->logo_image)/2;
+  sprite = add_sprite (view, plugin->logo_image, SPRITE_TYPE_STATIC, NULL);
+  sprite->x=screen_width/2-ply_image_get_width(plugin->logo_image)/2;
+  sprite->y=screen_height/2-ply_image_get_height(plugin->logo_image)/2;
   sprite->z=1000;
 
 #ifdef SHOW_LOGO_HALO
   plugin->highlight_logo_image = ply_image_resize (plugin->logo_image, ply_image_get_width(plugin->logo_image)+HALO_BLUR*2, ply_image_get_height(plugin->logo_image)+HALO_BLUR*2);
   highlight_image (plugin->highlight_logo_image, plugin->logo_image, HALO_BLUR);
-  sprite = add_sprite (plugin, plugin->highlight_logo_image, SPRITE_TYPE_STATIC, NULL);
+  sprite = add_sprite (view, plugin->highlight_logo_image, SPRITE_TYPE_STATIC, NULL);
   sprite->x=10-HALO_BLUR;
   sprite->y=10-HALO_BLUR;
   sprite->z=-910;
 #endif
 
-  sprite = add_sprite (plugin, plugin->star_image, SPRITE_TYPE_STATIC, NULL);
-  sprite->x=screen_area.width-ply_image_get_width(plugin->star_image);
-  sprite->y=screen_area.height-ply_image_get_height(plugin->star_image);
+  sprite = add_sprite (view, plugin->star_image, SPRITE_TYPE_STATIC, NULL);
+  sprite->x=screen_width-ply_image_get_width(plugin->star_image);
+  sprite->y=screen_height-ply_image_get_height(plugin->star_image);
   sprite->z=0;
 #ifdef  SHOW_PLANETS
   for (i=0; i<5; i++)
     {
        satellite_t* satellite = malloc(sizeof(satellite_t));
        satellite->type=SATELLITE_TYPE_PLANET;
-       satellite->end_x=satellite->start_x=720-800+screen_area.width;
-       satellite->end_y=satellite->start_y=300-480+screen_area.height;
+       satellite->end_x=satellite->start_x=720-800+screen_width;
+       satellite->end_y=satellite->start_y=300-480+screen_height;
 
        satellite->distance=i*100+280;
        satellite->theta=M_PI*0.8;
        satellite->image=plugin->planet_image[i];
        satellite->image_altered=ply_image_resize (satellite->image, ply_image_get_width(satellite->image), ply_image_get_height(satellite->image));
-       sprite = add_sprite (plugin, satellite->image_altered, SPRITE_TYPE_SATELLITE, satellite);
+       sprite = add_sprite (view, satellite->image_altered, SPRITE_TYPE_SATELLITE, satellite);
        satellite_move (plugin, sprite, 0);
 
     }
@@ -1328,8 +1604,8 @@ setup_scene (ply_boot_splash_plugin_t *plugin)
     {
       satellite_t* satellite = malloc(sizeof(satellite_t));
       satellite->type=SATELLITE_TYPE_COMET;
-      satellite->end_x=satellite->start_x=720-800+screen_area.width;
-      satellite->end_y=satellite->start_y=300-480+screen_area.height;
+      satellite->end_x=satellite->start_x=720-800+screen_width;
+      satellite->end_y=satellite->start_y=300-480+screen_height;
       satellite->distance=550+i*50;
       satellite->theta=M_PI*0.8;
 #define COMET_SIZE 64
@@ -1344,7 +1620,7 @@ setup_scene (ply_boot_splash_plugin_t *plugin)
           image_altered_data[x + y * COMET_SIZE] = 0x0;
         }
             
-      sprite = add_sprite (plugin, satellite->image_altered, SPRITE_TYPE_SATELLITE, satellite);
+      sprite = add_sprite (view, satellite->image_altered, SPRITE_TYPE_SATELLITE, satellite);
       for (x=0; x<COMET_SIZE; x++) satellite_move (plugin, sprite, 0);
      }
 #endif
@@ -1354,18 +1630,18 @@ setup_scene (ply_boot_splash_plugin_t *plugin)
   
   progress->image = plugin->progress_barimage;
   
-  x = screen_area.width/2-ply_image_get_width(plugin->logo_image)/2;;
-  y = screen_area.height/2+ply_image_get_height(plugin->logo_image)/2+20;
+  x = screen_width/2-ply_image_get_width(plugin->logo_image)/2;;
+  y = screen_height/2+ply_image_get_height(plugin->logo_image)/2+20;
   progress->image_altered = ply_image_resize (plugin->progress_barimage, ply_image_get_width(plugin->logo_image), ply_image_get_height(plugin->progress_barimage));
   progress->start_width = 1;
   progress->end_width = ply_image_get_width(plugin->logo_image);
   progress->current_width = 0;
   
-  sprite = add_sprite (plugin, progress->image_altered, SPRITE_TYPE_PROGRESS, progress);
+  sprite = add_sprite (view, progress->image_altered, SPRITE_TYPE_PROGRESS, progress);
   sprite->x=x;
   sprite->y=y;
   sprite->z=10011;
-  progress_update (plugin, sprite, 0);
+  progress_update (view, sprite, 0);
   
   
   
@@ -1376,12 +1652,12 @@ setup_scene (ply_boot_splash_plugin_t *plugin)
   flare->image_a = ply_image_resize (plugin->star_image, width, height);
   flare->image_b = ply_image_resize (plugin->star_image, width, height);
 
-  sprite = add_sprite (plugin, flare->image_a, SPRITE_TYPE_FLARE, flare);
-  sprite->x=screen_area.width-width;
-  sprite->y=screen_area.height-height;
+  sprite = add_sprite (view, flare->image_a, SPRITE_TYPE_FLARE, flare);
+  sprite->x=screen_width-width;
+  sprite->y=screen_height-height;
   sprite->z=1;
 
-  sprite_list_sort (plugin);
+  sprite_list_sort (view);
 
   uint32_t * old_image_data = ply_image_get_data (flare->image_a);
   uint32_t * new_image_data = ply_image_get_data (flare->image_b);
@@ -1412,8 +1688,6 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
 {
   assert (plugin != NULL);
   assert (plugin->logo_image != NULL);
-
-  add_handlers (plugin);
 
   plugin->loop = loop;
   plugin->mode = mode;
@@ -1452,15 +1726,11 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
   if (!ply_image_load (plugin->box_image))
     return false;
 
-  ply_trace ("loading entry");
-  if (!ply_entry_load (plugin->entry))
-    return false;
-
-  ply_trace ("setting graphics mode");
-  if (!ply_window_set_mode (plugin->window, PLY_WINDOW_MODE_GRAPHICS))
-    return false;
-
-  plugin->frame_buffer = ply_window_get_frame_buffer (plugin->window);
+  if (!load_views (plugin))
+    {
+      ply_trace ("couldn't load views");
+      return false;
+    }
 
   ply_event_loop_watch_for_exit (loop, (ply_event_loop_exit_handler_t)
                                  detach_from_event_loop,
@@ -1470,9 +1740,6 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
                                SIGINT,
                                (ply_event_handler_t) 
                                on_interrupt, plugin);
-
-  ply_window_clear_screen (plugin->window);
-  ply_window_hide_text_cursor (plugin->window);
 
   ply_trace ("starting boot animation");
 
@@ -1496,8 +1763,6 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin,
 {
   assert (plugin != NULL);
 
-  remove_handlers (plugin);
-
   if (plugin->loop != NULL)
     {
       stop_animation (plugin);
@@ -1508,76 +1773,53 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin,
       detach_from_event_loop (plugin);
     }
 
-  plugin->frame_buffer = NULL;
   plugin->is_visible = false;
-
-  ply_window_set_mode (plugin->window, PLY_WINDOW_MODE_TEXT);
 }
 
 static void
 show_password_prompt (ply_boot_splash_plugin_t *plugin,
-                      const char               *prompt)
+                      const char               *text,
+                      int                       number_of_bullets)
 {
-  ply_frame_buffer_area_t area;
-  int x, y;
-  int entry_width, entry_height;
+  ply_list_node_t *node;
 
-  uint32_t *box_data, *lock_data;
-
-  assert (plugin != NULL);
-
-  if (ply_entry_is_hidden (plugin->entry))
+  node = ply_list_get_first_node (plugin->views);
+  while (node != NULL)
     {
-      draw_background (plugin, NULL);
+      ply_list_node_t *next_node;
+      view_t *view;
 
-      ply_frame_buffer_get_size (plugin->frame_buffer, &area);
-      plugin->box_area.width = ply_image_get_width (plugin->box_image);
-      plugin->box_area.height = ply_image_get_height (plugin->box_image);
-      plugin->box_area.x = area.width / 2.0 - plugin->box_area.width / 2.0;
-      plugin->box_area.y = area.height / 2.0 - plugin->box_area.height / 2.0;
+      view = ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (plugin->views, node);
 
-      plugin->lock_area.width = ply_image_get_width (plugin->lock_image);
-      plugin->lock_area.height = ply_image_get_height (plugin->lock_image);
+      view_show_prompt (view, text);
+      ply_entry_set_bullet_count (view->entry, number_of_bullets);
 
-      entry_width = ply_entry_get_width (plugin->entry);
-      entry_height = ply_entry_get_height (plugin->entry);
-
-      x = area.width / 2.0 - (plugin->lock_area.width + entry_width) / 2.0 + plugin->lock_area.width;
-      y = area.height / 2.0 - entry_height / 2.0;
-
-      plugin->lock_area.x = area.width / 2.0 - (plugin->lock_area.width + entry_width) / 2.0;
-      plugin->lock_area.y = area.height / 2.0 - plugin->lock_area.height / 2.0;
-
-      box_data = ply_image_get_data (plugin->box_image);
-      ply_frame_buffer_fill_with_argb32_data (plugin->frame_buffer,
-                                              &plugin->box_area, 0, 0,
-                                              box_data);
-
-      ply_entry_show (plugin->entry, plugin->loop, plugin->window, x, y);
-
-      lock_data = ply_image_get_data (plugin->lock_image);
-      ply_frame_buffer_fill_with_argb32_data (plugin->frame_buffer,
-                                              &plugin->lock_area, 0, 0,
-                                              lock_data);
+      node = next_node;
     }
-  else
+}
+
+static void
+show_prompt (ply_boot_splash_plugin_t *plugin,
+             const char               *prompt,
+             const char               *entry_text)
+{
+  ply_list_node_t *node;
+
+  node = ply_list_get_first_node (plugin->views);
+  while (node != NULL)
     {
-      ply_entry_draw (plugin->entry);
+      ply_list_node_t *next_node;
+      view_t *view;
+
+      view = ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (plugin->views, node);
+
+      view_show_prompt (view, prompt);
+      ply_entry_set_text (view->entry, entry_text);
+
+      node = next_node;
     }
-  if (prompt != NULL)
-    {
-      int label_width, label_height;
-
-      ply_label_set_text (plugin->label, prompt);
-      label_width = ply_label_get_width (plugin->label);
-      label_height = ply_label_get_height (plugin->label);
-
-      x = plugin->box_area.x + plugin->lock_area.width / 2;
-      y = plugin->box_area.y + plugin->box_area.height;
-
-      ply_label_show (plugin->label, plugin->window, x, y);
-    }
-
 }
 
 static void
@@ -1597,12 +1839,14 @@ become_idle (ply_boot_splash_plugin_t *plugin,
 static void
 display_normal (ply_boot_splash_plugin_t *plugin)
 {
+  pause_views (plugin);
   if (plugin->state != PLY_BOOT_SPLASH_DISPLAY_NORMAL)
-    {
-      plugin->state = PLY_BOOT_SPLASH_DISPLAY_NORMAL;
-      ply_entry_hide (plugin->entry);
-      start_animation(plugin);
-    }
+    hide_prompt (plugin);
+
+  plugin->state = PLY_BOOT_SPLASH_DISPLAY_NORMAL;
+  start_animation (plugin);
+  redraw_views (plugin);
+  unpause_views (plugin);
 }
 
 static void
@@ -1610,13 +1854,14 @@ display_password (ply_boot_splash_plugin_t *plugin,
                   const char               *prompt,
                   int                       bullets)
 {
+  pause_views (plugin);
   if (plugin->state == PLY_BOOT_SPLASH_DISPLAY_NORMAL)
-    {
-      stop_animation (plugin);
-    }
+    stop_animation (plugin);
+
   plugin->state = PLY_BOOT_SPLASH_DISPLAY_PASSWORD_ENTRY;
-  show_password_prompt (plugin, prompt);
-  ply_entry_set_bullet_count (plugin->entry, bullets);
+  show_password_prompt (plugin, prompt, bullets);
+  redraw_views (plugin);
+  unpause_views (plugin);
 }
 
 static void
@@ -1624,14 +1869,14 @@ display_question (ply_boot_splash_plugin_t *plugin,
                   const char               *prompt,
                   const char               *entry_text)
 {
+  pause_views (plugin);
   if (plugin->state == PLY_BOOT_SPLASH_DISPLAY_NORMAL)
-    {
-      stop_animation (plugin);
-    }
+    stop_animation (plugin);
 
   plugin->state = PLY_BOOT_SPLASH_DISPLAY_QUESTION_ENTRY;
-  show_password_prompt (plugin, prompt);
-  ply_entry_set_text (plugin->entry, entry_text);
+  show_prompt (plugin, prompt, entry_text);
+  redraw_views (plugin);
+  unpause_views (plugin);
 }
 
 ply_boot_splash_plugin_interface_t *
@@ -1641,8 +1886,8 @@ ply_boot_splash_plugin_get_interface (void)
     {
       .create_plugin = create_plugin,
       .destroy_plugin = destroy_plugin,
-      .add_window = add_window,
-      .remove_window = remove_window,
+      .add_pixel_display = add_pixel_display,
+      .remove_pixel_display = remove_pixel_display,
       .show_splash_screen = show_splash_screen,
       .update_status = update_status,
       .on_boot_progress = on_boot_progress,

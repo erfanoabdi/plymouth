@@ -1,3 +1,3 @@
-SUBDIRS = controls splash
+SUBDIRS = controls splash renderers
 
 MAINTAINERCLEANFILES = Makefile.in
