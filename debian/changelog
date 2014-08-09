@@ -1,3 +1,10 @@
+plymouth (0.9.0-7) UNRELEASED; urgency=medium
+
+  * Add d/p/libply-splash-core-also-monitor-for-file-removal-in-.patch
+    - Correctly detect the end of coldplugging with udev (>= 213)
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Sat, 09 Aug 2014 15:26:31 +0200
+
 plymouth (0.9.0-6) unstable; urgency=medium
 
   * New maintainer (Closes: #756075)

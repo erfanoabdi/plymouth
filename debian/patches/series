@@ -7,3 +7,4 @@
 0008-show-delay.patch
 0009-use-correct-utf8-multibyte-sequence.patch
 0010-revert-systemd-wantedby.patch
+libply-splash-core-also-monitor-for-file-removal-in-.patch

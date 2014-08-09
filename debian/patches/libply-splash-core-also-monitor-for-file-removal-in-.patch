@@ -1,0 +1,22 @@
+From b7fdd62fffd089becdd68f87a55f83d1c6dba618 Mon Sep 17 00:00:00 2001
+From: Frederic Crozat <fcrozat@suse.com>
+Date: Thu, 19 Jun 2014 17:58:50 +0200
+Subject: [PATCH] libply-splash-core: also monitor for file removal in udev
+ directory
+
+Ensure plymouth detects coldplug completion with recent udev (>= 213).
+---
+ src/libply-splash-core/ply-device-manager.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+--- a/src/libply-splash-core/ply-device-manager.c
++++ b/src/libply-splash-core/ply-device-manager.c
+@@ -762,7 +762,7 @@
+     }
+ 
+   fd = inotify_init1 (IN_CLOEXEC);
+-  result = inotify_add_watch (fd, "/run/udev", IN_MOVED_TO);
++  result = inotify_add_watch (fd, "/run/udev", IN_MOVED_TO | IN_DELETE);
+ 
+   if (result < 0)
+     {
