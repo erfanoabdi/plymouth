@@ -29,8 +29,8 @@ Depends:
  ${shlibs:Depends},
   initramfs-tools | dracut,
 Conflicts: console-common
-Breaks: plymouth-drm (<< 0.9.0-6~)
-Replaces: plymouth-drm (<< 0.9.0-6~)
+Breaks: plymouth-drm (<< 0.9.0-6~), plymouth-themes (<< 0.9.0-8~)
+Replaces: plymouth-drm (<< 0.9.0-6~), plymouth-themes (<< 0.9.0-8~)
 Suggests:
  desktop-base,
  plymouth-themes

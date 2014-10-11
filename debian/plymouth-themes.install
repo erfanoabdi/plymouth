@@ -1,6 +1,5 @@
 usr/lib/*/plymouth/fade-throbber.so
 usr/lib/*/plymouth/label.so
-usr/lib/*/plymouth/script.so
 usr/lib/*/plymouth/space-flares.so
 usr/lib/*/plymouth/throbgress.so
 usr/lib/*/plymouth/two-step.so
