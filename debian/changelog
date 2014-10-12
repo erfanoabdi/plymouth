@@ -5,8 +5,9 @@ plymouth (0.9.0-8) UNRELEASED; urgency=medium
   * debian/patches/drop-systemd-vconsole-setup-service.patch: Remove
     references to systemd-vconsole-setup.service as it isn't shipped in Debian
     (Closes: #755194)
+  * debian/control: Bump Standards-Version to 3.9.6 (no further changes)
 
- -- Laurent Bigonville <bigon@debian.org>  Sun, 12 Oct 2014 19:47:34 +0200
+ -- Laurent Bigonville <bigon@debian.org>  Sun, 12 Oct 2014 19:50:01 +0200
 
 plymouth (0.9.0-7) unstable; urgency=medium
 
