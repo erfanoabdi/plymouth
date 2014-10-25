@@ -1,4 +1,4 @@
-plymouth (0.9.0-8) UNRELEASED; urgency=medium
+plymouth (0.9.0-8) unstable; urgency=medium
 
   * Move the script.so from plymouth-themes to the main plymouth package
     (Closes: #764644)
@@ -7,7 +7,7 @@ plymouth (0.9.0-8) UNRELEASED; urgency=medium
     (Closes: #755194)
   * debian/control: Bump Standards-Version to 3.9.6 (no further changes)
 
- -- Laurent Bigonville <bigon@debian.org>  Sun, 12 Oct 2014 19:50:01 +0200
+ -- Laurent Bigonville <bigon@debian.org>  Sun, 26 Oct 2014 01:08:41 +0200
 
 plymouth (0.9.0-7) unstable; urgency=medium
 
