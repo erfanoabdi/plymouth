@@ -27,7 +27,8 @@ Pre-Depends: ${misc:Pre-Depends}
 Depends:
  ${misc:Depends},
  ${shlibs:Depends},
-  initramfs-tools | dracut,
+ initramfs-tools | dracut,
+ init-system-helpers,
 Conflicts: console-common
 Breaks: plymouth-drm (<< 0.9.0-6~), plymouth-themes (<< 0.9.0-8~)
 Replaces: plymouth-drm (<< 0.9.0-6~), plymouth-themes (<< 0.9.0-8~)
