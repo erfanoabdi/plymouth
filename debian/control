@@ -35,10 +35,15 @@ Replaces: plymouth-drm (<< 0.9.0-6~), plymouth-themes (<< 0.9.0-8~)
 Suggests:
  desktop-base,
  plymouth-themes
-Description: Graphical Boot Animation and Logger
- Plymouth provides an attractive boot animation in place of the text messages
- that normally get shown. Text messages are instead redirected to a logfile for
- viewing after boot.
+Description: boot animation, logger and I/O multiplexer
+ Plymouth provides a boot-time I/O multiplexing framework - the most obvious
+ use for which is to provide an attractive graphical animation in place of
+ the text messages that normally get shown during boot. (The messages are
+ instead redirected to a logfile for later viewing.) However, in event-driven
+ boot systems Plymouth can also usefully handle user interaction such as
+ password prompts for encrypted file systems.
+ .
+ This package provides the basic framework, enabling a text-mode animation.
 
 Package: plymouth-x11
 Architecture: linux-any
@@ -48,12 +53,16 @@ Depends:
  plymouth (= ${binary:Version}),
 Recommends: plymouth-themes
 Suggests: gdm
-Description: Graphical Boot Animation and Logger (x11 renderer and log viewer)
- Plymouth provides an attractive boot animation in place of the text messages
- that normally get shown. Text messages are instead redirected to a logfile for
- viewing after boot.
+Description: boot animation, logger and I/O multiplexer - X11 renderer and log viewer
+ Plymouth provides a boot-time I/O multiplexing framework - the most obvious
+ use for which is to provide an attractive graphical animation in place of
+ the text messages that normally get shown during boot. (The messages are
+ instead redirected to a logfile for later viewing.) However, in event-driven
+ boot systems Plymouth can also usefully handle user interaction such as
+ password prompts for encrypted file systems.
  .
- This package contains the x11 renderer and the log viewer.
+ This package contains the log viewer and the X11 renderer for a graphical
+ boot splash.
 
 Package: plymouth-dbg
 Architecture: linux-any
@@ -65,12 +74,15 @@ Depends:
  plymouth-x11 (= ${binary:Version}),
  plymouth-dev (= ${binary:Version}),
  plymouth-themes (>= ${source:Version}),
-Description: Graphical Boot Animation and Logger (debug)
- Plymouth provides an attractive boot animation in place of the text messages
- that normally get shown. Text messages are instead redirected to a logfile for
- viewing after boot.
+Description: boot animation, logger and I/O multiplexer - debug symbols
+ Plymouth provides a boot-time I/O multiplexing framework - the most obvious
+ use for which is to provide an attractive graphical animation in place of
+ the text messages that normally get shown during boot. (The messages are
+ instead redirected to a logfile for later viewing.) However, in event-driven
+ boot systems Plymouth can also usefully handle user interaction such as
+ password prompts for encrypted file systems.
  .
- This package contains the debuging symbols.
+ This package contains the debugging symbols.
 
 Package: plymouth-dev
 Architecture: linux-any
@@ -78,10 +90,13 @@ Depends:
  ${misc:Depends},
  plymouth (= ${binary:Version}),
  plymouth-x11 (= ${binary:Version}),
-Description: Graphical Boot Animation and Logger (development)
- Plymouth provides an attractive boot animation in place of the text messages
- that normally get shown. Text messages are instead redirected to a logfile for
- viewing after boot.
+Description: boot animation, logger and I/O multiplexer - development files
+ Plymouth provides a boot-time I/O multiplexing framework - the most obvious
+ use for which is to provide an attractive graphical animation in place of
+ the text messages that normally get shown during boot. (The messages are
+ instead redirected to a logfile for later viewing.) However, in event-driven
+ boot systems Plymouth can also usefully handle user interaction such as
+ password prompts for encrypted file systems.
  .
  This package contains the development files.
 
@@ -120,12 +135,15 @@ Provides:
  plymouth-themes-spinfinity,
  plymouth-themes-spinner,
 Breaks: plymouth-drm (<< 0.9.0-6~)
-Description: Graphical Boot Animation and Logger (themes)
- Plymouth provides an attractive boot animation in place of the text messages
- that normally get shown. Text messages are instead redirected to a logfile for
- viewing after boot.
+Description: boot animation, logger and I/O multiplexer - themes
+ Plymouth provides a boot-time I/O multiplexing framework - the most obvious
+ use for which is to provide an attractive graphical animation in place of
+ the text messages that normally get shown during boot. (The messages are
+ instead redirected to a logfile for later viewing.) However, in event-driven
+ boot systems Plymouth can also usefully handle user interaction such as
+ password prompts for encrypted file systems.
  .
- This package is the themes:
+ This package provides the following themes:
  .
   * fade-in: features a centered logo that fades in and out while stars twinkle
     around the logo during system boot up.

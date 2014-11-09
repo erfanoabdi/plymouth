@@ -5,8 +5,10 @@ plymouth (0.9.0-9) UNRELEASED; urgency=medium
     (Closes: #767937)
   * debian/local/plymouth.hook: Test if the plugin is present on disk before
     trying to copy it to the initramfs (Closes: #767170)
+  * debian/control: Reword the package description. (Closes: #768350)
+    Thanks to Justin B Rye <justin.byam.rye@gmail.com>
 
- -- Laurent Bigonville <bigon@debian.org>  Sun, 09 Nov 2014 13:30:01 +0100
+ -- Laurent Bigonville <bigon@debian.org>  Sun, 09 Nov 2014 14:52:09 +0100
 
 plymouth (0.9.0-8) unstable; urgency=medium
 
