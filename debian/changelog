@@ -3,8 +3,10 @@ plymouth (0.9.0-9) UNRELEASED; urgency=medium
   * debian/control: Add a dependency against init-system-helpers as we are
     explicitly using deb-systemd-helper in the plymouth postinst script
     (Closes: #767937)
+  * debian/local/plymouth.hook: Test if the plugin is present on disk before
+    trying to copy it to the initramfs (Closes: #767170)
 
- -- Laurent Bigonville <bigon@debian.org>  Mon, 03 Nov 2014 16:38:25 +0100
+ -- Laurent Bigonville <bigon@debian.org>  Sun, 09 Nov 2014 13:30:01 +0100
 
 plymouth (0.9.0-8) unstable; urgency=medium
 
