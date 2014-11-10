@@ -15,5 +15,5 @@ Forwarded: not-needed
 +Wants=systemd-ask-password-plymouth.path
 +After=systemd-udev-trigger.service systemd-udevd.service keyboard-setup.service
  Before=systemd-ask-password-plymouth.service
- ConditionKernelCommandLine=splash
- 
+ ConditionKernelCommandLine=!plymouth.enable=0
+ ConditionKernelCommandLine=!nosplash

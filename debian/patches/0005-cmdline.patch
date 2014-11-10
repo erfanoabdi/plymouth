@@ -1,89 +1,74 @@
-Author: Daniel Baumann <mail@daniel-baumann.ch>
+Author: Laurent Bigonville <bigon@debian.org
 Description:
- Using 'splash' as boot parameter instead of 'plymouth.enable' in system unit
- files (Closes: #680517).
+ Handle 'nosplash' boot parameter as 'plymouth.enable=0' in system unit
 
-diff -Naurp plymouth.orig/systemd-units/plymouth-halt.service.in plymouth/systemd-units/plymouth-halt.service.in
---- plymouth.orig/systemd-units/plymouth-halt.service.in
-+++ plymouth/systemd-units/plymouth-halt.service.in
-@@ -3,7 +3,7 @@ Description=Show Plymouth Halt Screen
- After=getty@tty1.service display-manager.service plymouth-start.service
+--- a/systemd-units/plymouth-halt.service.in
++++ b/systemd-units/plymouth-halt.service.in
+@@ -4,6 +4,7 @@ After=getty@tty1.service display-manager
  Before=systemd-halt.service
  DefaultDependencies=no
--ConditionKernelCommandLine=!plymouth.enable=0
-+ConditionKernelCommandLine=splash
+ ConditionKernelCommandLine=!plymouth.enable=0
++ConditionKernelCommandLine=!nosplash
  
  [Service]
  ExecStart=@PLYMOUTH_DAEMON_DIR@/plymouthd --mode=shutdown --attach-to-session
-diff -Naurp plymouth.orig/systemd-units/plymouth-kexec.service.in plymouth/systemd-units/plymouth-kexec.service.in
---- plymouth.orig/systemd-units/plymouth-kexec.service.in
-+++ plymouth/systemd-units/plymouth-kexec.service.in
-@@ -3,7 +3,7 @@ Description=Show Plymouth Reboot with ke
- After=getty@tty1.service display-manager.service plymouth-start.service
+--- a/systemd-units/plymouth-kexec.service.in
++++ b/systemd-units/plymouth-kexec.service.in
+@@ -4,6 +4,7 @@ After=getty@tty1.service display-manager
  Before=systemd-kexec.service
  DefaultDependencies=no
--ConditionKernelCommandLine=!plymouth.enable=0
-+ConditionKernelCommandLine=splash
+ ConditionKernelCommandLine=!plymouth.enable=0
++ConditionKernelCommandLine=!nosplash
  
  [Service]
  ExecStart=@PLYMOUTH_DAEMON_DIR@/plymouthd --mode=shutdown --attach-to-session
-diff -Naurp plymouth.orig/systemd-units/plymouth-poweroff.service.in plymouth/systemd-units/plymouth-poweroff.service.in
---- plymouth.orig/systemd-units/plymouth-poweroff.service.in
-+++ plymouth/systemd-units/plymouth-poweroff.service.in
-@@ -3,7 +3,7 @@ Description=Show Plymouth Power Off Scre
- After=getty@tty1.service display-manager.service plymouth-start.service
+--- a/systemd-units/plymouth-poweroff.service.in
++++ b/systemd-units/plymouth-poweroff.service.in
+@@ -4,6 +4,7 @@ After=getty@tty1.service display-manager
  Before=systemd-poweroff.service
  DefaultDependencies=no
--ConditionKernelCommandLine=!plymouth.enable=0
-+ConditionKernelCommandLine=splash
+ ConditionKernelCommandLine=!plymouth.enable=0
++ConditionKernelCommandLine=!nosplash
  
  [Service]
  ExecStart=@PLYMOUTH_DAEMON_DIR@/plymouthd --mode=shutdown --attach-to-session
-diff -Naurp plymouth.orig/systemd-units/plymouth-reboot.service.in plymouth/systemd-units/plymouth-reboot.service.in
---- plymouth.orig/systemd-units/plymouth-reboot.service.in
-+++ plymouth/systemd-units/plymouth-reboot.service.in
-@@ -3,7 +3,7 @@ Description=Show Plymouth Reboot Screen
- After=getty@tty1.service display-manager.service plymouth-start.service
+--- a/systemd-units/plymouth-reboot.service.in
++++ b/systemd-units/plymouth-reboot.service.in
+@@ -4,6 +4,7 @@ After=getty@tty1.service display-manager
  Before=systemd-reboot.service
  DefaultDependencies=no
--ConditionKernelCommandLine=!plymouth.enable=0
-+ConditionKernelCommandLine=splash
+ ConditionKernelCommandLine=!plymouth.enable=0
++ConditionKernelCommandLine=!nosplash
  
  [Service]
  ExecStart=@PLYMOUTH_DAEMON_DIR@/plymouthd --mode=shutdown --attach-to-session
-diff -Naurp plymouth.orig/systemd-units/plymouth-start.service.in plymouth/systemd-units/plymouth-start.service.in
---- plymouth.orig/systemd-units/plymouth-start.service.in
-+++ plymouth/systemd-units/plymouth-start.service.in
-@@ -4,7 +4,7 @@ DefaultDependencies=no
- Wants=systemd-ask-password-plymouth.path systemd-vconsole-setup.service
+--- a/systemd-units/plymouth-start.service.in
++++ b/systemd-units/plymouth-start.service.in
+@@ -5,6 +5,7 @@ Wants=systemd-ask-password-plymouth.path
  After=systemd-vconsole-setup.service systemd-udev-trigger.service systemd-udevd.service
  Before=systemd-ask-password-plymouth.service
--ConditionKernelCommandLine=!plymouth.enable=0
-+ConditionKernelCommandLine=splash
+ ConditionKernelCommandLine=!plymouth.enable=0
++ConditionKernelCommandLine=!nosplash
  
  [Service]
  ExecStart=@PLYMOUTH_DAEMON_DIR@/plymouthd --mode=boot --pid-file=@plymouthruntimedir@/pid --attach-to-session
-diff -Naurp plymouth.orig/systemd-units/systemd-ask-password-plymouth.path.in plymouth/systemd-units/systemd-ask-password-plymouth.path.in
---- plymouth.orig/systemd-units/systemd-ask-password-plymouth.path.in	2012-09-26 18:50:53.000000000 +0200
-+++ plymouth/systemd-units/systemd-ask-password-plymouth.path.in
-@@ -5,7 +5,7 @@ DefaultDependencies=no
- Conflicts=shutdown.target
+--- a/systemd-units/systemd-ask-password-plymouth.path.in
++++ b/systemd-units/systemd-ask-password-plymouth.path.in
+@@ -6,6 +6,7 @@ Conflicts=shutdown.target
  After=plymouth-start.service
  Before=basic.target shutdown.target
--ConditionKernelCommandLine=!plymouth.enable=0
-+ConditionKernelCommandLine=splash
+ ConditionKernelCommandLine=!plymouth.enable=0
++ConditionKernelCommandLine=!nosplash
  ConditionPathExists=/run/plymouth/pid
  
  [Path]
-diff -Naurp plymouth.orig/systemd-units/systemd-ask-password-plymouth.service.in plymouth/systemd-units/systemd-ask-password-plymouth.service.in
---- plymouth.orig/systemd-units/systemd-ask-password-plymouth.service.in
-+++ plymouth/systemd-units/systemd-ask-password-plymouth.service.in
-@@ -5,7 +5,7 @@ DefaultDependencies=no
- Conflicts=shutdown.target
+--- a/systemd-units/systemd-ask-password-plymouth.service.in
++++ b/systemd-units/systemd-ask-password-plymouth.service.in
+@@ -6,6 +6,7 @@ Conflicts=shutdown.target
  After=plymouth-start.service
  Before=shutdown.target
--ConditionKernelCommandLine=!plymouth.enable=0
-+ConditionKernelCommandLine=splash
+ ConditionKernelCommandLine=!plymouth.enable=0
++ConditionKernelCommandLine=!nosplash
  ConditionPathExists=/run/plymouth/pid
  
  [Service]
