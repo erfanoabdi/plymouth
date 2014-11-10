@@ -7,8 +7,11 @@ plymouth (0.9.0-9) UNRELEASED; urgency=medium
     trying to copy it to the initramfs (Closes: #767170)
   * debian/control: Reword the package description. (Closes: #768350)
     Thanks to Justin B Rye <justin.byam.rye@gmail.com>
+  * debian/local/plymouth.hook: Properly copy .plymouth file into the
+    initramfs for themes that are not shipping images, this should fix the
+    tribar theme.
 
- -- Laurent Bigonville <bigon@debian.org>  Sun, 09 Nov 2014 14:52:09 +0100
+ -- Laurent Bigonville <bigon@debian.org>  Mon, 10 Nov 2014 12:48:27 +0100
 
 plymouth (0.9.0-8) unstable; urgency=medium
 

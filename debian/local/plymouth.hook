@@ -32,7 +32,7 @@ fi
 PLUGIN_PATH="$(plymouth --get-splash-plugin-path)"
 
 case "${THEME_NAME}" in
-	text|details)
+	text|details|tribar)
 		PLUGINS="text.so details.so"
 		;;
 
@@ -52,12 +52,7 @@ fi
 # copy plugin and images for current theme
 copy_exec "${MODULE}"
 mkdir -p "${DESTDIR}/${THEMES}"
-IMAGES="$(sed -n 's/^ImageDir=\(.*\)/\1/p' ${THEME})"
-# No images in text mode:
-if [ -n "${IMAGES}" ]
-then
-	cp -r "${IMAGES}" "${DESTDIR}/${THEMES}"
-fi
+cp -r "${THEMES}/${THEME_NAME}" "${DESTDIR}/${THEMES}"
 
 # copy binaries and base plugins
 copy_exec /bin/plymouth
