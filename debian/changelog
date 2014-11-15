@@ -1,5 +1,6 @@
 plymouth (0.9.0-9) UNRELEASED; urgency=medium
 
+  [ Laurent Bigonville ]
   * debian/control: Add a dependency against init-system-helpers as we are
     explicitly using deb-systemd-helper in the plymouth postinst script
     (Closes: #767937)
@@ -11,7 +12,13 @@ plymouth (0.9.0-9) UNRELEASED; urgency=medium
     initramfs for themes that are not shipping images, this should fix the
     tribar theme.
 
- -- Laurent Bigonville <bigon@debian.org>  Mon, 10 Nov 2014 12:48:27 +0100
+  [ Sjoerd Simons ]
+  * debian/patches/debian/patches/utils-Don-t-create-unix-sockets-non-blocking.patch:
+    + Added. Don't open unix socket connections as non-blocking as the read
+    function assume blocking sockets. Fixes plymouth failing to query the
+    password from the user  (Closes: #763276)
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Sat, 15 Nov 2014 17:50:48 +0100
 
 plymouth (0.9.0-8) unstable; urgency=medium
 

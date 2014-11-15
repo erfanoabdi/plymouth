@@ -1,0 +1,25 @@
+From 15f39e3d1d8885f5ae15b358eba20b4edb799449 Mon Sep 17 00:00:00 2001
+From: Sjoerd Simons <sjoerd@luon.net>
+Date: Fri, 14 Nov 2014 21:55:50 +0100
+Subject: [PATCH] utils: Don't create unix sockets non blocking
+
+All the ply_read* functions assume the socket is doing blocking reads,
+so opening unix sockets in non-blocking mode doesn't seem the best idea.
+
+Specifically, this was causing ask-password to fail to read the response
+at times as it got a -EAGAIN back from read rather then data.
+---
+ src/libply/ply-utils.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+--- a/src/libply/ply-utils.c
++++ b/src/libply/ply-utils.c
+@@ -102,7 +102,7 @@
+   int fd;
+   const int should_pass_credentials = true;
+ 
+-  fd = socket (PF_UNIX, SOCK_STREAM|SOCK_CLOEXEC|SOCK_NONBLOCK, 0);
++  fd = socket (PF_UNIX, SOCK_STREAM|SOCK_CLOEXEC, 0);
+ 
+   if (fd < 0)
+     return -1;
