@@ -9,7 +9,7 @@ Build-Depends:
  dh-systemd,
  docbook-xsl,
  libdrm-dev,
- libgtk2.0-dev,
+ libgtk-3-dev (>= 3.14.0),
  libpango1.0-dev,
  libpng-dev,
  libudev-dev,
