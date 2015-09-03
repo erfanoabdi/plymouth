@@ -36,61 +36,61 @@
 
 typedef enum
 {
-  PLY_BOOT_SPLASH_MODE_BOOT_UP,
-  PLY_BOOT_SPLASH_MODE_SHUTDOWN,
-  PLY_BOOT_SPLASH_MODE_UPDATES,
-  PLY_BOOT_SPLASH_MODE_INVALID
+        PLY_BOOT_SPLASH_MODE_BOOT_UP,
+        PLY_BOOT_SPLASH_MODE_SHUTDOWN,
+        PLY_BOOT_SPLASH_MODE_UPDATES,
+        PLY_BOOT_SPLASH_MODE_INVALID
 } ply_boot_splash_mode_t;
 
 typedef struct _ply_boot_splash_plugin ply_boot_splash_plugin_t;
 
 typedef struct
 {
-  ply_boot_splash_plugin_t * (* create_plugin) (ply_key_file_t *key_file);
-  void (* destroy_plugin) (ply_boot_splash_plugin_t *plugin);
+        ply_boot_splash_plugin_t * (*create_plugin)(ply_key_file_t * key_file);
+        void (*destroy_plugin)(ply_boot_splash_plugin_t *plugin);
 
-  void (* set_keyboard) (ply_boot_splash_plugin_t *plugin,
-                         ply_keyboard_t           *keyboard);
-  void (* unset_keyboard) (ply_boot_splash_plugin_t *plugin,
-                           ply_keyboard_t           *keyboard);
-  void (* add_pixel_display) (ply_boot_splash_plugin_t *plugin,
-                              ply_pixel_display_t      *display);
-  void (* remove_pixel_display) (ply_boot_splash_plugin_t *plugin,
-                                 ply_pixel_display_t      *display);
-  void (* add_text_display) (ply_boot_splash_plugin_t *plugin,
-                             ply_text_display_t       *display);
-  void (* remove_text_display) (ply_boot_splash_plugin_t *plugin,
-                                ply_text_display_t       *display);
-  bool (* show_splash_screen) (ply_boot_splash_plugin_t *plugin,
-                               ply_event_loop_t         *loop,
-                               ply_buffer_t             *boot_buffer,
-                               ply_boot_splash_mode_t    mode);
-  void (* system_update) (ply_boot_splash_plugin_t *plugin,
-                          int                       progress);
-  void (* update_status) (ply_boot_splash_plugin_t *plugin,
-                          const char               *status);
-  void (* on_boot_output) (ply_boot_splash_plugin_t *plugin,
-                           const char               *output,
-                           size_t                    size);
-  void (* on_boot_progress) (ply_boot_splash_plugin_t *plugin,
-                             double                    duration,
-                             double                    percent_done);
-  void (* on_root_mounted) (ply_boot_splash_plugin_t *plugin);
-  void (* hide_splash_screen) (ply_boot_splash_plugin_t *plugin,
-                               ply_event_loop_t         *loop);
-  void (* display_message) (ply_boot_splash_plugin_t *plugin,
-                            const char               *message);
-  void (* hide_message) (ply_boot_splash_plugin_t *plugin,
-                         const char               *message);
-  void (* display_normal) (ply_boot_splash_plugin_t *plugin);
-  void (* display_password) (ply_boot_splash_plugin_t *plugin,
-                             const char               *prompt,
-                             int                       bullets);
-  void (* display_question) (ply_boot_splash_plugin_t *plugin,
-                             const char               *prompt,
-                             const char               *entry_text);
-  void (* become_idle) (ply_boot_splash_plugin_t       *plugin,
-                        ply_trigger_t                  *idle_trigger);
+        void (*set_keyboard)(ply_boot_splash_plugin_t *plugin,
+                             ply_keyboard_t           *keyboard);
+        void (*unset_keyboard)(ply_boot_splash_plugin_t *plugin,
+                               ply_keyboard_t           *keyboard);
+        void (*add_pixel_display)(ply_boot_splash_plugin_t *plugin,
+                                  ply_pixel_display_t      *display);
+        void (*remove_pixel_display)(ply_boot_splash_plugin_t *plugin,
+                                     ply_pixel_display_t      *display);
+        void (*add_text_display)(ply_boot_splash_plugin_t *plugin,
+                                 ply_text_display_t       *display);
+        void (*remove_text_display)(ply_boot_splash_plugin_t *plugin,
+                                    ply_text_display_t       *display);
+        bool (*show_splash_screen)(ply_boot_splash_plugin_t *plugin,
+                                   ply_event_loop_t         *loop,
+                                   ply_buffer_t             *boot_buffer,
+                                   ply_boot_splash_mode_t    mode);
+        void (*system_update)(ply_boot_splash_plugin_t *plugin,
+                              int                       progress);
+        void (*update_status)(ply_boot_splash_plugin_t *plugin,
+                              const char               *status);
+        void (*on_boot_output)(ply_boot_splash_plugin_t *plugin,
+                               const char               *output,
+                               size_t                    size);
+        void (*on_boot_progress)(ply_boot_splash_plugin_t *plugin,
+                                 double                    duration,
+                                 double                    percent_done);
+        void (*on_root_mounted)(ply_boot_splash_plugin_t *plugin);
+        void (*hide_splash_screen)(ply_boot_splash_plugin_t *plugin,
+                                   ply_event_loop_t         *loop);
+        void (*display_message)(ply_boot_splash_plugin_t *plugin,
+                                const char               *message);
+        void (*hide_message)(ply_boot_splash_plugin_t *plugin,
+                             const char               *message);
+        void (*display_normal)(ply_boot_splash_plugin_t *plugin);
+        void (*display_password)(ply_boot_splash_plugin_t *plugin,
+                                 const char               *prompt,
+                                 int                       bullets);
+        void (*display_question)(ply_boot_splash_plugin_t *plugin,
+                                 const char               *prompt,
+                                 const char               *entry_text);
+        void (*become_idle)(ply_boot_splash_plugin_t *plugin,
+                            ply_trigger_t            *idle_trigger);
 } ply_boot_splash_plugin_interface_t;
 
 #endif /* PLY_BOOT_SPLASH_PLUGIN_H */

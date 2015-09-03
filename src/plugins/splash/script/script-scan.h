@@ -28,66 +28,66 @@
 
 typedef enum
 {
-  SCRIPT_SCAN_TOKEN_TYPE_EMPTY,
-  SCRIPT_SCAN_TOKEN_TYPE_EOF,
-  SCRIPT_SCAN_TOKEN_TYPE_INTEGER,
-  SCRIPT_SCAN_TOKEN_TYPE_FLOAT,
-  SCRIPT_SCAN_TOKEN_TYPE_IDENTIFIER,
-  SCRIPT_SCAN_TOKEN_TYPE_STRING,
-  SCRIPT_SCAN_TOKEN_TYPE_SYMBOL,
-  SCRIPT_SCAN_TOKEN_TYPE_COMMENT,
-  SCRIPT_SCAN_TOKEN_TYPE_ERROR,
+        SCRIPT_SCAN_TOKEN_TYPE_EMPTY,
+        SCRIPT_SCAN_TOKEN_TYPE_EOF,
+        SCRIPT_SCAN_TOKEN_TYPE_INTEGER,
+        SCRIPT_SCAN_TOKEN_TYPE_FLOAT,
+        SCRIPT_SCAN_TOKEN_TYPE_IDENTIFIER,
+        SCRIPT_SCAN_TOKEN_TYPE_STRING,
+        SCRIPT_SCAN_TOKEN_TYPE_SYMBOL,
+        SCRIPT_SCAN_TOKEN_TYPE_COMMENT,
+        SCRIPT_SCAN_TOKEN_TYPE_ERROR,
 } script_scan_token_type_t;
 
 typedef struct
 {
-  script_scan_token_type_t type;
-  union
-  {
-    char *string;
-    char symbol;
-    long long int integer;
-    double floatpoint;
-  } data;
-  int whitespace;
-  script_debug_location_t location;
+        script_scan_token_type_t type;
+        union
+        {
+                char         *string;
+                char          symbol;
+                long long int integer;
+                double        floatpoint;
+        } data;
+        int                     whitespace;
+        script_debug_location_t location;
 } script_scan_token_t;
 
 typedef struct
 {
-  union
-  {
-    int fd;
-    const char *string;
-  } source;
-  char* name;
-  unsigned char cur_char;
-  ply_bitarray_t *identifier_1st_char;
-  ply_bitarray_t *identifier_nth_char;
-  int tokencount;
-  script_scan_token_t **tokens;
-  int line_index;
-  int column_index;
-  bool source_is_file;
+        union
+        {
+                int         fd;
+                const char *string;
+        } source;
+        char                 *name;
+        unsigned char         cur_char;
+        ply_bitarray_t       *identifier_1st_char;
+        ply_bitarray_t       *identifier_nth_char;
+        int                   tokencount;
+        script_scan_token_t **tokens;
+        int                   line_index;
+        int                   column_index;
+        bool                  source_is_file;
 } script_scan_t;
 
 
 #define script_scan_token_is_symbol(__token) \
-      (__token->type == SCRIPT_SCAN_TOKEN_TYPE_SYMBOL)
-#define script_scan_token_is_symbol_of_value(__token,__value) \
-      (__token->type == SCRIPT_SCAN_TOKEN_TYPE_SYMBOL \
-      && __token->data.symbol == __value)
+        (__token->type == SCRIPT_SCAN_TOKEN_TYPE_SYMBOL)
+#define script_scan_token_is_symbol_of_value(__token, __value) \
+        (__token->type == SCRIPT_SCAN_TOKEN_TYPE_SYMBOL \
+         && __token->data.symbol == __value)
 #define script_scan_token_is_identifier(__token) \
-      (__token->type == SCRIPT_SCAN_TOKEN_TYPE_IDENTIFIER)
-#define script_scan_token_is_identifier_of_value(__token,__value) \
-      (__token->type == SCRIPT_SCAN_TOKEN_TYPE_IDENTIFIER \
-      && !strcmp(__token->data.string, __value))
+        (__token->type == SCRIPT_SCAN_TOKEN_TYPE_IDENTIFIER)
+#define script_scan_token_is_identifier_of_value(__token, __value) \
+        (__token->type == SCRIPT_SCAN_TOKEN_TYPE_IDENTIFIER \
+         && !strcmp (__token->data.string, __value))
 #define script_scan_token_is_integer(__token) \
-      (__token->type == SCRIPT_SCAN_TOKEN_TYPE_INTEGER)
+        (__token->type == SCRIPT_SCAN_TOKEN_TYPE_INTEGER)
 #define script_scan_token_is_string(__token) \
-      (__token->type == SCRIPT_SCAN_TOKEN_TYPE_STRING)
+        (__token->type == SCRIPT_SCAN_TOKEN_TYPE_STRING)
 #define script_scan_token_is_float(__token) \
-      (__token->type == SCRIPT_SCAN_TOKEN_TYPE_FLOAT)
+        (__token->type == SCRIPT_SCAN_TOKEN_TYPE_FLOAT)
 
 
 

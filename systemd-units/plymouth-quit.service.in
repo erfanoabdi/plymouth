@@ -6,5 +6,3 @@ After=rc-local.service plymouth-start.service systemd-user-sessions.service
 ExecStart=-@PLYMOUTH_CLIENT_DIR@/plymouth quit
 Type=oneshot
 TimeoutSec=20
-[Install]
-WantedBy=multi-user.target

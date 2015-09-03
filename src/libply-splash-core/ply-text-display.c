@@ -92,40 +92,40 @@
 
 struct _ply_text_display
 {
-  ply_event_loop_t *loop;
+        ply_event_loop_t               *loop;
 
-  ply_terminal_t *terminal;
+        ply_terminal_t                 *terminal;
 
-  ply_terminal_color_t foreground_color;
-  ply_terminal_color_t background_color;
+        ply_terminal_color_t            foreground_color;
+        ply_terminal_color_t            background_color;
 
-  ply_text_display_draw_handler_t draw_handler;
-  void *draw_handler_user_data;
+        ply_text_display_draw_handler_t draw_handler;
+        void                           *draw_handler_user_data;
 };
 
 ply_text_display_t *
 ply_text_display_new (ply_terminal_t *terminal)
 {
-  ply_text_display_t *display;
+        ply_text_display_t *display;
 
-  display = calloc (1, sizeof (ply_text_display_t));
+        display = calloc (1, sizeof(ply_text_display_t));
 
-  display->loop = NULL;
-  display->terminal = terminal;
+        display->loop = NULL;
+        display->terminal = terminal;
 
-  return display;
+        return display;
 }
 
 int
 ply_text_display_get_number_of_columns (ply_text_display_t *display)
 {
-  return ply_terminal_get_number_of_columns (display->terminal);
+        return ply_terminal_get_number_of_columns (display->terminal);
 }
 
 int
 ply_text_display_get_number_of_rows (ply_text_display_t *display)
 {
-  return ply_terminal_get_number_of_rows (display->terminal);
+        return ply_terminal_get_number_of_rows (display->terminal);
 }
 
 void
@@ -133,80 +133,78 @@ ply_text_display_set_cursor_position (ply_text_display_t *display,
                                       int                 column,
                                       int                 row)
 {
-  int number_of_columns;
-  int number_of_rows;
+        int number_of_columns;
+        int number_of_rows;
 
-  number_of_columns = ply_text_display_get_number_of_columns (display);
-  number_of_rows = ply_text_display_get_number_of_rows (display);
+        number_of_columns = ply_text_display_get_number_of_columns (display);
+        number_of_rows = ply_text_display_get_number_of_rows (display);
 
-  column = CLAMP (column, 0, number_of_columns - 1);
-  row = CLAMP (row, 0, number_of_rows - 1);
+        column = CLAMP (column, 0, number_of_columns - 1);
+        row = CLAMP (row, 0, number_of_rows - 1);
 
-  ply_terminal_write (display->terminal,
-                      MOVE_CURSOR_SEQUENCE,
-                      row, column);
+        ply_terminal_write (display->terminal,
+                            MOVE_CURSOR_SEQUENCE,
+                            row, column);
 }
 
 void
 ply_text_display_clear_screen (ply_text_display_t *display)
 {
-  if (ply_is_tracing ())
-    return;
+        if (ply_is_tracing ())
+                return;
 
-  ply_terminal_write (display->terminal,
-                      CLEAR_SCREEN_SEQUENCE);
+        ply_terminal_write (display->terminal,
+                            CLEAR_SCREEN_SEQUENCE);
 
-  ply_text_display_set_cursor_position (display, 0, 0);
+        ply_text_display_set_cursor_position (display, 0, 0);
 }
 
 void
 ply_text_display_clear_line (ply_text_display_t *display)
 {
-
-  ply_terminal_write (display->terminal,
-                      CLEAR_LINE_SEQUENCE);
+        ply_terminal_write (display->terminal,
+                            CLEAR_LINE_SEQUENCE);
 }
 
 void
 ply_text_display_remove_character (ply_text_display_t *display)
 {
-  ply_terminal_write (display->terminal,
-                      BACKSPACE);
+        ply_terminal_write (display->terminal,
+                            BACKSPACE);
 }
 
 void
-ply_text_display_set_background_color (ply_text_display_t   *display,
-                                       ply_terminal_color_t  color)
+ply_text_display_set_background_color (ply_text_display_t  *display,
+                                       ply_terminal_color_t color)
 {
+        ply_terminal_write (display->terminal,
+                            COLOR_SEQUENCE_FORMAT,
+                            BACKGROUND_COLOR_BASE + color);
 
-  ply_terminal_write (display->terminal,
-                      COLOR_SEQUENCE_FORMAT,
-                      BACKGROUND_COLOR_BASE + color);
-
-  display->background_color = color;
+        display->background_color = color;
 }
 
 void
-ply_text_display_set_foreground_color (ply_text_display_t       *display,
-                                       ply_terminal_color_t  color)
+ply_text_display_set_foreground_color (ply_text_display_t  *display,
+                                       ply_terminal_color_t color)
 {
-  ply_terminal_write (display->terminal,
-                      COLOR_SEQUENCE_FORMAT,
-                      FOREGROUND_COLOR_BASE + color);
+        ply_terminal_write (display->terminal,
+                            COLOR_SEQUENCE_FORMAT,
+                            FOREGROUND_COLOR_BASE + color);
 
-  display->foreground_color = color;
+        display->foreground_color = color;
 }
 
 ply_terminal_color_t
 ply_text_display_get_background_color (ply_text_display_t *display)
 {
-  return display->background_color;
+        return display->background_color;
 }
 
 ply_terminal_color_t
 ply_text_display_get_foreground_color (ply_text_display_t *display)
 {
-  return display->foreground_color;
+        return display->foreground_color;
 }
 
 void
@@ -216,17 +214,17 @@ ply_text_display_draw_area (ply_text_display_t *display,
                             int                 width,
                             int                 height)
 {
-  if (display->draw_handler != NULL)
-    display->draw_handler (display->draw_handler_user_data,
-                           display->terminal,
-                           x, y, width, height);
+        if (display->draw_handler != NULL)
+                display->draw_handler (display->draw_handler_user_data,
+                                       display->terminal,
+                                       x, y, width, height);
 }
 
 void
 ply_text_display_hide_cursor (ply_text_display_t *display)
 {
-  ply_terminal_write (display->terminal,
-                      HIDE_CURSOR_SEQUENCE);
+        ply_terminal_write (display->terminal,
+                            HIDE_CURSOR_SEQUENCE);
 }
 
 void
@@ -234,104 +232,105 @@ ply_text_display_write (ply_text_display_t *display,
                         const char         *format,
                         ...)
 {
-  int fd;
+        int fd;
 
-  va_list args;
-  char *string;
+        va_list args;
+        char *string;
 
-  assert (display != NULL);
-  assert (format != NULL);
+        assert (display != NULL);
+        assert (format != NULL);
 
-  fd = ply_terminal_get_fd (display->terminal);
+        fd = ply_terminal_get_fd (display->terminal);
 
-  string = NULL;
-  va_start (args, format);
-  vasprintf (&string, format, args);
-  va_end (args);
+        string = NULL;
+        va_start (args, format);
+        vasprintf (&string, format, args);
+        va_end (args);
 
-  write (fd, string, strlen (string));
-  free (string);
+        write (fd, string, strlen (string));
+        free (string);
 }
 
 void
 ply_text_display_show_cursor (ply_text_display_t *display)
 {
-  ply_terminal_write (display->terminal,
-                      SHOW_CURSOR_SEQUENCE);
+        ply_terminal_write (display->terminal,
+                            SHOW_CURSOR_SEQUENCE);
 }
 
 bool
 ply_text_display_supports_color (ply_text_display_t *display)
 {
-  return ply_terminal_supports_color (display->terminal);
+        return ply_terminal_supports_color (display->terminal);
 }
 
 static void
 ply_text_display_detach_from_event_loop (ply_text_display_t *display)
 {
-  assert (display != NULL);
-  display->loop = NULL;
+        assert (display != NULL);
+        display->loop = NULL;
 }
 
 void
 ply_text_display_free (ply_text_display_t *display)
 {
-  if (display == NULL)
-    return;
+        if (display == NULL)
+                return;
 
-  if (display->loop != NULL)
-    ply_event_loop_stop_watching_for_exit (display->loop,
-                                           (ply_event_loop_exit_handler_t)
-                                           ply_text_display_detach_from_event_loop,
-                                           display);
+        if (display->loop != NULL) {
+                ply_event_loop_stop_watching_for_exit (display->loop,
+                                                       (ply_event_loop_exit_handler_t)
+                                                       ply_text_display_detach_from_event_loop,
+                                                       display);
+        }
 
-  free (display);
+        free (display);
 }
 
 void
-ply_text_display_set_draw_handler (ply_text_display_t *display,
+ply_text_display_set_draw_handler (ply_text_display_t             *display,
                                    ply_text_display_draw_handler_t draw_handler,
-                                   void               *user_data)
+                                   void                           *user_data)
 {
-  assert (display != NULL);
+        assert (display != NULL);
 
-  display->draw_handler = draw_handler;
-  display->draw_handler_user_data = user_data;
+        display->draw_handler = draw_handler;
+        display->draw_handler_user_data = user_data;
 }
 
 void
 ply_text_display_pause_updates (ply_text_display_t *display)
 {
-  ply_terminal_write (display->terminal,
-                      PAUSE_SEQUENCE);
+        ply_terminal_write (display->terminal,
+                            PAUSE_SEQUENCE);
 }
 
 void
 ply_text_display_unpause_updates (ply_text_display_t *display)
 {
-  ply_terminal_write (display->terminal,
-                      UNPAUSE_SEQUENCE);
+        ply_terminal_write (display->terminal,
+                            UNPAUSE_SEQUENCE);
 }
 
 void
 ply_text_display_attach_to_event_loop (ply_text_display_t *display,
                                        ply_event_loop_t   *loop)
 {
-  assert (display != NULL);
-  assert (loop != NULL);
-  assert (display->loop == NULL);
+        assert (display != NULL);
+        assert (loop != NULL);
+        assert (display->loop == NULL);
 
-  display->loop = loop;
+        display->loop = loop;
 
-  ply_event_loop_watch_for_exit (loop, (ply_event_loop_exit_handler_t)
-                                 ply_text_display_detach_from_event_loop,
-                                 display);
+        ply_event_loop_watch_for_exit (loop, (ply_event_loop_exit_handler_t)
+                                       ply_text_display_detach_from_event_loop,
+                                       display);
 }
 
 ply_terminal_t *
 ply_text_display_get_terminal (ply_text_display_t *display)
 {
-  return display->terminal;
+        return display->terminal;
 }
 
 /* vim: set ts= 4 sw= 4 et ai ci cino= {.5s,^-2,+.5s,t0,g0,e-2,n-2,p2s,(0,=.5s,:.5s */

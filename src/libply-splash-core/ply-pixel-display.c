@@ -44,81 +44,80 @@
 
 struct _ply_pixel_display
 {
-  ply_event_loop_t *loop;
+        ply_event_loop_t                *loop;
 
-  ply_renderer_t *renderer;
-  ply_renderer_head_t *head;
+        ply_renderer_t                  *renderer;
+        ply_renderer_head_t             *head;
 
-  unsigned long width;
-  unsigned long height;
+        unsigned long                    width;
+        unsigned long                    height;
 
-  ply_pixel_display_draw_handler_t draw_handler;
-  void *draw_handler_user_data;
+        ply_pixel_display_draw_handler_t draw_handler;
+        void                            *draw_handler_user_data;
 
-  int pause_count;
-
+        int                              pause_count;
 };
 
 ply_pixel_display_t *
 ply_pixel_display_new (ply_renderer_t      *renderer,
                        ply_renderer_head_t *head)
 {
-  ply_pixel_display_t *display;
-  ply_pixel_buffer_t  *pixel_buffer;
-  ply_rectangle_t      size;
+        ply_pixel_display_t *display;
+        ply_pixel_buffer_t *pixel_buffer;
+        ply_rectangle_t size;
 
-  display = calloc (1, sizeof (ply_pixel_display_t));
+        display = calloc (1, sizeof(ply_pixel_display_t));
 
-  display->loop = ply_event_loop_get_default ();
-  display->renderer = renderer;
-  display->head = head;
+        display->loop = ply_event_loop_get_default ();
+        display->renderer = renderer;
+        display->head = head;
 
-  pixel_buffer = ply_renderer_get_buffer_for_head (renderer, head);
-  ply_pixel_buffer_get_size (pixel_buffer, &size);
+        pixel_buffer = ply_renderer_get_buffer_for_head (renderer, head);
+        ply_pixel_buffer_get_size (pixel_buffer, &size);
 
-  display->width = size.width;
-  display->height = size.height;
+        display->width = size.width;
+        display->height = size.height;
 
-  return display;
+        return display;
 }
 
 unsigned long
 ply_pixel_display_get_width (ply_pixel_display_t *display)
 {
-  return display->width;
+        return display->width;
 }
 
 unsigned long
 ply_pixel_display_get_height (ply_pixel_display_t *display)
 {
-  return display->height;
+        return display->height;
 }
 
 static void
 ply_pixel_display_flush (ply_pixel_display_t *display)
 {
-  if (display->pause_count > 0)
-    return;
+        if (display->pause_count > 0)
+                return;
 
-  ply_renderer_flush_head (display->renderer, display->head);
+        ply_renderer_flush_head (display->renderer, display->head);
 }
 
 void
 ply_pixel_display_pause_updates (ply_pixel_display_t *display)
 {
-  assert (display != NULL);
+        assert (display != NULL);
 
-  display->pause_count++;
+        display->pause_count++;
 }
 
 void
 ply_pixel_display_unpause_updates (ply_pixel_display_t *display)
 {
-  assert (display != NULL);
+        assert (display != NULL);
 
-  display->pause_count--;
+        display->pause_count--;
 
-  ply_pixel_display_flush (display);
+        ply_pixel_display_flush (display);
 }
 
 void
@@ -128,48 +127,46 @@ ply_pixel_display_draw_area (ply_pixel_display_t *display,
                              int                  width,
                              int                  height)
 {
+        ply_pixel_buffer_t *pixel_buffer;
 
-  ply_pixel_buffer_t *pixel_buffer;
+        pixel_buffer = ply_renderer_get_buffer_for_head (display->renderer,
+                                                         display->head);
 
-  pixel_buffer = ply_renderer_get_buffer_for_head (display->renderer,
-                                                   display->head);
+        if (display->draw_handler != NULL) {
+                ply_rectangle_t clip_area;
 
-  if (display->draw_handler != NULL)
-    {
-      ply_rectangle_t clip_area;
+                clip_area.x = x;
+                clip_area.y = y;
+                clip_area.width = width;
+                clip_area.height = height;
+                ply_pixel_buffer_push_clip_area (pixel_buffer, &clip_area);
+                display->draw_handler (display->draw_handler_user_data,
+                                       pixel_buffer,
+                                       x, y, width, height, display);
+                ply_pixel_buffer_pop_clip_area (pixel_buffer);
+        }
 
-      clip_area.x = x;
-      clip_area.y = y;
-      clip_area.width = width;
-      clip_area.height = height;
-      ply_pixel_buffer_push_clip_area (pixel_buffer, &clip_area);
-      display->draw_handler (display->draw_handler_user_data,
-                             pixel_buffer,
-                             x, y, width, height, display);
-      ply_pixel_buffer_pop_clip_area (pixel_buffer);
-    }
-
-  ply_pixel_display_flush (display);
+        ply_pixel_display_flush (display);
 }
 
 void
 ply_pixel_display_free (ply_pixel_display_t *display)
 {
-  if (display == NULL)
-    return;
+        if (display == NULL)
+                return;
 
-  free (display);
+        free (display);
 }
 
 void
-ply_pixel_display_set_draw_handler (ply_pixel_display_t *display,
+ply_pixel_display_set_draw_handler (ply_pixel_display_t             *display,
                                     ply_pixel_display_draw_handler_t draw_handler,
-                                    void                *user_data)
+                                    void                            *user_data)
 {
-  assert (display != NULL);
+        assert (display != NULL);
 
-  display->draw_handler = draw_handler;
-  display->draw_handler_user_data = user_data;
+        display->draw_handler = draw_handler;
+        display->draw_handler_user_data = user_data;
 }
 
 /* vim: set ts=4 sw=4 et ai ci cino={.5s,^-2,+.5s,t0,g0,e-2,n-2,p2s,(0,=.5s,:.5s */

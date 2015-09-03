@@ -27,15 +27,15 @@
 #include "ply-event-loop.h"
 
 typedef struct _ply_command_parser ply_command_parser_t;
-typedef void (* ply_command_handler_t) (void *data,
-                                        const char *command);
+typedef void (*ply_command_handler_t) (void       *data,
+                                       const char *command);
 
 typedef enum
 {
-  PLY_COMMAND_OPTION_TYPE_FLAG = 0,
-  PLY_COMMAND_OPTION_TYPE_BOOLEAN,
-  PLY_COMMAND_OPTION_TYPE_STRING,
-  PLY_COMMAND_OPTION_TYPE_INTEGER
+        PLY_COMMAND_OPTION_TYPE_FLAG = 0,
+        PLY_COMMAND_OPTION_TYPE_BOOLEAN,
+        PLY_COMMAND_OPTION_TYPE_STRING,
+        PLY_COMMAND_OPTION_TYPE_INTEGER
 } ply_command_option_type_t;
 
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
@@ -43,34 +43,35 @@ ply_command_parser_t *ply_command_parser_new (const char *name,
                                               const char *description);
 
 void ply_command_parser_add_options (ply_command_parser_t *parser,
-                                     const char *option_name, /*
-                                     const char *option_description,
-                                     ply_option_argument_type_t option_type */
+                                     const char           *option_name, /*
+                                                                         * const char *option_description,
+                                                                         * ply_option_argument_type_t option_type */
                                      ...);
 void ply_command_parser_add_command (ply_command_parser_t *parser,
-                                     const char *name, const char *description,
+                                     const char           *name,
+                                     const char           *description,
                                      ply_command_handler_t handler,
-                                     void *handler_data,
-                                     const char *option_name, /*
-                                     const char *option_description,
-                                     ply_option_argument_type_t option_type */
+                                     void                 *handler_data,
+                                     const char           *option_name, /*
+                                                                         * const char *option_description,
+                                                                         * ply_option_argument_type_t option_type */
                                      ...);
 void ply_command_parser_add_command_alias (ply_command_parser_t *parser,
                                            const char           *name,
                                            const char           *alias);
 void ply_command_parser_get_options (ply_command_parser_t *parser,
-                                     const char *option_name, /*
-                                     void *      option_result */
+                                     const char           *option_name, /*
+                                                                         * void *      option_result */
                                      ...);
 void ply_command_parser_get_option (ply_command_parser_t *parser,
                                     const char           *option_name,
                                     void                 *option_result,
                                     bool                 *option_is_set);
 void ply_command_parser_get_command_options (ply_command_parser_t *parser,
-                                             const char *command_name,
-                                             const char *option_name, /*
-                                             void *      option_result,
-                                             bool *      option_was_set */
+                                             const char           *command_name,
+                                             const char           *option_name, /*
+                                                                                 * void *      option_result,
+                                                                                 * bool *      option_was_set */
                                              ...);
 void ply_command_parser_get_command_option (ply_command_parser_t *parser,
                                             const char           *command_name,
@@ -83,7 +84,7 @@ char *ply_command_parser_get_help_string (ply_command_parser_t *parser);
 
 bool ply_command_parser_parse_arguments (ply_command_parser_t *parser,
                                          ply_event_loop_t     *loop,
-                                         char * const         *arguments,
+                                         char *const          *arguments,
                                          int                   number_of_arguments);
 void ply_command_parser_free (ply_command_parser_t *command_parser);
 #endif

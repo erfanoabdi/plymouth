@@ -36,38 +36,38 @@ typedef struct _ply_label_plugin_control ply_label_plugin_control_t;
 
 typedef struct
 {
-  ply_label_plugin_control_t * (* create_control) (void);
-  void (* destroy_control) (ply_label_plugin_control_t        *label);
-  bool (* show_control) (ply_label_plugin_control_t        *label,
-                         ply_pixel_display_t               *display,
-                         long                               x,
-                         long                               y);
-  void (* hide_control) (ply_label_plugin_control_t        *label);
-  void (* draw_control) (ply_label_plugin_control_t        *label,
-                         ply_pixel_buffer_t                *pixel_buffer,
-                         long                               x,
-                         long                               y,
-                         unsigned long                      width,
-                         unsigned long                      height);
-  bool (* is_control_hidden) (ply_label_plugin_control_t        *label);
+        ply_label_plugin_control_t * (*create_control)(void);
+        void (*destroy_control)(ply_label_plugin_control_t *label);
+        bool (*show_control)(ply_label_plugin_control_t *label,
+                             ply_pixel_display_t        *display,
+                             long                        x,
+                             long                        y);
+        void (*hide_control)(ply_label_plugin_control_t *label);
+        void (*draw_control)(ply_label_plugin_control_t *label,
+                             ply_pixel_buffer_t         *pixel_buffer,
+                             long                        x,
+                             long                        y,
+                             unsigned long               width,
+                             unsigned long               height);
+        bool (*is_control_hidden)(ply_label_plugin_control_t *label);
 
-  void (* set_text_for_control) (ply_label_plugin_control_t *label,
-                                 const char                 *text);
-  void (* set_font_for_control) (ply_label_plugin_control_t *label,
-                                 const char                 *fontdesc);
-  void (* set_color_for_control) (ply_label_plugin_control_t *label,
-                                  float                       red,
-                                  float                       green,
-                                  float                       blue,
-                                  float                       alpha);
+        void (*set_text_for_control)(ply_label_plugin_control_t *label,
+                                     const char                 *text);
+        void (*set_font_for_control)(ply_label_plugin_control_t *label,
+                                     const char                 *fontdesc);
+        void (*set_color_for_control)(ply_label_plugin_control_t *label,
+                                      float                       red,
+                                      float                       green,
+                                      float                       blue,
+                                      float                       alpha);
 
-  long (* get_width_of_control) (ply_label_plugin_control_t        *label);
-  long (* get_height_of_control) (ply_label_plugin_control_t        *label);
+        long (*get_width_of_control)(ply_label_plugin_control_t *label);
+        long (*get_height_of_control)(ply_label_plugin_control_t *label);
 
-  void (* set_alignment_for_control) (ply_label_plugin_control_t  *label,
-                                      ply_label_alignment_t alignment);
-  void (* set_width_for_control) (ply_label_plugin_control_t  *label,
-                                  long                        width);
+        void (*set_alignment_for_control)(ply_label_plugin_control_t *label,
+                                          ply_label_alignment_t       alignment);
+        void (*set_width_for_control)(ply_label_plugin_control_t *label,
+                                      long                        width);
 } ply_label_plugin_interface_t;
 
 #endif /* PLY_LABEL_PLUGIN_H */

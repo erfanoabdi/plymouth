@@ -39,7 +39,7 @@ ply_throbber_t *ply_throbber_new (const char *image_dir,
 void ply_throbber_free (ply_throbber_t *throbber);
 
 bool ply_throbber_load (ply_throbber_t *throbber);
-bool ply_throbber_start (ply_throbber_t         *throbber,
+bool ply_throbber_start (ply_throbber_t      *throbber,
                          ply_event_loop_t    *loop,
                          ply_pixel_display_t *display,
                          long                 x,

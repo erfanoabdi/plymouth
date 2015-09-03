@@ -34,12 +34,13 @@ int
 ply_bitarray_count (ply_bitarray_t *bitarray,
                     int             size)
 {
-  int count = 0;
-  int i;
-  for (i = 0; i < size; i++){
-    count += ply_bitarray_lookup(bitarray, i);
-    }
-  return count;
+        int count = 0;
+        int i;
+
+        for (i = 0; i < size; i++) {
+                count += ply_bitarray_lookup (bitarray, i);
+        }
+        return count;
 }
 
 /* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

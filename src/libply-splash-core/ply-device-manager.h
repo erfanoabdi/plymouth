@@ -25,22 +25,24 @@
 
 typedef enum
 {
-  PLY_DEVICE_MANAGER_FLAGS_NONE                   = 0,
-  PLY_DEVICE_MANAGER_FLAGS_IGNORE_SERIAL_CONSOLES = 1 << 0,
-  PLY_DEVICE_MANAGER_FLAGS_IGNORE_UDEV            = 1 << 1
+        PLY_DEVICE_MANAGER_FLAGS_NONE = 0,
+        PLY_DEVICE_MANAGER_FLAGS_IGNORE_SERIAL_CONSOLES = 1 << 0,
+                PLY_DEVICE_MANAGER_FLAGS_IGNORE_UDEV = 1 << 1
 } ply_device_manager_flags_t;
 
 typedef struct _ply_device_manager ply_device_manager_t;
-typedef void (* ply_seat_added_handler_t) (void *, ply_seat_t *);
-typedef void (* ply_seat_removed_handler_t) (void *, ply_seat_t *);
+typedef void (*ply_seat_added_handler_t) (void       *,
+                                          ply_seat_t *);
+typedef void (*ply_seat_removed_handler_t) (void       *,
+                                            ply_seat_t *);
 
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
-ply_device_manager_t *ply_device_manager_new (const char                 *default_tty,
-                                              ply_device_manager_flags_t  flags);
-void ply_device_manager_watch_seats (ply_device_manager_t *manager,
-                                     ply_seat_added_handler_t seat_added_handler,
+ply_device_manager_t *ply_device_manager_new (const char                *default_tty,
+                                              ply_device_manager_flags_t flags);
+void ply_device_manager_watch_seats (ply_device_manager_t      *manager,
+                                     ply_seat_added_handler_t   seat_added_handler,
                                      ply_seat_removed_handler_t seat_removed_handler,
-                                     void *data);
+                                     void                      *data);
 bool ply_device_manager_has_open_seats (ply_device_manager_t *manager);
 ply_list_t *ply_device_manager_get_seats (ply_device_manager_t *manager);
 void ply_device_manager_free (ply_device_manager_t *manager);

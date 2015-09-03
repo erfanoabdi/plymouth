@@ -12,5 +12,3 @@ ExecStartPost=-@PLYMOUTH_CLIENT_DIR@/plymouth show-splash
 Type=forking
 KillMode=none
 SendSIGKILL=no
-[Install]
-WantedBy=sysinit.target

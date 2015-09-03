@@ -26,12 +26,12 @@
 #include <stdbool.h>
 
 #define PLY_BITARRAY_BASE_SIZE 32
-#define PLY_BITARRAY_BASE_MASK (PLY_BITARRAY_BASE_SIZE-1)
+#define PLY_BITARRAY_BASE_MASK (PLY_BITARRAY_BASE_SIZE - 1)
 
 typedef uint32_t ply_bitarray_t;
 
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
-#define ply_bitarray_new(size) calloc ((size + PLY_BITARRAY_BASE_SIZE - 1) / PLY_BITARRAY_BASE_SIZE, sizeof (ply_bitarray_t))
+#define ply_bitarray_new(size) calloc ((size + PLY_BITARRAY_BASE_SIZE - 1) / PLY_BITARRAY_BASE_SIZE, sizeof(ply_bitarray_t))
 #define ply_bitarray_free(bitarray) free (bitarray)
 #define ply_bitarray_lookup(bitarray, index) ((bitarray[index / PLY_BITARRAY_BASE_SIZE] >> (index & PLY_BITARRAY_BASE_MASK)) & 1)
 #define ply_bitarray_set(bitarray, index) (bitarray[index / PLY_BITARRAY_BASE_SIZE] |= 1 << (index & PLY_BITARRAY_BASE_MASK))

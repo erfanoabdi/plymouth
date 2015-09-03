@@ -34,141 +34,139 @@ static const uint32_t uint32_terminator = 0;
 
 struct _ply_array
 {
-  ply_buffer_t *buffer;
-  ply_array_element_type_t element_type;
+        ply_buffer_t            *buffer;
+        ply_array_element_type_t element_type;
 };
 
 ply_array_t *
 ply_array_new (ply_array_element_type_t element_type)
 {
-  ply_array_t *array;
+        ply_array_t *array;
 
-  array = calloc (1, sizeof (ply_array_t));
+        array = calloc (1, sizeof(ply_array_t));
 
-  array->buffer = ply_buffer_new ();
-  array->element_type = element_type;
+        array->buffer = ply_buffer_new ();
+        array->element_type = element_type;
 
-  switch (array->element_type)
-    {
-      case PLY_ARRAY_ELEMENT_TYPE_POINTER:
-        ply_buffer_append_bytes (array->buffer, &pointer_terminator, sizeof (pointer_terminator));
-      break;
+        switch (array->element_type) {
+        case PLY_ARRAY_ELEMENT_TYPE_POINTER:
+                ply_buffer_append_bytes (array->buffer, &pointer_terminator, sizeof(pointer_terminator));
+                break;
 
-      case PLY_ARRAY_ELEMENT_TYPE_UINT32:
-        ply_buffer_append_bytes (array->buffer, &uint32_terminator, sizeof (uint32_terminator));
-      break;
-    }
+        case PLY_ARRAY_ELEMENT_TYPE_UINT32:
+                ply_buffer_append_bytes (array->buffer, &uint32_terminator, sizeof(uint32_terminator));
+                break;
+        }
 
-  return array;
+        return array;
 }
 
 void
 ply_array_free (ply_array_t *array)
 {
-  if (array == NULL)
-    return;
+        if (array == NULL)
+                return;
 
-  ply_buffer_free (array->buffer);
+        ply_buffer_free (array->buffer);
 
-  free (array);
+        free (array);
 }
 
 int
 ply_array_get_size (ply_array_t *array)
 {
-  int size;
+        int size;
 
-  assert (array->element_type == PLY_ARRAY_ELEMENT_TYPE_POINTER ||
-          array->element_type == PLY_ARRAY_ELEMENT_TYPE_UINT32);
+        assert (array->element_type == PLY_ARRAY_ELEMENT_TYPE_POINTER ||
+                array->element_type == PLY_ARRAY_ELEMENT_TYPE_UINT32);
 
-  switch (array->element_type)
-    {
-      case PLY_ARRAY_ELEMENT_TYPE_POINTER:
-        size = (ply_buffer_get_size (array->buffer) / sizeof (const void *)) - 1;
-      break;
+        switch (array->element_type) {
+        case PLY_ARRAY_ELEMENT_TYPE_POINTER:
+                size = (ply_buffer_get_size (array->buffer) / sizeof(const void *)) - 1;
+                break;
 
-      case PLY_ARRAY_ELEMENT_TYPE_UINT32:
-        size = (ply_buffer_get_size (array->buffer) / sizeof (const uint32_t)) - 1;
-      break;
-    }
+        case PLY_ARRAY_ELEMENT_TYPE_UINT32:
+                size = (ply_buffer_get_size (array->buffer) / sizeof(const uint32_t)) - 1;
+                break;
+        }
 
-  return size;
+        return size;
 }
 
 void
 ply_array_add_pointer_element (ply_array_t *array,
                                const void  *data)
 {
-  assert (array->element_type == PLY_ARRAY_ELEMENT_TYPE_POINTER);
+        assert (array->element_type == PLY_ARRAY_ELEMENT_TYPE_POINTER);
 
-  /* Temporarily remove NULL terminator
-   */
-  ply_buffer_remove_bytes_at_end (array->buffer, sizeof (pointer_terminator));
+        /* Temporarily remove NULL terminator
+         */
+        ply_buffer_remove_bytes_at_end (array->buffer, sizeof(pointer_terminator));
 
-  ply_buffer_append_bytes (array->buffer, &data, sizeof (const void *));
+        ply_buffer_append_bytes (array->buffer, &data, sizeof(const void *));
 
-  /* Add NULL terminator back
-   */
-  ply_buffer_append_bytes (array->buffer, &pointer_terminator, sizeof (pointer_terminator));
+        /* Add NULL terminator back
+         */
+        ply_buffer_append_bytes (array->buffer, &pointer_terminator, sizeof(pointer_terminator));
 }
 
 void
-ply_array_add_uint32_element (ply_array_t    *array,
-                              const uint32_t  data)
+ply_array_add_uint32_element (ply_array_t   *array,
+                              const uint32_t data)
 {
-  assert (array->element_type == PLY_ARRAY_ELEMENT_TYPE_UINT32);
+        assert (array->element_type == PLY_ARRAY_ELEMENT_TYPE_UINT32);
 
-  /* Temporarily remove 0 terminator
-   */
-  ply_buffer_remove_bytes_at_end (array->buffer, sizeof (uint32_terminator));
+        /* Temporarily remove 0 terminator
+         */
+        ply_buffer_remove_bytes_at_end (array->buffer, sizeof(uint32_terminator));
 
-  ply_buffer_append_bytes (array->buffer, &data, sizeof (const uint32_t));
+        ply_buffer_append_bytes (array->buffer, &data, sizeof(const uint32_t));
 
-  /* Add 0 terminator back
-   */
-  ply_buffer_append_bytes (array->buffer, &uint32_terminator, sizeof (uint32_terminator));
+        /* Add 0 terminator back
+         */
+        ply_buffer_append_bytes (array->buffer, &uint32_terminator, sizeof(uint32_terminator));
 }
 
-void * const *
+void *const *
 ply_array_get_pointer_elements (ply_array_t *array)
 {
-  assert (array->element_type == PLY_ARRAY_ELEMENT_TYPE_POINTER);
-  return (void * const *) ply_buffer_get_bytes (array->buffer);
+        assert (array->element_type == PLY_ARRAY_ELEMENT_TYPE_POINTER);
+        return (void *const *) ply_buffer_get_bytes (array->buffer);
 }
 
 uint32_t const *
 ply_array_get_uint32_elements (ply_array_t *array)
 {
-  assert (array->element_type == PLY_ARRAY_ELEMENT_TYPE_UINT32);
-  return (uint32_t const *) ply_buffer_get_bytes (array->buffer);
+        assert (array->element_type == PLY_ARRAY_ELEMENT_TYPE_UINT32);
+        return (uint32_t const *) ply_buffer_get_bytes (array->buffer);
 }
 
 void **
 ply_array_steal_pointer_elements (ply_array_t *array)
 {
-  void **data;
+        void **data;
 
-  assert (array->element_type == PLY_ARRAY_ELEMENT_TYPE_POINTER);
+        assert (array->element_type == PLY_ARRAY_ELEMENT_TYPE_POINTER);
 
-  data = (void **) ply_buffer_steal_bytes (array->buffer);
+        data = (void **) ply_buffer_steal_bytes (array->buffer);
 
-  ply_buffer_append_bytes (array->buffer, &pointer_terminator, sizeof (const void *));
+        ply_buffer_append_bytes (array->buffer, &pointer_terminator, sizeof(const void *));
 
-  return data;
+        return data;
 }
 
 uint32_t *
 ply_array_steal_uint32_elements (ply_array_t *array)
 {
-  uint32_t *data;
+        uint32_t *data;
 
-  assert (array->element_type == PLY_ARRAY_ELEMENT_TYPE_UINT32);
+        assert (array->element_type == PLY_ARRAY_ELEMENT_TYPE_UINT32);
 
-  data = (uint32_t *) ply_buffer_steal_bytes (array->buffer);
+        data = (uint32_t *) ply_buffer_steal_bytes (array->buffer);
 
-  ply_buffer_append_bytes (array->buffer, &uint32_terminator, sizeof (const uint32_t));
+        ply_buffer_append_bytes (array->buffer, &uint32_terminator, sizeof(const uint32_t));
 
-  return data;
+        return data;
 }
 
 /* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

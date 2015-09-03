@@ -43,9 +43,9 @@ typedef struct _ply_seat ply_seat_t;
 ply_seat_t *ply_seat_new (ply_terminal_t *terminal);
 
 void ply_seat_free (ply_seat_t *seat);
-bool ply_seat_open (ply_seat_t          *seat,
-                    ply_renderer_type_t  renderer_type,
-                    const char          *device);
+bool ply_seat_open (ply_seat_t         *seat,
+                    ply_renderer_type_t renderer_type,
+                    const char         *device);
 bool ply_seat_is_open (ply_seat_t *seat);
 void ply_seat_deactivate_keyboard (ply_seat_t *seat);
 void ply_seat_activate_keyboard (ply_seat_t *seat);

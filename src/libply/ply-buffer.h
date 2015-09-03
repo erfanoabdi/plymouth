@@ -33,16 +33,17 @@ ply_buffer_t *ply_buffer_new (void);
 void ply_buffer_free (ply_buffer_t *buffer);
 void ply_buffer_append_bytes (ply_buffer_t *buffer,
                               const void   *bytes,
-                              size_t number_of_bytes);
+                              size_t        number_of_bytes);
 
 void ply_buffer_append_from_fd (ply_buffer_t *buffer,
                                 int           fd);
-#define ply_buffer_append(buffer, format, args...)                             \
+#define ply_buffer_append(buffer, format, args ...)                             \
         ply_buffer_append_with_non_literal_format_string (buffer,              \
-                                                          format "", ##args)
+                                                          format "", ## args)
 __attribute__((__format__ (__printf__, 2, 3)))
-void ply_buffer_append_with_non_literal_format_string (ply_buffer_t   *buffer,
-                                                       const char *format, ...);
+void ply_buffer_append_with_non_literal_format_string (ply_buffer_t *buffer,
+                                                       const char   *format,
+                                                       ...);
 void ply_buffer_remove_bytes (ply_buffer_t *buffer,
                               size_t        number_of_bytes);
 void ply_buffer_remove_bytes_at_end (ply_buffer_t *buffer,

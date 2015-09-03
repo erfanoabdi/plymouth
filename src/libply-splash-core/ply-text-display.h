@@ -32,12 +32,12 @@
 
 typedef struct _ply_text_display ply_text_display_t;
 
-typedef void (* ply_text_display_draw_handler_t) (void *user_data,
-                                                  ply_terminal_t *terminal,
-                                                  int   column,
-                                                  int   row,
-                                                  int   number_of_columns,
-                                                  int   number_of_rows);
+typedef void (*ply_text_display_draw_handler_t) (void           *user_data,
+                                                 ply_terminal_t *terminal,
+                                                 int             column,
+                                                 int             row,
+                                                 int             number_of_columns,
+                                                 int             number_of_rows);
 
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
 ply_text_display_t *ply_text_display_new (ply_terminal_t *terminal);
@@ -64,22 +64,22 @@ void ply_text_display_clear_screen (ply_text_display_t *display);
 void ply_text_display_clear_line (ply_text_display_t *display);
 void ply_text_display_remove_character (ply_text_display_t *display);
 bool ply_text_display_supports_color (ply_text_display_t *display);
-void ply_text_display_set_background_color (ply_text_display_t       *display,
-                                            ply_terminal_color_t  color);
-void ply_text_display_set_foreground_color (ply_text_display_t       *display,
-                                            ply_terminal_color_t  color);
+void ply_text_display_set_background_color (ply_text_display_t  *display,
+                                            ply_terminal_color_t color);
+void ply_text_display_set_foreground_color (ply_text_display_t  *display,
+                                            ply_terminal_color_t color);
 ply_terminal_color_t ply_text_display_get_background_color (ply_text_display_t *display);
 ply_terminal_color_t ply_text_display_get_foreground_color (ply_text_display_t *display);
 
 void ply_text_display_draw_area (ply_text_display_t *display,
-                                 int           column,
-                                 int           row,
-                                 int           number_of_columns,
-                                 int           number_of_rows);
+                                 int                 column,
+                                 int                 row,
+                                 int                 number_of_columns,
+                                 int                 number_of_rows);
 
-void ply_text_display_set_draw_handler (ply_text_display_t                *display,
-                                        ply_text_display_draw_handler_t    draw_handler,
-                                        void                        *user_data);
+void ply_text_display_set_draw_handler (ply_text_display_t             *display,
+                                        ply_text_display_draw_handler_t draw_handler,
+                                        void                           *user_data);
 void ply_text_display_pause_updates (ply_text_display_t *display);
 void ply_text_display_unpause_updates (ply_text_display_t *display);
 

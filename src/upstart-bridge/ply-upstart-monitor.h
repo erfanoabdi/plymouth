@@ -28,40 +28,42 @@
 
 typedef struct _ply_upstart_monitor ply_upstart_monitor_t;
 
-typedef struct {
-  char *name;
-  char *description;
-  bool  is_task;
+typedef struct
+{
+        char *name;
+        char *description;
+        bool  is_task;
 } ply_upstart_monitor_job_properties_t;
 
-typedef struct {
-  char     *name;
-  char     *goal;
-  char     *state;
-  uint32_t  failed : 1;
+typedef struct
+{
+        char    *name;
+        char    *goal;
+        char    *state;
+        uint32_t failed : 1;
 } ply_upstart_monitor_instance_properties_t;
 
-typedef void (* ply_upstart_monitor_state_changed_handler_t) (void                                      *user_data,
-                                                              const char                                *old_state,
-                                                              ply_upstart_monitor_job_properties_t      *job,
-                                                              ply_upstart_monitor_instance_properties_t *instance);
+typedef void (*ply_upstart_monitor_state_changed_handler_t) (void                                      *user_data,
+                                                             const char                                *old_state,
+                                                             ply_upstart_monitor_job_properties_t      *job,
+                                                             ply_upstart_monitor_instance_properties_t *instance);
 
-typedef void (* ply_upstart_monitor_failed_handler_t) (void                                      *user_data,
-                                                       ply_upstart_monitor_job_properties_t      *job,
-                                                       ply_upstart_monitor_instance_properties_t *instance,
-                                                       int                                        status);
+typedef void (*ply_upstart_monitor_failed_handler_t) (void                                      *user_data,
+                                                      ply_upstart_monitor_job_properties_t      *job,
+                                                      ply_upstart_monitor_instance_properties_t *instance,
+                                                      int                                        status);
 
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
 ply_upstart_monitor_t *ply_upstart_monitor_new (ply_event_loop_t *loop);
 void ply_upstart_monitor_free (ply_upstart_monitor_t *upstart);
-bool ply_upstart_monitor_connect_to_event_loop (ply_upstart_monitor_t    *upstart,
-                                                ply_event_loop_t         *loop);
-void ply_upstart_monitor_add_state_changed_handler (ply_upstart_monitor_t                       *upstart,
-                                                    ply_upstart_monitor_state_changed_handler_t  handler,
-                                                    void                                        *user_data);
-void ply_upstart_monitor_add_failed_handler (ply_upstart_monitor_t                *upstart,
-                                             ply_upstart_monitor_failed_handler_t  handler,
-                                             void                                 *user_data);
+bool ply_upstart_monitor_connect_to_event_loop (ply_upstart_monitor_t *upstart,
+                                                ply_event_loop_t      *loop);
+void ply_upstart_monitor_add_state_changed_handler (ply_upstart_monitor_t                      *upstart,
+                                                    ply_upstart_monitor_state_changed_handler_t handler,
+                                                    void                                       *user_data);
+void ply_upstart_monitor_add_failed_handler (ply_upstart_monitor_t               *upstart,
+                                             ply_upstart_monitor_failed_handler_t handler,
+                                             void                                *user_data);
 #endif
 
 #endif

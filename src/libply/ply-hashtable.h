@@ -34,7 +34,7 @@ typedef void (ply_hashtable_foreach_func_t) (void *key,
 
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
 int ply_hashtable_direct_compare (void *elementa,
-                              	  void *elementb);
+                                  void *elementb);
 unsigned int ply_hashtable_direct_hash (void *element);
 unsigned int ply_hashtable_string_hash (void *element);
 int ply_hashtable_string_compare (void *elementa,
@@ -44,19 +44,19 @@ ply_hashtable_t *ply_hashtable_new (ply_hashtable_hash_func_t    *hash_func,
 void ply_hashtable_free (ply_hashtable_t *hashtable);
 void ply_hashtable_resize (ply_hashtable_t *hashtable);
 void ply_hashtable_insert (ply_hashtable_t *hashtable,
-                    	   void            *key,
-                    	   void            *data);
+                           void            *key,
+                           void            *data);
 void *ply_hashtable_remove (ply_hashtable_t *hashtable,
-                    		void            *key);
+                            void            *key);
 void *ply_hashtable_lookup (ply_hashtable_t *hashtable,
-                    		void            *key);
+                            void            *key);
 int ply_hashtable_lookup_full (ply_hashtable_t *hashtable,
-                        	   void            *key,
-                        	   void           **reply_key,
-                        	   void           **reply_data);
-void ply_hashtable_foreach (ply_hashtable_t              *hashtable,
-							ply_hashtable_foreach_func_t  func,
-							void                         *user_data);
+                               void            *key,
+                               void           **reply_key,
+                               void           **reply_data);
+void ply_hashtable_foreach (ply_hashtable_t             *hashtable,
+                            ply_hashtable_foreach_func_t func,
+                            void                        *user_data);
 
 int ply_hashtable_get_size (ply_hashtable_t *hashtable);
 #endif

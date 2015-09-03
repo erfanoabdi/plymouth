@@ -33,11 +33,11 @@ void ply_text_step_bar_free (ply_text_step_bar_t *step_bar);
 
 void ply_text_step_bar_draw (ply_text_step_bar_t *step_bar);
 void ply_text_step_bar_show (ply_text_step_bar_t *step_bar,
-                             ply_text_display_t *display);
+                             ply_text_display_t  *display);
 void ply_text_step_bar_hide (ply_text_step_bar_t *step_bar);
 
 void ply_text_step_bar_set_percent_done (ply_text_step_bar_t *step_bar,
-                                         double percent_done);
+                                         double               percent_done);
 
 double ply_text_step_bar_get_percent_done (ply_text_step_bar_t *step_bar);
 

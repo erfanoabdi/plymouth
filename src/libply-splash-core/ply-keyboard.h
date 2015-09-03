@@ -32,42 +32,42 @@
 
 typedef struct _ply_keyboard ply_keyboard_t;
 
-typedef void (* ply_keyboard_input_handler_t) (void       *user_data,
-                                               const char *keyboard_input,
-                                               size_t      character_size);
+typedef void (*ply_keyboard_input_handler_t) (void       *user_data,
+                                              const char *keyboard_input,
+                                              size_t      character_size);
 
-typedef void (* ply_keyboard_backspace_handler_t) (void *user_data);
+typedef void (*ply_keyboard_backspace_handler_t) (void *user_data);
 
-typedef void (* ply_keyboard_escape_handler_t) (void *user_data);
+typedef void (*ply_keyboard_escape_handler_t) (void *user_data);
 
-typedef void (* ply_keyboard_enter_handler_t) (void       *user_data,
-                                               const char *line);
+typedef void (*ply_keyboard_enter_handler_t) (void       *user_data,
+                                              const char *line);
 
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
 ply_keyboard_t *ply_keyboard_new_for_terminal (ply_terminal_t *terminal);
 ply_keyboard_t *ply_keyboard_new_for_renderer (ply_renderer_t *renderer);
 void ply_keyboard_free (ply_keyboard_t *keyboard);
 
-void ply_keyboard_add_input_handler (ply_keyboard_t               *keyboard,
-                                     ply_keyboard_input_handler_t  input_handler,
-                                     void                         *user_data);
-void ply_keyboard_remove_input_handler (ply_keyboard_t               *keyboard,
-                                        ply_keyboard_input_handler_t  input_handler);
-void ply_keyboard_add_backspace_handler (ply_keyboard_t                   *keyboard,
-                                         ply_keyboard_backspace_handler_t  backspace_handler,
-                                         void                             *user_data);
-void ply_keyboard_remove_backspace_handler (ply_keyboard_t                   *keyboard,
-                                            ply_keyboard_backspace_handler_t  backspace_handler);
-void ply_keyboard_add_escape_handler (ply_keyboard_t                *keyboard,
-                                      ply_keyboard_escape_handler_t  escape_handler,
-                                      void                          *user_data);
-void ply_keyboard_remove_escape_handler (ply_keyboard_t                *keyboard,
-                                         ply_keyboard_escape_handler_t  escape_handler);
-void ply_keyboard_add_enter_handler (ply_keyboard_t               *keyboard,
-                                     ply_keyboard_enter_handler_t  enter_handler,
-                                     void                         *user_data);
-void ply_keyboard_remove_enter_handler (ply_keyboard_t               *keyboard,
-                                        ply_keyboard_enter_handler_t  enter_handler);
+void ply_keyboard_add_input_handler (ply_keyboard_t              *keyboard,
+                                     ply_keyboard_input_handler_t input_handler,
+                                     void                        *user_data);
+void ply_keyboard_remove_input_handler (ply_keyboard_t              *keyboard,
+                                        ply_keyboard_input_handler_t input_handler);
+void ply_keyboard_add_backspace_handler (ply_keyboard_t                  *keyboard,
+                                         ply_keyboard_backspace_handler_t backspace_handler,
+                                         void                            *user_data);
+void ply_keyboard_remove_backspace_handler (ply_keyboard_t                  *keyboard,
+                                            ply_keyboard_backspace_handler_t backspace_handler);
+void ply_keyboard_add_escape_handler (ply_keyboard_t               *keyboard,
+                                      ply_keyboard_escape_handler_t escape_handler,
+                                      void                         *user_data);
+void ply_keyboard_remove_escape_handler (ply_keyboard_t               *keyboard,
+                                         ply_keyboard_escape_handler_t escape_handler);
+void ply_keyboard_add_enter_handler (ply_keyboard_t              *keyboard,
+                                     ply_keyboard_enter_handler_t enter_handler,
+                                     void                        *user_data);
+void ply_keyboard_remove_enter_handler (ply_keyboard_t              *keyboard,
+                                        ply_keyboard_enter_handler_t enter_handler);
 
 bool ply_keyboard_watch_for_input (ply_keyboard_t *keyboard);
 void ply_keyboard_stop_watching_for_input (ply_keyboard_t *keyboard);

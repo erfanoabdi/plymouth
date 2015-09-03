@@ -54,12 +54,14 @@ bool ply_entry_is_hidden (ply_entry_t *entry);
 long ply_entry_get_width (ply_entry_t *entry);
 long ply_entry_get_height (ply_entry_t *entry);
 
-void ply_entry_set_bullet_count (ply_entry_t *entry, int count);
+void ply_entry_set_bullet_count (ply_entry_t *entry,
+                                 int          count);
 int ply_entry_get_bullet_count (ply_entry_t *entry);
 void ply_entry_add_bullet (ply_entry_t *entry);
 void ply_entry_remove_bullet (ply_entry_t *entry);
 void ply_entry_remove_all_bullets (ply_entry_t *entry);
-void ply_entry_set_text (ply_entry_t *entry, const char* text);
+void ply_entry_set_text (ply_entry_t *entry,
+                         const char  *text);
 void ply_entry_set_text_color (ply_entry_t *entry,
                                float        red,
                                float        green,

@@ -31,16 +31,16 @@ typedef struct _ply_logger ply_logger_t;
 
 typedef enum
 {
-  PLY_LOGGER_FLUSH_POLICY_WHEN_ASKED = 0,
-  PLY_LOGGER_FLUSH_POLICY_EVERY_TIME
+        PLY_LOGGER_FLUSH_POLICY_WHEN_ASKED = 0,
+        PLY_LOGGER_FLUSH_POLICY_EVERY_TIME
 } ply_logger_flush_policy_t;
 
-typedef void (* ply_logger_filter_handler_t) (void          *user_data,
-                                              const void    *in_bytes,
-                                              size_t         in_size,
-                                              void         **out_bytes,
-                                              size_t        *out_size,
-                                              ply_logger_t  *logger);
+typedef void (*ply_logger_filter_handler_t) (void         *user_data,
+                                             const void   *in_bytes,
+                                             size_t        in_size,
+                                             void        **out_bytes,
+                                             size_t       *out_size,
+                                             ply_logger_t *logger);
 
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
 ply_logger_t *ply_logger_new (void);
@@ -48,28 +48,29 @@ void ply_logger_free (ply_logger_t *logger);
 bool ply_logger_open_file (ply_logger_t *logger,
                            const char   *filename,
                            bool          world_readable);
-void ply_logger_close_file (ply_logger_t    *logger);
+void ply_logger_close_file (ply_logger_t *logger);
 void ply_logger_set_output_fd (ply_logger_t *logger,
                                int           fd);
 int ply_logger_get_output_fd (ply_logger_t *logger);
 bool ply_logger_flush (ply_logger_t *logger);
-void ply_logger_set_flush_policy (ply_logger_t              *logger,
-                                  ply_logger_flush_policy_t  policy);
+void ply_logger_set_flush_policy (ply_logger_t             *logger,
+                                  ply_logger_flush_policy_t policy);
 ply_logger_flush_policy_t ply_logger_get_flush_policy (ply_logger_t *logger);
 void ply_logger_toggle_logging (ply_logger_t *logger);
 bool ply_logger_is_logging (ply_logger_t *logger);
 void ply_logger_inject_bytes (ply_logger_t *logger,
                               const void   *bytes,
-                              size_t number_of_bytes);
-void ply_logger_add_filter (ply_logger_t                *logger,
-                            ply_logger_filter_handler_t  filter_handler,
-                            void                        *user_data);
-#define ply_logger_inject(logger, format, args...)                             \
+                              size_t        number_of_bytes);
+void ply_logger_add_filter (ply_logger_t               *logger,
+                            ply_logger_filter_handler_t filter_handler,
+                            void                       *user_data);
+#define ply_logger_inject(logger, format, args ...)                             \
         ply_logger_inject_with_non_literal_format_string (logger,              \
-                                                          format "", ##args)
+                                                          format "", ## args)
 __attribute__((__format__ (__printf__, 2, 3)))
-void ply_logger_inject_with_non_literal_format_string (ply_logger_t   *logger,
-		                                       const char *format, ...);
+void ply_logger_inject_with_non_literal_format_string (ply_logger_t *logger,
+                                                       const char   *format,
+                                                       ...);
 
 ply_logger_t *ply_logger_get_default (void);
 ply_logger_t *ply_logger_get_error_default (void);
@@ -81,25 +82,25 @@ ply_logger_t *ply_logger_get_error_default (void);
 void ply_logger_toggle_tracing (ply_logger_t *logger);
 bool ply_logger_is_tracing_enabled (ply_logger_t *logger);
 
-#define ply_logger_trace(logger, format, args...)                              \
-do                                                                             \
-  {                                                                            \
-    int _old_errno;                                                            \
-    _old_errno = errno;                                                        \
-    if (ply_logger_is_tracing_enabled (logger))                                \
-      {                                                                        \
-        ply_logger_flush (logger);                                             \
-        errno = _old_errno;                                                    \
-        ply_logger_inject (logger,                                             \
-                           "[%s:%d] %45.45s:" format "\r\n",                   \
-                           __FILE__, __LINE__, __func__, ##args);              \
-        ply_logger_flush (logger);                                             \
-        errno = _old_errno;                                                    \
-      }                                                                        \
-  }                                                                            \
-while (0)
+#define ply_logger_trace(logger, format, args ...)                              \
+        do                                                                             \
+        {                                                                            \
+                int _old_errno;                                                            \
+                _old_errno = errno;                                                        \
+                if (ply_logger_is_tracing_enabled (logger))                                \
+                {                                                                        \
+                        ply_logger_flush (logger);                                             \
+                        errno = _old_errno;                                                    \
+                        ply_logger_inject (logger,                                             \
+                                           "[%s:%d] %45.45s:" format "\r\n",                   \
+                                           __FILE__, __LINE__, __func__, ## args);              \
+                        ply_logger_flush (logger);                                             \
+                        errno = _old_errno;                                                    \
+                }                                                                        \
+        }                                                                            \
+        while (0)
 #else
-#define ply_logger_trace(logger, format, args...)
+#define ply_logger_trace(logger, format, args ...)
 #define ply_logger_toggle_tracing(logger)
 #define ply_logger_is_tracing_enabled(logger) (false)
 #endif /* PLY_ENABLE_TRACING */
@@ -114,14 +115,14 @@ while (0)
         ply_logger_flush (ply_logger_get_default ())
 #define ply_free_log()                                                         \
         ply_logger_free (ply_logger_get_default ())
-#define ply_log(format, args...)                                               \
-        ply_logger_inject (ply_logger_get_default (), format "\n", ##args)
-#define ply_log_without_new_line(format, args...)                              \
-        ply_logger_inject (ply_logger_get_default (), format, ##args)
-#define ply_error(format, args...)                                             \
-        ply_logger_inject (ply_logger_get_error_default (), format "\n", ##args)
-#define ply_error_without_new_line(format, args...)                            \
-        ply_logger_inject (ply_logger_get_error_default (), format, ##args)
+#define ply_log(format, args ...)                                               \
+        ply_logger_inject (ply_logger_get_default (), format "\n", ## args)
+#define ply_log_without_new_line(format, args ...)                              \
+        ply_logger_inject (ply_logger_get_default (), format, ## args)
+#define ply_error(format, args ...)                                             \
+        ply_logger_inject (ply_logger_get_error_default (), format "\n", ## args)
+#define ply_error_without_new_line(format, args ...)                            \
+        ply_logger_inject (ply_logger_get_error_default (), format, ## args)
 #define ply_free_error_log()                                                   \
         ply_logger_free (ply_logger_get_error_default ())
 
@@ -129,8 +130,8 @@ while (0)
         ply_logger_toggle_tracing (ply_logger_get_error_default ())
 #define ply_is_tracing()                                                       \
         ply_logger_is_tracing_enabled (ply_logger_get_error_default ())
-#define ply_trace(format, args...)                                             \
-        ply_logger_trace (ply_logger_get_error_default (), format, ##args)
+#define ply_trace(format, args ...)                                             \
+        ply_logger_trace (ply_logger_get_error_default (), format, ## args)
 
 #endif
 

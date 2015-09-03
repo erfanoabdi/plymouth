@@ -31,27 +31,27 @@
 #include "ply-event-loop.h"
 
 typedef struct _ply_terminal ply_terminal_t;
-typedef void (* ply_terminal_active_vt_changed_handler_t) (void           *user_data,
-                                                           ply_terminal_t *terminal);
-typedef void (* ply_terminal_input_handler_t) (void           *user_data,
-                                               ply_terminal_t *terminal);
+typedef void (*ply_terminal_active_vt_changed_handler_t) (void           *user_data,
+                                                          ply_terminal_t *terminal);
+typedef void (*ply_terminal_input_handler_t) (void           *user_data,
+                                              ply_terminal_t *terminal);
 typedef enum
 {
-  PLY_TERMINAL_COLOR_BLACK = 0,
-  PLY_TERMINAL_COLOR_RED,
-  PLY_TERMINAL_COLOR_GREEN,
-  PLY_TERMINAL_COLOR_BROWN,
-  PLY_TERMINAL_COLOR_BLUE,
-  PLY_TERMINAL_COLOR_MAGENTA,
-  PLY_TERMINAL_COLOR_CYAN,
-  PLY_TERMINAL_COLOR_WHITE,
-  PLY_TERMINAL_COLOR_DEFAULT = PLY_TERMINAL_COLOR_WHITE + 2
+        PLY_TERMINAL_COLOR_BLACK = 0,
+        PLY_TERMINAL_COLOR_RED,
+        PLY_TERMINAL_COLOR_GREEN,
+        PLY_TERMINAL_COLOR_BROWN,
+        PLY_TERMINAL_COLOR_BLUE,
+        PLY_TERMINAL_COLOR_MAGENTA,
+        PLY_TERMINAL_COLOR_CYAN,
+        PLY_TERMINAL_COLOR_WHITE,
+        PLY_TERMINAL_COLOR_DEFAULT = PLY_TERMINAL_COLOR_WHITE + 2
 } ply_terminal_color_t;
 
 typedef enum
 {
-  PLY_TERMINAL_MODE_TEXT,
-  PLY_TERMINAL_MODE_GRAPHICS
+        PLY_TERMINAL_MODE_TEXT,
+        PLY_TERMINAL_MODE_GRAPHICS
 } ply_terminal_mode_t;
 
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
@@ -78,12 +78,12 @@ int ply_terminal_get_number_of_columns (ply_terminal_t *terminal);
 int ply_terminal_get_number_of_rows (ply_terminal_t *terminal);
 
 bool ply_terminal_supports_color (ply_terminal_t *terminal);
-uint32_t ply_terminal_get_color_hex_value (ply_terminal_t       *terminal,
-                                           ply_terminal_color_t  color);
+uint32_t ply_terminal_get_color_hex_value (ply_terminal_t      *terminal,
+                                           ply_terminal_color_t color);
 
-void ply_terminal_set_color_hex_value (ply_terminal_t       *terminal,
-                                       ply_terminal_color_t  color,
-                                       uint32_t              hex_value);
+void ply_terminal_set_color_hex_value (ply_terminal_t      *terminal,
+                                       ply_terminal_color_t color,
+                                       uint32_t             hex_value);
 
 void ply_terminal_set_mode (ply_terminal_t     *terminal,
                             ply_terminal_mode_t mode);
@@ -99,19 +99,19 @@ bool ply_terminal_deactivate_vt (ply_terminal_t *terminal);
 void ply_terminal_watch_for_vt_changes (ply_terminal_t *terminal);
 void ply_terminal_stop_watching_for_vt_changes (ply_terminal_t *terminal);
 
-void ply_terminal_watch_for_active_vt_change (ply_terminal_t *terminal,
+void ply_terminal_watch_for_active_vt_change (ply_terminal_t                          *terminal,
                                               ply_terminal_active_vt_changed_handler_t active_vt_changed_handler,
-                                              void *user_data);
-void ply_terminal_stop_watching_for_active_vt_change (ply_terminal_t *terminal,
+                                              void                                    *user_data);
+void ply_terminal_stop_watching_for_active_vt_change (ply_terminal_t                          *terminal,
                                                       ply_terminal_active_vt_changed_handler_t active_vt_changed_handler,
-                                                      void *user_data);
+                                                      void                                    *user_data);
 
-void ply_terminal_watch_for_input (ply_terminal_t *terminal,
+void ply_terminal_watch_for_input (ply_terminal_t              *terminal,
                                    ply_terminal_input_handler_t input_handler,
-                                   void *user_data);
-void ply_terminal_stop_watching_for_input (ply_terminal_t *terminal,
+                                   void                        *user_data);
+void ply_terminal_stop_watching_for_input (ply_terminal_t              *terminal,
                                            ply_terminal_input_handler_t input_handler,
-                                           void *user_data);
+                                           void                        *user_data);
 
 #endif
 
