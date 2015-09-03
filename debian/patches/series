@@ -5,7 +5,6 @@
 0005-cmdline.patch
 0007-udev-seat-tag.patch
 0008-show-delay.patch
-0010-revert-systemd-wantedby.patch
 libply-splash-core-also-monitor-for-file-removal-in-.patch
 drop-systemd-vconsole-setup-service.patch
 utils-Don-t-create-unix-sockets-non-blocking.patch
