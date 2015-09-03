@@ -77,7 +77,7 @@ override_dh_link:
 	# correcting symlink targets
 	for LIB in debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)/*.so; \
 	do \
-		dh_link -pplymouth-dev lib/$(DEB_HOST_MULTIARCH)/$$(basename $$(readlink $${LIB})) usr/lib/$(DEB_HOST_MULTIARCH)/$$(basename $${LIB}); \
+		dh_link -plibplymouth-dev lib/$(DEB_HOST_MULTIARCH)/$$(basename $$(readlink $${LIB})) usr/lib/$(DEB_HOST_MULTIARCH)/$$(basename $${LIB}); \
 	done
 
 	dh_link --remaining-packages

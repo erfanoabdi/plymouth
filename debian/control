@@ -70,8 +70,9 @@ Priority: extra
 Depends:
  ${misc:Depends},
  plymouth (= ${binary:Version}),
+ libplymouth4 (= ${binary:Version}),
  plymouth-x11 (= ${binary:Version}),
- plymouth-dev (= ${binary:Version}),
+ libplymouth-dev (= ${binary:Version}),
  plymouth-themes (>= ${source:Version}),
 Description: boot animation, logger and I/O multiplexer - debug symbols
  Plymouth provides a boot-time I/O multiplexing framework - the most obvious
@@ -83,21 +84,34 @@ Description: boot animation, logger and I/O multiplexer - debug symbols
  .
  This package contains the debugging symbols.
 
-Package: plymouth-dev
-Architecture: linux-any
-Depends:
- ${misc:Depends},
- plymouth (= ${binary:Version}),
- plymouth-x11 (= ${binary:Version}),
-Description: boot animation, logger and I/O multiplexer - development files
- Plymouth provides a boot-time I/O multiplexing framework - the most obvious
- use for which is to provide an attractive graphical animation in place of
- the text messages that normally get shown during boot. (The messages are
- instead redirected to a logfile for later viewing.) However, in event-driven
- boot systems Plymouth can also usefully handle user interaction such as
- password prompts for encrypted file systems.
+Package: libplymouth4
+Architecture: any
+Multi-Arch: same
+Section: libs
+Pre-Depends: ${misc:Pre-Depends}
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Breaks: plymouth (<< 0.9.2-1~)
+Replaces: plymouth (<< 0.9.2-1~)
+Description: graphical boot animation and logger - shared libraries
+ Plymouth is an application that runs very early in the boot process
+ (even before the root filesystem is mounted!) that provides a graphical
+ boot animation while the boot process happens in the background.
  .
- This package contains the development files.
+ This package contains the shared libraries.
+
+Package: libplymouth-dev
+Architecture: any
+Multi-Arch: same
+Section: libdevel
+Depends: libplymouth4 (= ${binary:Version}), ${misc:Depends}, ${shlibs:Depends}
+Breaks: plymouth-dev (<< 0.9.2-1~)
+Replaces: plymouth-dev (<< 0.9.2-1~)
+Description: graphical boot animation and logger - development files
+ Plymouth is an application that runs very early in the boot process
+ (even before the root filesystem is mounted!) that provides a graphical
+ boot animation while the boot process happens in the background.
+ .
+ This package contains the development files to build Plymouth plugins.
 
 Package: plymouth-themes
 Architecture: linux-any
