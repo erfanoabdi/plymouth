@@ -28,8 +28,6 @@ override_dh_auto_configure:
 		--enable-tracing \
 		--disable-gdm-transition \
 		--with-background-color=0x005a8a \
-		--with-gdm-autostart-file \
-		--with-log-viewer \
 		--with-logo=/usr/share/plymouth/debian-logo.png \
 		--with-release-file=/etc/os-release \
 		--with-system-root-install \

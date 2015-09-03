@@ -53,7 +53,7 @@ Depends:
  plymouth (= ${binary:Version}),
 Recommends: plymouth-themes
 Suggests: gdm
-Description: boot animation, logger and I/O multiplexer - X11 renderer and log viewer
+Description: boot animation, logger and I/O multiplexer - X11 renderer
  Plymouth provides a boot-time I/O multiplexing framework - the most obvious
  use for which is to provide an attractive graphical animation in place of
  the text messages that normally get shown during boot. (The messages are
@@ -61,8 +61,7 @@ Description: boot animation, logger and I/O multiplexer - X11 renderer and log v
  boot systems Plymouth can also usefully handle user interaction such as
  password prompts for encrypted file systems.
  .
- This package contains the log viewer and the X11 renderer for a graphical
- boot splash.
+ This package contains the X11 renderer for a graphical boot splash.
 
 Package: plymouth-dbg
 Architecture: linux-any
