@@ -25,9 +25,9 @@
 
 typedef struct
 {
-  int line_index;
-  int column_index;
-  char* name;
+        int   line_index;
+        int   column_index;
+        char *name;
 } script_debug_location_t;
 
 

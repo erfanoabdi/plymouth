@@ -39,91 +39,85 @@
 static script_return_t script_lib_string_char_at (script_state_t *state,
                                                   void           *user_data)
 {
-  char *text = script_obj_as_string (state->this);
-  int index = script_obj_hash_get_number (state->local, "index");
-  int count;
-  char charstring [2];
-  
-  if (!text || index < 0)
-    {
-      free (text);
-      return script_return_obj_null ();
-    }
-  for (count = 0; count < index; count++)
-    {
-      if (text[count] == '\0')
-        {
-          free (text);
-          return script_return_obj(script_obj_new_string (""));
+        char *text = script_obj_as_string (state->this);
+        int index = script_obj_hash_get_number (state->local, "index");
+        int count;
+        char charstring [2];
+
+        if (!text || index < 0) {
+                free (text);
+                return script_return_obj_null ();
         }
-    }
-  charstring[0] = text[index];
-  charstring[1] = '\0';
-  free (text);
-  return script_return_obj(script_obj_new_string (charstring));
+        for (count = 0; count < index; count++) {
+                if (text[count] == '\0') {
+                        free (text);
+                        return script_return_obj (script_obj_new_string (""));
+                }
+        }
+        charstring[0] = text[index];
+        charstring[1] = '\0';
+        free (text);
+        return script_return_obj (script_obj_new_string (charstring));
 }
 
 static script_return_t script_lib_string_sub_string (script_state_t *state,
                                                      void           *user_data)
 {
-  char *text = script_obj_as_string (state->this);
-  int start = script_obj_hash_get_number (state->local, "start");
-  int end = script_obj_hash_get_number (state->local, "end");
-  int text_count;
-  char* substring;
-  script_obj_t *substring_obj;
+        char *text = script_obj_as_string (state->this);
+        int start = script_obj_hash_get_number (state->local, "start");
+        int end = script_obj_hash_get_number (state->local, "end");
+        int text_count;
+        char *substring;
+        script_obj_t *substring_obj;
 
-  if (!text || start < 0 || end < start)
-    {
-      free (text);
-      return script_return_obj_null ();
-    }
-
-  for (text_count = 0; text_count < start; text_count++)
-    {
-      if (text[text_count] == '\0')
-        {
-          free (text);
-          return script_return_obj(script_obj_new_string (""));
+        if (!text || start < 0 || end < start) {
+                free (text);
+                return script_return_obj_null ();
         }
-    }
 
-  substring = strndup(&text[text_count], end - start);
-  substring_obj = script_obj_new_string (substring);
-  free (substring);
-  free (text);
-  return script_return_obj(substring_obj);
+        for (text_count = 0; text_count < start; text_count++) {
+                if (text[text_count] == '\0') {
+                        free (text);
+                        return script_return_obj (script_obj_new_string (""));
+                }
+        }
+
+        substring = strndup (&text[text_count], end - start);
+        substring_obj = script_obj_new_string (substring);
+        free (substring);
+        free (text);
+        return script_return_obj (substring_obj);
 }
 
 script_lib_string_data_t *script_lib_string_setup (script_state_t *state)
 {
-  script_lib_string_data_t *data = malloc (sizeof (script_lib_string_data_t));
+        script_lib_string_data_t *data = malloc (sizeof(script_lib_string_data_t));
 
-  script_obj_t *string_hash = script_obj_hash_get_element (state->global, "String");
-  script_add_native_function (string_hash,
-                              "CharAt",
-                              script_lib_string_char_at,
-                              NULL,
-                              "index",
-                              NULL);
-  script_add_native_function (string_hash,
-                              "SubString",
-                              script_lib_string_sub_string,
-                              NULL,
-                              "start",
-                              "end",
-                              NULL);
-  script_obj_unref (string_hash);
-  data->script_main_op = script_parse_string (script_lib_string_string, "script-lib-string.script");
-  script_return_t ret = script_execute (state, data->script_main_op);
-  script_obj_unref (ret.object);
+        script_obj_t *string_hash = script_obj_hash_get_element (state->global, "String");
 
-  return data;
+        script_add_native_function (string_hash,
+                                    "CharAt",
+                                    script_lib_string_char_at,
+                                    NULL,
+                                    "index",
+                                    NULL);
+        script_add_native_function (string_hash,
+                                    "SubString",
+                                    script_lib_string_sub_string,
+                                    NULL,
+                                    "start",
+                                    "end",
+                                    NULL);
+        script_obj_unref (string_hash);
+        data->script_main_op = script_parse_string (script_lib_string_string, "script-lib-string.script");
+        script_return_t ret = script_execute (state, data->script_main_op);
+        script_obj_unref (ret.object);
+
+        return data;
 }
 
 void script_lib_string_destroy (script_lib_string_data_t *data)
 {
-  script_parse_op_free (data->script_main_op);
-  free (data);
+        script_parse_op_free (data->script_main_op);
+        free (data);
 }
-

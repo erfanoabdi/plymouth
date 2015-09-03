@@ -2,6 +2,7 @@ themedir = $(datadir)/plymouth/themes/spinner
 nodist_theme_DATA = spinner.plymouth
 
 dist_theme_DATA =                                                     \
+                    background-tile.png                               \
                     box.png                                           \
                     bullet.png                                        \
                     entry.png                                         \

@@ -26,9 +26,9 @@
 
 typedef struct
 {
-  script_obj_native_class_t *class;
-  script_op_t               *script_main_op;
-  char *image_dir;
+        script_obj_native_class_t *class;
+        script_op_t               *script_main_op;
+        char                      *image_dir;
 } script_lib_image_data_t;
 
 script_lib_image_data_t *script_lib_image_setup (script_state_t *state,

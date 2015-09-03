@@ -30,135 +30,130 @@
 
 struct _ply_text_step_bar
 {
-  ply_text_display_t *display;
+        ply_text_display_t *display;
 
-  int column;
-  int row;
-  int number_of_rows;
-  int number_of_columns;
+        int                 column;
+        int                 row;
+        int                 number_of_rows;
+        int                 number_of_columns;
 
-  double percent_done;
-  uint32_t is_hidden : 1;
+        double              percent_done;
+        uint32_t            is_hidden : 1;
 };
 
 ply_text_step_bar_t *
 ply_text_step_bar_new (void)
 {
-  ply_text_step_bar_t *step_bar;
+        ply_text_step_bar_t *step_bar;
 
-  step_bar = calloc (1, sizeof (ply_text_step_bar_t));
+        step_bar = calloc (1, sizeof(ply_text_step_bar_t));
 
-  step_bar->row = 0;
-  step_bar->column = 0;
-  step_bar->number_of_columns = 0;
-  step_bar->number_of_rows = 0;
+        step_bar->row = 0;
+        step_bar->column = 0;
+        step_bar->number_of_columns = 0;
+        step_bar->number_of_rows = 0;
 
-  return step_bar;
+        return step_bar;
 }
 
 void
 ply_text_step_bar_free (ply_text_step_bar_t *step_bar)
 {
-  if (step_bar == NULL)
-    return;
+        if (step_bar == NULL)
+                return;
 
-  free (step_bar);
+        free (step_bar);
 }
 
 void
 ply_text_step_bar_draw (ply_text_step_bar_t *step_bar)
 {
-  int i;
-  int cur;
+        int i;
+        int cur;
 
-  if (step_bar->is_hidden)
-    return;
+        if (step_bar->is_hidden)
+                return;
 
-  ply_text_display_set_background_color (step_bar->display,
-                                         PLY_TERMINAL_COLOR_BLACK);
+        ply_text_display_set_background_color (step_bar->display,
+                                               PLY_TERMINAL_COLOR_BLACK);
 
-  ply_text_display_set_cursor_position (step_bar->display,
-                                        step_bar->column,
-                                        step_bar->row);
+        ply_text_display_set_cursor_position (step_bar->display,
+                                              step_bar->column,
+                                              step_bar->row);
 
-  cur = step_bar->percent_done * step_bar->number_of_columns;
-  for (i = 0; i < step_bar->number_of_columns; i++)
-    {
-      if (i == cur)
-        {
-          ply_text_display_set_foreground_color (step_bar->display,
-                                                 PLY_TERMINAL_COLOR_WHITE);
+        cur = step_bar->percent_done * step_bar->number_of_columns;
+        for (i = 0; i < step_bar->number_of_columns; i++) {
+                if (i == cur)
+                        ply_text_display_set_foreground_color (step_bar->display,
+                                                               PLY_TERMINAL_COLOR_WHITE);
+                else
+                        ply_text_display_set_foreground_color (step_bar->display,
+                                                               PLY_TERMINAL_COLOR_BROWN);
+
+                /* U+25A0 BLACK SQUARE */
+                ply_text_display_write (step_bar->display, "%s", "\xe2\x96\xa0");
+                ply_text_display_write (step_bar->display, "%c", ' ');
         }
-      else
-        {
-          ply_text_display_set_foreground_color (step_bar->display,
-                                                 PLY_TERMINAL_COLOR_BROWN);
-        }
 
-      /* U+25A0 BLACK SQUARE */
-      ply_text_display_write (step_bar->display, "%s", "\x25\x96\xa0");
-      ply_text_display_write (step_bar->display, "%c", ' ');
-    }
-
-  ply_text_display_set_foreground_color (step_bar->display,
-                                         PLY_TERMINAL_COLOR_DEFAULT);
+        ply_text_display_set_foreground_color (step_bar->display,
+                                               PLY_TERMINAL_COLOR_DEFAULT);
 }
 
 void
-ply_text_step_bar_show (ply_text_step_bar_t  *step_bar,
-                        ply_text_display_t       *display)
+ply_text_step_bar_show (ply_text_step_bar_t *step_bar,
+                        ply_text_display_t  *display)
 {
-  int screen_rows;
-  int screen_cols;
+        int screen_rows;
+        int screen_cols;
 
-  assert (step_bar != NULL);
+        assert (step_bar != NULL);
 
-  step_bar->display = display;
+        step_bar->display = display;
 
 
-  screen_rows = ply_text_display_get_number_of_rows (display);
-  screen_cols = ply_text_display_get_number_of_columns (display);
+        screen_rows = ply_text_display_get_number_of_rows (display);
+        screen_cols = ply_text_display_get_number_of_columns (display);
 
-  step_bar->number_of_rows = 1;
-  step_bar->row = screen_rows * .66;
-  step_bar->number_of_columns = 3;
-  step_bar->column = screen_cols / 2.0 - step_bar->number_of_columns / 2.0;
+        step_bar->number_of_rows = 1;
+        step_bar->row = screen_rows * .66;
+        step_bar->number_of_columns = 3;
+        step_bar->column = screen_cols / 2.0 - step_bar->number_of_columns / 2.0;
 
-  step_bar->is_hidden = false;
+        step_bar->is_hidden = false;
 
-  ply_text_step_bar_draw (step_bar);
+        ply_text_step_bar_draw (step_bar);
 }
 
 void
 ply_text_step_bar_hide (ply_text_step_bar_t *step_bar)
 {
-  step_bar->display = NULL;
-  step_bar->is_hidden = true;
+        step_bar->display = NULL;
+        step_bar->is_hidden = true;
 }
 
 void
-ply_text_step_bar_set_percent_done (ply_text_step_bar_t  *step_bar,
-                                    double percent_done)
+ply_text_step_bar_set_percent_done (ply_text_step_bar_t *step_bar,
+                                    double               percent_done)
 {
-  step_bar->percent_done = percent_done;
+        step_bar->percent_done = percent_done;
 }
 
 double
-ply_text_step_bar_get_percent_done (ply_text_step_bar_t  *step_bar)
+ply_text_step_bar_get_percent_done (ply_text_step_bar_t *step_bar)
 {
-  return step_bar->percent_done;
+        return step_bar->percent_done;
 }
 
 int
 ply_text_step_bar_get_number_of_columns (ply_text_step_bar_t *step_bar)
 {
-  return step_bar->number_of_columns;
+        return step_bar->number_of_columns;
 }
 
 int
 ply_text_step_bar_get_number_of_rows (ply_text_step_bar_t *step_bar)
 {
-  return step_bar->number_of_rows;
+        return step_bar->number_of_rows;
 }
 
 /* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

@@ -28,14 +28,15 @@
 
 typedef enum
 {
-  SCRIPT_OBJ_CMP_RESULT_EQ = 1<<1,
-  SCRIPT_OBJ_CMP_RESULT_GT = 1<<2,
-  SCRIPT_OBJ_CMP_RESULT_LT = 1<<3,
-  SCRIPT_OBJ_CMP_RESULT_NE = 1<<4,
+        SCRIPT_OBJ_CMP_RESULT_EQ = 1 << 1,
+                SCRIPT_OBJ_CMP_RESULT_GT = 1 << 2,
+                SCRIPT_OBJ_CMP_RESULT_LT = 1 << 3,
+                SCRIPT_OBJ_CMP_RESULT_NE = 1 << 4,
 } script_obj_cmp_result_t;
 
 
-typedef void *(*script_obj_direct_func_t)(script_obj_t *, void *);
+typedef void *(*script_obj_direct_func_t)(script_obj_t *,
+                                          void         *);
 
 
 void script_obj_free (script_obj_t *obj);
@@ -50,20 +51,21 @@ script_obj_t *script_obj_new_null (void);
 script_obj_t *script_obj_new_hash (void);
 script_obj_t *script_obj_new_function (script_function_t *function);
 script_obj_t *script_obj_new_ref (script_obj_t *sub_obj);
-script_obj_t *script_obj_new_extend (script_obj_t *obj_a, script_obj_t *obj_b);
+script_obj_t *script_obj_new_extend (script_obj_t *obj_a,
+                                     script_obj_t *obj_b);
 
-script_obj_t *script_obj_new_native (void                       *object_data,
-                                     script_obj_native_class_t  *class );
-void *script_obj_as_custom (script_obj_t             *obj,
-                            script_obj_direct_func_t  user_func,
-                            void                     *user_data);
-script_obj_t *script_obj_as_obj_type (script_obj_t      *obj,
-                                      script_obj_type_t  type);
+script_obj_t *script_obj_new_native (void                      *object_data,
+                                     script_obj_native_class_t *class);
+void *script_obj_as_custom (script_obj_t            *obj,
+                            script_obj_direct_func_t user_func,
+                            void                    *user_data);
+script_obj_t *script_obj_as_obj_type (script_obj_t     *obj,
+                                      script_obj_type_t type);
 script_number_t script_obj_as_number (script_obj_t *obj);
 bool script_obj_as_bool (script_obj_t *obj);
 char *script_obj_as_string (script_obj_t *obj);
 void *script_obj_as_native_of_class (script_obj_t              *obj,
-                                     script_obj_native_class_t *class );
+                                     script_obj_native_class_t *class);
 void *script_obj_as_native_of_class_name (script_obj_t *obj,
                                           const char   *class_name);
 bool script_obj_is_null (script_obj_t *obj);
@@ -72,8 +74,8 @@ bool script_obj_is_string (script_obj_t *obj);
 bool script_obj_is_hash (script_obj_t *obj);
 bool script_obj_is_native (script_obj_t *obj);
 
-bool script_obj_is_native_of_class (script_obj_t * obj,
-                                    script_obj_native_class_t *class );
+bool script_obj_is_native_of_class (script_obj_t              *obj,
+                                    script_obj_native_class_t *class);
 bool script_obj_is_native_of_class_name (script_obj_t *obj,
                                          const char   *class_name);
 void script_obj_assign (script_obj_t *obj_a,
@@ -88,9 +90,9 @@ bool script_obj_hash_get_bool (script_obj_t *hash,
                                const char   *name);
 char *script_obj_hash_get_string (script_obj_t *hash,
                                   const char   *name);
-void *script_obj_hash_get_native_of_class (script_obj_t *hash,
-                                           const char   *name,
-                                           script_obj_native_class_t *class );
+void *script_obj_hash_get_native_of_class (script_obj_t              *hash,
+                                           const char                *name,
+                                           script_obj_native_class_t *class);
 void *script_obj_hash_get_native_of_class_name (script_obj_t *hash,
                                                 const char   *name,
                                                 const char   *class_name);

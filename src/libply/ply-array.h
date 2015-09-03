@@ -29,8 +29,8 @@ typedef enum _ply_array_element_type ply_array_element_type_t;
 
 enum _ply_array_element_type
 {
-  PLY_ARRAY_ELEMENT_TYPE_POINTER,
-  PLY_ARRAY_ELEMENT_TYPE_UINT32
+        PLY_ARRAY_ELEMENT_TYPE_POINTER,
+        PLY_ARRAY_ELEMENT_TYPE_UINT32
 };
 
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
@@ -39,9 +39,9 @@ void ply_array_free (ply_array_t *array);
 int ply_array_get_size (ply_array_t *array);
 void ply_array_add_pointer_element (ply_array_t *array,
                                     const void  *element);
-void ply_array_add_uint32_element (ply_array_t    *array,
-                                   const uint32_t  element);
-void * const *ply_array_get_pointer_elements (ply_array_t *array);
+void ply_array_add_uint32_element (ply_array_t   *array,
+                                   const uint32_t element);
+void *const *ply_array_get_pointer_elements (ply_array_t *array);
 uint32_t const *ply_array_get_uint32_elements (ply_array_t *array);
 void **ply_array_steal_pointer_elements (ply_array_t *array);
 

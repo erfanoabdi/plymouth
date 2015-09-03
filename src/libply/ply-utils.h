@@ -28,29 +28,29 @@
 #include <sys/types.h>
 
 #ifndef MIN
-#define MIN(a,b) ((a) <= (b)? (a) : (b))
+#define MIN(a, b) ((a) <= (b) ? (a) : (b))
 #endif
 
 #ifndef MAX
-#define MAX(a,b) ((a) >= (b)? (a) : (b))
+#define MAX(a, b) ((a) >= (b) ? (a) : (b))
 #endif
 
 #ifndef CLAMP
-#define CLAMP(a,b,c) (MIN (MAX ((a), (b)), (c)))
+#define CLAMP(a, b, c) (MIN (MAX ((a), (b)), (c)))
 #endif
 
 #define PLY_UTF8_CHARACTER_SIZE_MAX 4
 
 typedef intptr_t ply_module_handle_t;
-typedef void (* ply_module_function_t) (void);
+typedef void (*ply_module_function_t) (void);
 
 typedef intptr_t ply_daemon_handle_t;
 
 typedef enum
 {
-  PLY_UNIX_SOCKET_TYPE_CONCRETE = 0,
-  PLY_UNIX_SOCKET_TYPE_ABSTRACT,
-  PLY_UNIX_SOCKET_TYPE_TRIMMED_ABSTRACT
+        PLY_UNIX_SOCKET_TYPE_CONCRETE = 0,
+        PLY_UNIX_SOCKET_TYPE_ABSTRACT,
+        PLY_UNIX_SOCKET_TYPE_TRIMMED_ABSTRACT
 } ply_unix_socket_type_t;
 
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
@@ -59,10 +59,10 @@ typedef enum
 
 bool ply_open_unidirectional_pipe (int *sender_fd,
                                    int *receiver_fd);
-int ply_connect_to_unix_socket (const char             *path,
-                                ply_unix_socket_type_t  type);
-int ply_listen_to_unix_socket (const char *path,
-                                ply_unix_socket_type_t  type);
+int ply_connect_to_unix_socket (const char            *path,
+                                ply_unix_socket_type_t type);
+int ply_listen_to_unix_socket (const char            *path,
+                               ply_unix_socket_type_t type);
 bool ply_get_credentials_from_fd (int    fd,
                                   pid_t *pid,
                                   uid_t *uid,
@@ -70,19 +70,19 @@ bool ply_get_credentials_from_fd (int    fd,
 
 bool ply_write (int         fd,
                 const void *buffer,
-                size_t      number_of_bytes); 
+                size_t      number_of_bytes);
 bool ply_write_uint32 (int      fd,
                        uint32_t value);
-bool ply_read (int     fd,
-               void   *buffer,
-               size_t  number_of_bytes); 
+bool ply_read (int    fd,
+               void  *buffer,
+               size_t number_of_bytes);
 bool ply_read_uint32 (int       fd,
                       uint32_t *value);
 
 bool ply_fd_has_data (int fd);
 bool ply_fd_can_take_data (int fd);
 bool ply_fd_may_block (int fd);
-char **ply_copy_string_array (const char * const *array);
+char **ply_copy_string_array (const char *const *array);
 void ply_free_string_array (char **array);
 bool ply_string_has_prefix (const char *string,
                             const char *prefix);
@@ -100,7 +100,7 @@ ply_module_handle_t *ply_open_module (const char *module_path);
 ply_module_handle_t *ply_open_built_in_module (void);
 
 ply_module_function_t ply_module_look_up_function (ply_module_handle_t *handle,
-                                                   const char  *function_name);
+                                                   const char          *function_name);
 void ply_close_module (ply_module_handle_t *handle);
 
 bool ply_create_directory (const char *directory);
@@ -112,10 +112,10 @@ ply_daemon_handle_t *ply_create_daemon (void);
 bool ply_detach_daemon (ply_daemon_handle_t *handle,
                         int                  exit_code);
 
-int ply_utf8_character_get_size (const char   *string,
-                                 size_t        n);
-int ply_utf8_string_get_length (const char   *string,
-                                size_t        n);
+int ply_utf8_character_get_size (const char *string,
+                                 size_t      n);
+int ply_utf8_string_get_length (const char *string,
+                                size_t      n);
 
 char *ply_get_process_command_line (pid_t pid);
 pid_t ply_get_process_parent_pid (pid_t pid);

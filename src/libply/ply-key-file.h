@@ -1,4 +1,4 @@
-/* ply-key-file.h - key file loader 
+/* ply-key-file.h - key file loader
  *
  * Copyright (C) 2009 Red Hat, Inc.
  *
@@ -42,9 +42,9 @@ bool ply_key_file_has_key (ply_key_file_t *key_file,
 char *ply_key_file_get_value (ply_key_file_t *key_file,
                               const char     *group_name,
                               const char     *key);
-void ply_key_file_foreach_entry (ply_key_file_t              *key_file,
-                                 ply_key_file_foreach_func_t  func,
-                                 void                        *user_data);
+void ply_key_file_foreach_entry (ply_key_file_t             *key_file,
+                                 ply_key_file_foreach_func_t func,
+                                 void                       *user_data);
 #endif
 
 #endif /* PLY_KEY_FILE_H */

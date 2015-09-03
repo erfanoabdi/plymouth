@@ -26,7 +26,7 @@
 
 typedef struct
 {
-  script_op_t      *script_main_op;
+        script_op_t *script_main_op;
 } script_lib_string_data_t;
 
 script_lib_string_data_t *script_lib_string_setup (script_state_t *state);

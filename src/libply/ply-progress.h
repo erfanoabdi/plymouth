@@ -1,4 +1,4 @@
-/* ply-progress.h - calculats boot progress 
+/* ply-progress.h - calculats boot progress
  *
  * Copyright (C) 2007 Red Hat, Inc.
  *
@@ -28,15 +28,19 @@
 typedef struct _ply_progress ply_progress_t;
 
 ply_progress_t *ply_progress_new (void);
-void ply_progress_free (ply_progress_t* progress);
-void ply_progress_load_cache (ply_progress_t* progress, const char *filename);
-double ply_progress_get_percentage (ply_progress_t* progress);
-void ply_progress_set_percentage (ply_progress_t* progress, double percentage);
-double ply_progress_get_time (ply_progress_t* progress);
-void ply_progress_pause (ply_progress_t* progress);
-void ply_progress_unpause (ply_progress_t* progress);
-void ply_progress_save_cache (ply_progress_t* progress, const char *filename);
-void ply_progress_status_update (ply_progress_t* progress, const char  *status);
+void ply_progress_free (ply_progress_t *progress);
+void ply_progress_load_cache (ply_progress_t *progress,
+                              const char     *filename);
+double ply_progress_get_percentage (ply_progress_t *progress);
+void ply_progress_set_percentage (ply_progress_t *progress,
+                                  double          percentage);
+double ply_progress_get_time (ply_progress_t *progress);
+void ply_progress_pause (ply_progress_t *progress);
+void ply_progress_unpause (ply_progress_t *progress);
+void ply_progress_save_cache (ply_progress_t *progress,
+                              const char     *filename);
+void ply_progress_status_update (ply_progress_t *progress,
+                                 const char     *status);
 
 #endif /* PLY_PROGRESS_H */
 /* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

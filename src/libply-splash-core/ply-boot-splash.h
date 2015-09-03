@@ -40,12 +40,12 @@
 typedef struct _ply_boot_splash ply_boot_splash_t;
 typedef struct _ply_seat ply_seat_t;
 
-typedef void (* ply_boot_splash_on_idle_handler_t) (void *user_data);
+typedef void (*ply_boot_splash_on_idle_handler_t) (void *user_data);
 
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
-ply_boot_splash_t *ply_boot_splash_new (const char   *  theme_path,
-                                        const char   *  plugin_dir,
-                                        ply_buffer_t *  boot_buffer);
+ply_boot_splash_t *ply_boot_splash_new (const char   *theme_path,
+                                        const char   *plugin_dir,
+                                        ply_buffer_t *boot_buffer);
 
 bool ply_boot_splash_load (ply_boot_splash_t *splash);
 bool ply_boot_splash_load_built_in (ply_boot_splash_t *splash);
@@ -55,7 +55,7 @@ void ply_boot_splash_attach_to_seat (ply_boot_splash_t *splash,
 void ply_boot_splash_detach_from_seat (ply_boot_splash_t *splash,
                                        ply_seat_t        *seat);
 void ply_boot_splash_free (ply_boot_splash_t *splash);
-bool ply_boot_splash_show (ply_boot_splash_t *splash,
+bool ply_boot_splash_show (ply_boot_splash_t     *splash,
                            ply_boot_splash_mode_t mode);
 bool ply_boot_splash_system_update (ply_boot_splash_t *splash,
                                     int                progress);
@@ -70,7 +70,7 @@ void ply_boot_splash_display_message (ply_boot_splash_t *splash,
 void ply_boot_splash_hide_message (ply_boot_splash_t *splash,
                                    const char        *message);
 void ply_boot_splash_hide (ply_boot_splash_t *splash);
-void ply_boot_splash_display_normal  (ply_boot_splash_t *splash);
+void ply_boot_splash_display_normal (ply_boot_splash_t *splash);
 void ply_boot_splash_display_password (ply_boot_splash_t *splash,
                                        const char        *prompt,
                                        int                bullets);
@@ -81,9 +81,9 @@ void ply_boot_splash_attach_to_event_loop (ply_boot_splash_t *splash,
                                            ply_event_loop_t  *loop);
 void ply_boot_splash_attach_progress (ply_boot_splash_t *splash,
                                       ply_progress_t    *progress);
-void ply_boot_splash_become_idle (ply_boot_splash_t                 *splash,
-                                  ply_boot_splash_on_idle_handler_t  idle_handler,
-                                  void                              *user_data);
+void ply_boot_splash_become_idle (ply_boot_splash_t                *splash,
+                                  ply_boot_splash_on_idle_handler_t idle_handler,
+                                  void                             *user_data);
 
 
 #endif

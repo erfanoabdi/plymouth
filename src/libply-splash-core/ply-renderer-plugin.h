@@ -37,35 +37,35 @@ typedef struct _ply_renderer_backend ply_renderer_backend_t;
 
 typedef struct
 {
-  ply_renderer_backend_t * (* create_backend) (const char *device_name,
-                                               ply_terminal_t *terminal);
-  void (* destroy_backend) (ply_renderer_backend_t *backend);
-  bool (* open_device) (ply_renderer_backend_t *backend);
-  void (* close_device) (ply_renderer_backend_t *backend);
-  bool (* query_device) (ply_renderer_backend_t *backend);
-  bool (* map_to_device) (ply_renderer_backend_t *backend);
-  void (* unmap_from_device) (ply_renderer_backend_t *backend);
-  void (* activate) (ply_renderer_backend_t *backend);
-  void (* deactivate) (ply_renderer_backend_t *backend);
-  void (* flush_head) (ply_renderer_backend_t *backend,
-                       ply_renderer_head_t    *head);
+        ply_renderer_backend_t * (*create_backend)(const char *device_name,
+                                                   ply_terminal_t * terminal);
+        void (*destroy_backend)(ply_renderer_backend_t *backend);
+        bool (*open_device)(ply_renderer_backend_t *backend);
+        void (*close_device)(ply_renderer_backend_t *backend);
+        bool (*query_device)(ply_renderer_backend_t *backend);
+        bool (*map_to_device)(ply_renderer_backend_t *backend);
+        void (*unmap_from_device)(ply_renderer_backend_t *backend);
+        void (*activate)(ply_renderer_backend_t *backend);
+        void (*deactivate)(ply_renderer_backend_t *backend);
+        void (*flush_head)(ply_renderer_backend_t *backend,
+                           ply_renderer_head_t    *head);
 
-  ply_list_t * (* get_heads) (ply_renderer_backend_t *backend);
+        ply_list_t * (*get_heads)(ply_renderer_backend_t * backend);
 
-  ply_pixel_buffer_t * (* get_buffer_for_head) (ply_renderer_backend_t *backend,
-                                                ply_renderer_head_t    *head);
+        ply_pixel_buffer_t * (*get_buffer_for_head)(ply_renderer_backend_t * backend,
+                                                    ply_renderer_head_t * head);
 
-  ply_renderer_input_source_t * (* get_input_source) (ply_renderer_backend_t *backend);
-  bool                 (* open_input_source) (ply_renderer_backend_t *backend,
-                                              ply_renderer_input_source_t *input_source);
+        ply_renderer_input_source_t * (*get_input_source)(ply_renderer_backend_t * backend);
+        bool (*open_input_source)(ply_renderer_backend_t      *backend,
+                                  ply_renderer_input_source_t *input_source);
 
-  void                 (* set_handler_for_input_source) (ply_renderer_backend_t    *backend,
-                                                         ply_renderer_input_source_t *input_source,
-                                                         ply_renderer_input_source_handler_t handler,
-                                                         void                      *user_data);
+        void (*set_handler_for_input_source)(ply_renderer_backend_t             *backend,
+                                             ply_renderer_input_source_t        *input_source,
+                                             ply_renderer_input_source_handler_t handler,
+                                             void                               *user_data);
 
-  void                 (* close_input_source) (ply_renderer_backend_t *backend,
-                                               ply_renderer_input_source_t *input_source);
+        void (*close_input_source)(ply_renderer_backend_t      *backend,
+                                   ply_renderer_input_source_t *input_source);
 } ply_renderer_plugin_interface_t;
 
 #endif /* PLY_RENDERER_PLUGIN_H */

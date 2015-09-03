@@ -32,13 +32,13 @@
 
 typedef struct _ply_pixel_display ply_pixel_display_t;
 
-typedef void (* ply_pixel_display_draw_handler_t) (void               *user_data,
-                                                   ply_pixel_buffer_t *pixel_buffer,
-                                                   int                 x,
-                                                   int                 y,
-                                                   int                 width,
-                                                   int                 height,
-                                                   ply_pixel_display_t *pixel_display);
+typedef void (*ply_pixel_display_draw_handler_t) (void                *user_data,
+                                                  ply_pixel_buffer_t  *pixel_buffer,
+                                                  int                  x,
+                                                  int                  y,
+                                                  int                  width,
+                                                  int                  height,
+                                                  ply_pixel_display_t *pixel_display);
 
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
 ply_pixel_display_t *ply_pixel_display_new (ply_renderer_t      *renderer,
@@ -46,12 +46,12 @@ ply_pixel_display_t *ply_pixel_display_new (ply_renderer_t      *renderer,
 
 void ply_pixel_display_free (ply_pixel_display_t *display);
 
-unsigned long ply_pixel_display_get_width  (ply_pixel_display_t *display);
+unsigned long ply_pixel_display_get_width (ply_pixel_display_t *display);
 unsigned long ply_pixel_display_get_height (ply_pixel_display_t *display);
 
-void ply_pixel_display_set_draw_handler (ply_pixel_display_t              *display,
-                                         ply_pixel_display_draw_handler_t  draw_handler,
-                                         void                             *user_data);
+void ply_pixel_display_set_draw_handler (ply_pixel_display_t             *display,
+                                         ply_pixel_display_draw_handler_t draw_handler,
+                                         void                            *user_data);
 
 void ply_pixel_display_draw_area (ply_pixel_display_t *display,
                                   int                  x,

@@ -32,144 +32,139 @@
 
 typedef struct
 {
-  ply_trigger_handler_t  handler;
-  void                  *user_data;
+        ply_trigger_handler_t handler;
+        void                 *user_data;
 } ply_trigger_closure_t;
 
 struct _ply_trigger
 {
-  ply_list_t *closures;
+        ply_list_t     *closures;
 
-  ply_trigger_t **free_address;
-  int ignore_count;
+        ply_trigger_t **free_address;
+        int             ignore_count;
 };
 
 ply_trigger_t *
 ply_trigger_new (ply_trigger_t **free_address)
 {
-  ply_trigger_t *trigger;
+        ply_trigger_t *trigger;
 
-  trigger = calloc (1, sizeof (ply_trigger_t));
-  trigger->free_address = free_address;
-  trigger->closures = ply_list_new ();
-  trigger->ignore_count = 0;
+        trigger = calloc (1, sizeof(ply_trigger_t));
+        trigger->free_address = free_address;
+        trigger->closures = ply_list_new ();
+        trigger->ignore_count = 0;
 
-  return trigger;
+        return trigger;
 }
 
 void
 ply_trigger_free (ply_trigger_t *trigger)
 {
-  ply_list_node_t *node;
+        ply_list_node_t *node;
 
-  if (trigger == NULL)
-    return;
+        if (trigger == NULL)
+                return;
 
-  node = ply_list_get_first_node (trigger->closures);
-  while (node != NULL)
-    {
-      ply_list_node_t *next_node;
-      ply_trigger_closure_t *closure;
+        node = ply_list_get_first_node (trigger->closures);
+        while (node != NULL) {
+                ply_list_node_t *next_node;
+                ply_trigger_closure_t *closure;
 
-      closure = (ply_trigger_closure_t *) ply_list_node_get_data (node);
+                closure = (ply_trigger_closure_t *) ply_list_node_get_data (node);
 
-      next_node = ply_list_get_next_node (trigger->closures, node);
+                next_node = ply_list_get_next_node (trigger->closures, node);
 
-      free (closure);
-      ply_list_remove_node (trigger->closures, node);
+                free (closure);
+                ply_list_remove_node (trigger->closures, node);
 
-      node = next_node;
-    }
-  ply_list_free (trigger->closures);
-
-  if (trigger->free_address != NULL)
-    *trigger->free_address = NULL;
-
-  if (trigger->free_address != NULL)
-    *trigger->free_address = NULL;
-
-  free (trigger);
-}
-
-void
-ply_trigger_add_handler (ply_trigger_t         *trigger,
-                         ply_trigger_handler_t  handler,
-                         void                  *user_data)
-{
-  ply_trigger_closure_t *closure;
-
-  closure = calloc (1, sizeof (ply_trigger_closure_t));
-  closure->handler = handler;
-  closure->user_data = user_data;
-
-  ply_list_append_data (trigger->closures, closure);
-}
-
-void
-ply_trigger_remove_handler (ply_trigger_t         *trigger,
-                            ply_trigger_handler_t  handler,
-                            void                  *user_data)
-{
-  ply_list_node_t *node;
-
-  node = ply_list_get_first_node (trigger->closures);
-  while (node != NULL)
-    {
-      ply_list_node_t *next_node;
-      ply_trigger_closure_t *closure;
-
-      closure = (ply_trigger_closure_t *) ply_list_node_get_data (node);
-
-      next_node = ply_list_get_next_node (trigger->closures, node);
-
-      if (closure->handler == handler && closure->user_data == user_data)
-        {
-          free (closure);
-          ply_list_remove_node (trigger->closures, node);
-          break;
+                node = next_node;
         }
+        ply_list_free (trigger->closures);
 
-      node = next_node;
-    }
+        if (trigger->free_address != NULL)
+                *trigger->free_address = NULL;
+
+        if (trigger->free_address != NULL)
+                *trigger->free_address = NULL;
+
+        free (trigger);
+}
+
+void
+ply_trigger_add_handler (ply_trigger_t        *trigger,
+                         ply_trigger_handler_t handler,
+                         void                 *user_data)
+{
+        ply_trigger_closure_t *closure;
+
+        closure = calloc (1, sizeof(ply_trigger_closure_t));
+        closure->handler = handler;
+        closure->user_data = user_data;
+
+        ply_list_append_data (trigger->closures, closure);
+}
+
+void
+ply_trigger_remove_handler (ply_trigger_t        *trigger,
+                            ply_trigger_handler_t handler,
+                            void                 *user_data)
+{
+        ply_list_node_t *node;
+
+        node = ply_list_get_first_node (trigger->closures);
+        while (node != NULL) {
+                ply_list_node_t *next_node;
+                ply_trigger_closure_t *closure;
+
+                closure = (ply_trigger_closure_t *) ply_list_node_get_data (node);
+
+                next_node = ply_list_get_next_node (trigger->closures, node);
+
+                if (closure->handler == handler && closure->user_data == user_data) {
+                        free (closure);
+                        ply_list_remove_node (trigger->closures, node);
+                        break;
+                }
+
+                node = next_node;
+        }
 }
 
 void
 ply_trigger_ignore_next_pull (ply_trigger_t *trigger)
 {
-  trigger->ignore_count++;
+        trigger->ignore_count++;
 }
 
 void
 ply_trigger_pull (ply_trigger_t *trigger,
                   const void    *data)
 {
-  ply_list_node_t *node;
+        ply_list_node_t *node;
 
-  assert (trigger != NULL);
-  assert (trigger->ignore_count >= 0);
+        assert (trigger != NULL);
+        assert (trigger->ignore_count >= 0);
 
-  if (trigger->ignore_count > 0)
-    {
-      trigger->ignore_count--;
-      return;
-    }
+        if (trigger->ignore_count > 0) {
+                trigger->ignore_count--;
+                return;
+        }
 
-  node = ply_list_get_first_node (trigger->closures);
-  while (node != NULL)
-    {
-      ply_list_node_t *next_node;
-      ply_trigger_closure_t *closure;
+        node = ply_list_get_first_node (trigger->closures);
+        while (node != NULL) {
+                ply_list_node_t *next_node;
+                ply_trigger_closure_t *closure;
 
-      closure = (ply_trigger_closure_t *) ply_list_node_get_data (node);
+                closure = (ply_trigger_closure_t *) ply_list_node_get_data (node);
 
-      next_node = ply_list_get_next_node (trigger->closures, node);
+                next_node = ply_list_get_next_node (trigger->closures, node);
 
-      closure->handler (closure->user_data, data, trigger);
+                closure->handler (closure->user_data, data, trigger);
 
-      node = next_node;
-    }
+                node = next_node;
+        }
 
-  if (trigger->free_address != NULL)
-    ply_trigger_free (trigger);
+        if (trigger->free_address != NULL)
+                ply_trigger_free (trigger);
 }
 /* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

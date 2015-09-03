@@ -26,10 +26,10 @@
 
 script_return_t script_execute (script_state_t *state,
                                 script_op_t    *op);
-script_return_t script_execute_object (script_state_t    *state,
-                                       script_obj_t      *function,
-                                       script_obj_t      *this,
-                                       script_obj_t      *first_arg,
+script_return_t script_execute_object (script_state_t * state,
+                                       script_obj_t * function,
+                                       script_obj_t * this,
+                                       script_obj_t * first_arg,
                                        ...);
 
 #endif /* SCRIPT_EXECUTE_H */

@@ -31,11 +31,11 @@
 
 typedef struct _ply_pixel_buffer ply_pixel_buffer_t;
 
-#define PLY_PIXEL_BUFFER_COLOR_TO_PIXEL_VALUE(r,g,b,a)                        \
-    (((uint8_t) (CLAMP (a * 255.0, 0.0, 255.0)) << 24)                        \
-      | ((uint8_t) (CLAMP (r * 255.0, 0.0, 255.0)) << 16)                     \
-      | ((uint8_t) (CLAMP (g * 255.0, 0.0, 255.0)) << 8)                      \
-      | ((uint8_t) (CLAMP (b * 255.0, 0.0, 255.0))))
+#define PLY_PIXEL_BUFFER_COLOR_TO_PIXEL_VALUE(r, g, b, a)                        \
+        (((uint8_t) (CLAMP (a * 255.0, 0.0, 255.0)) << 24)                        \
+         | ((uint8_t) (CLAMP (r * 255.0, 0.0, 255.0)) << 16)                     \
+         | ((uint8_t) (CLAMP (g * 255.0, 0.0, 255.0)) << 8)                      \
+         | ((uint8_t) (CLAMP (b * 255.0, 0.0, 255.0))))
 
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
 ply_pixel_buffer_t *ply_pixel_buffer_new (unsigned long width,

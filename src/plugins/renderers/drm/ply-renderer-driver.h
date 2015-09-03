@@ -33,34 +33,33 @@ typedef struct _ply_renderer_driver ply_renderer_driver_t;
 
 typedef struct
 {
-    ply_renderer_driver_t * (* create_driver) (int device_fd);
+        ply_renderer_driver_t * (*create_driver)(int device_fd);
 
-    void (* destroy_driver) (ply_renderer_driver_t *driver);
+        void (*destroy_driver)(ply_renderer_driver_t *driver);
 
-    uint32_t (* create_buffer) (ply_renderer_driver_t *driver,
-                                unsigned long          width,
-                                unsigned long          height,
-                                unsigned long         *row_stride);
-    bool (* fetch_buffer) (ply_renderer_driver_t *driver,
-                           uint32_t               buffer_id,
-                           unsigned long         *width,
-                           unsigned long         *height,
-                           unsigned long         *row_stride);
+        uint32_t (*create_buffer)(ply_renderer_driver_t *driver,
+                                  unsigned long          width,
+                                  unsigned long          height,
+                                  unsigned long         *row_stride);
+        bool (*fetch_buffer)(ply_renderer_driver_t *driver,
+                             uint32_t               buffer_id,
+                             unsigned long         *width,
+                             unsigned long         *height,
+                             unsigned long         *row_stride);
 
-    bool (* map_buffer) (ply_renderer_driver_t *driver,
-                         uint32_t               buffer_id);
-
-    void (* unmap_buffer) (ply_renderer_driver_t *driver,
+        bool (*map_buffer)(ply_renderer_driver_t *driver,
                            uint32_t               buffer_id);
 
-    char * (* begin_flush) (ply_renderer_driver_t *driver,
-                            uint32_t               buffer_id);
-    void (* end_flush) (ply_renderer_driver_t *driver,
-                        uint32_t               buffer_id);
-
-    void (* destroy_buffer) (ply_renderer_driver_t *driver,
+        void (*unmap_buffer)(ply_renderer_driver_t *driver,
                              uint32_t               buffer_id);
 
+        char * (*begin_flush)(ply_renderer_driver_t * driver,
+                              uint32_t buffer_id);
+        void (*end_flush)(ply_renderer_driver_t *driver,
+                          uint32_t               buffer_id);
+
+        void (*destroy_buffer)(ply_renderer_driver_t *driver,
+                               uint32_t               buffer_id);
 } ply_renderer_driver_interface_t;
 
 #endif /* PLY_RENDERER_DRIVER_H */
