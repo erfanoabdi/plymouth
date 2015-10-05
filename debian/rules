@@ -31,9 +31,7 @@ override_dh_auto_configure:
 		--with-logo=/usr/share/plymouth/debian-logo.png \
 		--with-release-file=/etc/os-release \
 		--with-system-root-install \
-		--without-rhgb-compat-link \
-		--with-boot-tty=/dev/tty7 \
-		--with-shutdown-tty=/dev/tty7
+		--without-rhgb-compat-link
 
 override_dh_auto_install:
 	dh_auto_install
