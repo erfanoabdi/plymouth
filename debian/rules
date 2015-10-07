@@ -50,6 +50,9 @@ override_dh_install:
 	# Moving /usr/lib to /lib
 	mv debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)/*.so.* debian/tmp/lib/$(DEB_HOST_MULTIARCH)
 
+	mv debian/tmp/lib/$(DEB_HOST_MULTIARCH)/*.so debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)
+	mv debian/tmp/lib/$(DEB_HOST_MULTIARCH)/*.a debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)
+
 	dh_install --fail-missing
 
 	# Adding initramfs-tools integration

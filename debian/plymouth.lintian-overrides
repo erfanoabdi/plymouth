@@ -1,3 +1,2 @@
-plymouth: dev-pkg-without-shlib-symlink
 plymouth: init.d-script-possible-missing-stop etc/init.d/plymouth 1
 plymouth: init.d-script-depends-on-all-virtual-facility etc/init.d/plymouth required-start
