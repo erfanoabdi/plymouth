@@ -73,7 +73,7 @@ Depends:
  libplymouth4 (= ${binary:Version}),
  plymouth-x11 (= ${binary:Version}),
  libplymouth-dev (= ${binary:Version}),
- plymouth-themes (>= ${source:Version}),
+ plymouth-themes (= ${binary:Version}),
 Description: boot animation, logger and I/O multiplexer - debug symbols
  Plymouth provides a boot-time I/O multiplexing framework - the most obvious
  use for which is to provide an attractive graphical animation in place of
