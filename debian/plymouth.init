@@ -53,7 +53,7 @@ case "${1}" in
 			true)
 				if ! plymouth --ping
 				then
-					/sbin/plymouthd --mode=shutdown --tty=tty1
+					/sbin/plymouthd --mode=shutdown
 				fi
 
 				RUNLEVEL="$(/sbin/runlevel | cut -d " " -f 2)"
