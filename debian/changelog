@@ -1,3 +1,12 @@
+plymouth (0.9.2-3) unstable; urgency=medium
+
+  * debian/plymouth.NEWS: Set the proper release for the entry (Closes:
+    #801840)
+  * Add initramfs panic script, this is not yet implemented in the debian
+    initramfs-tools package, but at least we are ready. (See: #602331)
+
+ -- Laurent Bigonville <bigon@debian.org>  Sun, 15 Nov 2015 13:55:42 +0100
+
 plymouth (0.9.2-2) unstable; urgency=medium
 
   * debian/plymouth.init: Do not override the TTY during shutdown
