@@ -60,6 +60,7 @@ override_dh_install:
 	sed -i -e 's|@DEB_HOST_MULTIARCH@|$(DEB_HOST_MULTIARCH)|g' debian/plymouth/usr/share/initramfs-tools/hooks/plymouth
 	install -D -m 0755 debian/local/plymouth.init-premount debian/plymouth/usr/share/initramfs-tools/scripts/init-premount/plymouth
 	install -D -m 0755 debian/local/plymouth.init-bottom debian/plymouth/usr/share/initramfs-tools/scripts/init-bottom/plymouth
+	install -D -m 0755 debian/local/plymouth.panic debian/plymouth/usr/share/initramfs-tools/scripts/panic/plymouth
 
 	# Adding other debian specific files
 	install -D -m 0644 debian/local/debian-logo.png debian/plymouth/usr/share/plymouth/debian-logo.png
