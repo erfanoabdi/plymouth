@@ -9,8 +9,10 @@ case "${1}" in
 			update-initramfs -u
 		fi
 		;;
-
-	purge|upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
+	purge)
+		rm -f /var/lib/plymouth/boot-duration
+		;;
+	upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
 
 		;;
 
