@@ -18,8 +18,8 @@ Build-Depends:
  xsltproc,
 Standards-Version: 3.9.6
 Homepage: http://www.freedesktop.org/wiki/Software/Plymouth
-Vcs-Git: git://anonscm.debian.org/collab-maint/plymouth.git
-Vcs-Browser: http://anonscm.debian.org/gitweb/?p=collab-maint/plymouth.git
+Vcs-Git: https://anonscm.debian.org/git/collab-maint/plymouth.git
+Vcs-Browser: https://anonscm.debian.org/cgit/collab-maint/plymouth.git/
 
 Package: plymouth
 Architecture: linux-any
