@@ -4,7 +4,7 @@ Priority: optional
 Maintainer: Laurent Bigonville <bigon@debian.org>
 Uploaders: Sjoerd Simons <sjoerd@debian.org>
 Build-Depends:
- debhelper (>= 9),
+ debhelper (>= 9.20160114~),
  dh-autoreconf,
  dh-systemd,
  docbook-xsl,
@@ -62,27 +62,6 @@ Description: boot animation, logger and I/O multiplexer - X11 renderer
  password prompts for encrypted file systems.
  .
  This package contains the X11 renderer for a graphical boot splash.
-
-Package: plymouth-dbg
-Architecture: linux-any
-Section: debug
-Priority: extra
-Depends:
- ${misc:Depends},
- plymouth (= ${binary:Version}),
- libplymouth4 (= ${binary:Version}),
- plymouth-x11 (= ${binary:Version}),
- libplymouth-dev (= ${binary:Version}),
- plymouth-themes (= ${binary:Version}),
-Description: boot animation, logger and I/O multiplexer - debug symbols
- Plymouth provides a boot-time I/O multiplexing framework - the most obvious
- use for which is to provide an attractive graphical animation in place of
- the text messages that normally get shown during boot. (The messages are
- instead redirected to a logfile for later viewing.) However, in event-driven
- boot systems Plymouth can also usefully handle user interaction such as
- password prompts for encrypted file systems.
- .
- This package contains the debugging symbols.
 
 Package: libplymouth4
 Architecture: any
