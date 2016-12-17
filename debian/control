@@ -30,6 +30,8 @@ Depends:
  initramfs-tools | dracut,
  init-system-helpers (>= 1.18),
  lsb-base (>= 3.0-6),
+ systemd (>= 232-8~),
+ udev (>= 232-8~),
 Conflicts: console-common
 Breaks: plymouth-drm (<< 0.9.0-6~), plymouth-themes (<< 0.9.0-8~)
 Replaces: plymouth-drm (<< 0.9.0-6~), plymouth-themes (<< 0.9.0-8~)
