@@ -1,0 +1,35 @@
+From 1ed8ec28df55f55f38acad67b9fdf6cd76b86b3f Mon Sep 17 00:00:00 2001
+From: Miroslav Urbanek <mu@miroslavurbanek.com>
+Date: Wed, 18 Nov 2015 10:48:46 -0500
+Subject: pixel-buffer: use double instead of float for scale factor
+
+There are strange red and black dots in a 1280x800 splash screen with
+Debian Jessie theme. The problem comes from image rescaling and is
+caused by:
+
+https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=799953
+
+on i386. The conversion from double to int in functions
+ply_pixel_buffer_resize and ply_pixel_buffer_interpolate happens
+through an intermediate float. This sometimes results in a truncated
+value being larger than the original value.
+
+This commit changes the code to use an intermediate double to
+work around the bug.
+
+diff --git a/src/libply-splash-core/ply-pixel-buffer.c b/src/libply-splash-core/ply-pixel-buffer.c
+index 120a2eb..61ee91c 100644
+--- a/src/libply-splash-core/ply-pixel-buffer.c
++++ b/src/libply-splash-core/ply-pixel-buffer.c
+@@ -809,7 +809,7 @@ ply_pixel_buffer_resize (ply_pixel_buffer_t *old_buffer,
+         int x, y;
+         double old_x, old_y;
+         int old_width, old_height;
+-        float scale_x, scale_y;
++        double scale_x, scale_y;
+         uint32_t *bytes;
+ 
+         buffer = ply_pixel_buffer_new (width, height);
+-- 
+cgit v0.10.2
+

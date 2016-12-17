@@ -5,3 +5,4 @@
 0005-cmdline.patch
 0008-show-delay.patch
 drop-systemd-vconsole-setup-service.patch
+0009-use-double-instead-of-float-for-scale-factor.patch
