@@ -1,3 +1,26 @@
+plymouth (0.9.2-4) unstable; urgency=medium
+
+  [ Laurent Bigonville ]
+  * debian/plymouth.postrm: Remove /var/lib/plymouth/boot-duration on purge
+    (Closes: #815222)
+
+  [ Sjoerd Simons ]
+  * plymouth.hook: Always install drm modules
+
+  [ Laurent Bigonville ]
+  * debian/control: Update the Vcs-* fields and switch to https to please
+    lintian
+  * Drop -dbg package and rely on the automatically built -dbgsym ones
+  * debian/control: Depends against lsb-base to please lintian
+  * debian/control: Bump Standards-Version to 3.9.8 (no further changes)
+  * Drop debian/patches/0007-udev-seat-tag.patch and ensure seat tag is
+    properly applied instead
+  * Fix/workaround red and black artefacts caused by compiler issues on i386
+    (Closes: #801080)
+  * Do not hardcode to the update-initramfs executable anymore
+
+ -- Laurent Bigonville <bigon@debian.org>  Sun, 18 Dec 2016 11:50:34 +0100
+
 plymouth (0.9.2-3) unstable; urgency=medium
 
   * debian/plymouth.NEWS: Set the proper release for the entry (Closes:
