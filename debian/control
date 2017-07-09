@@ -37,7 +37,7 @@ Breaks: plymouth-drm (<< 0.9.0-6~), plymouth-themes (<< 0.9.0-8~)
 Replaces: plymouth-drm (<< 0.9.0-6~), plymouth-themes (<< 0.9.0-8~)
 Suggests:
  desktop-base,
- plymouth-themes
+ plymouth-themes,
 Description: boot animation, logger and I/O multiplexer
  Plymouth provides a boot-time I/O multiplexing framework - the most obvious
  use for which is to provide an attractive graphical animation in place of
@@ -95,6 +95,23 @@ Description: graphical boot animation and logger - development files
  .
  This package contains the development files to build Plymouth plugins.
 
+Package: plymouth-label
+Architecture: linux-any
+Depends: 
+ ${misc:Depends},
+ ${shlibs:Depends},
+ plymouth (= ${binary:Version}),
+Description: boot animation, logger and I/O multiplexer - label control
+ Plymouth provides a boot-time I/O multiplexing framework - the most obvious
+ use for which is to provide an attractive graphical animation in place of
+ the text messages that normally get shown during boot. (The messages are
+ instead redirected to a logfile for later viewing.) However, in event-driven
+ boot systems Plymouth can also usefully handle user interaction such as
+ password prompts for encrypted file systems.
+ .
+ This package contains the label control, used by various graphical themes
+ to render text.
+
 Package: plymouth-themes
 Architecture: linux-any
 Depends:
@@ -103,6 +120,7 @@ Depends:
  plymouth (= ${binary:Version}),
  fontconfig-config,
  fonts-dejavu-core | ttf-dejavu-core,
+ plymouth-label (= ${binary:Version}),
 Conflicts:
  plymouth-themes-all,
  plymouth-themes-fade-in,
