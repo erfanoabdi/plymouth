@@ -15,7 +15,7 @@ Build-Depends: debhelper (>= 9.20160114~),
                pkg-config,
                systemd,
                xsltproc
-Standards-Version: 3.9.8
+Standards-Version: 4.0.0
 Homepage: http://www.freedesktop.org/wiki/Software/Plymouth
 Vcs-Git: https://anonscm.debian.org/git/collab-maint/plymouth.git
 Vcs-Browser: https://anonscm.debian.org/cgit/collab-maint/plymouth.git/
