@@ -3,19 +3,18 @@ Section: misc
 Priority: optional
 Maintainer: Laurent Bigonville <bigon@debian.org>
 Uploaders: Sjoerd Simons <sjoerd@debian.org>
-Build-Depends:
- debhelper (>= 9.20160114~),
- dh-autoreconf,
- dh-systemd,
- docbook-xsl,
- libdrm-dev,
- libgtk-3-dev (>= 3.14.0),
- libpango1.0-dev,
- libpng-dev,
- libudev-dev,
- pkg-config,
- systemd,
- xsltproc,
+Build-Depends: debhelper (>= 9.20160114~),
+               dh-autoreconf,
+               dh-systemd,
+               docbook-xsl,
+               libdrm-dev,
+               libgtk-3-dev (>= 3.14.0),
+               libpango1.0-dev,
+               libpng-dev,
+               libudev-dev,
+               pkg-config,
+               systemd,
+               xsltproc
 Standards-Version: 3.9.8
 Homepage: http://www.freedesktop.org/wiki/Software/Plymouth
 Vcs-Git: https://anonscm.debian.org/git/collab-maint/plymouth.git
@@ -24,20 +23,17 @@ Vcs-Browser: https://anonscm.debian.org/cgit/collab-maint/plymouth.git/
 Package: plymouth
 Architecture: linux-any
 Pre-Depends: ${misc:Pre-Depends}
-Depends:
- ${misc:Depends},
- ${shlibs:Depends},
- initramfs-tools | dracut,
- init-system-helpers (>= 1.18),
- lsb-base (>= 3.0-6),
- systemd (>= 232-8~),
- udev (>= 232-8~),
+Depends: init-system-helpers (>= 1.18),
+         initramfs-tools | dracut,
+         lsb-base (>= 3.0-6),
+         systemd (>= 232-8~),
+         udev (>= 232-8~),
+         ${misc:Depends},
+         ${shlibs:Depends}
 Conflicts: console-common
 Breaks: plymouth-drm (<< 0.9.0-6~), plymouth-themes (<< 0.9.0-8~)
 Replaces: plymouth-drm (<< 0.9.0-6~), plymouth-themes (<< 0.9.0-8~)
-Suggests:
- desktop-base,
- plymouth-themes,
+Suggests: desktop-base, plymouth-themes
 Description: boot animation, logger and I/O multiplexer
  Plymouth provides a boot-time I/O multiplexing framework - the most obvious
  use for which is to provide an attractive graphical animation in place of
@@ -50,10 +46,7 @@ Description: boot animation, logger and I/O multiplexer
 
 Package: plymouth-x11
 Architecture: linux-any
-Depends:
- ${misc:Depends},
- ${shlibs:Depends},
- plymouth (= ${binary:Version}),
+Depends: plymouth (= ${binary:Version}), ${misc:Depends}, ${shlibs:Depends}
 Recommends: plymouth-themes
 Suggests: gdm
 Description: boot animation, logger and I/O multiplexer - X11 renderer
@@ -97,10 +90,7 @@ Description: graphical boot animation and logger - development files
 
 Package: plymouth-label
 Architecture: linux-any
-Depends: 
- ${misc:Depends},
- ${shlibs:Depends},
- plymouth (= ${binary:Version}),
+Depends: plymouth (= ${binary:Version}), ${misc:Depends}, ${shlibs:Depends}
 Breaks: plymouth-themes (<< 0.9.2-5~)
 Replaces: plymouth-themes (<< 0.9.2-5~)
 Description: boot animation, logger and I/O multiplexer - label control
@@ -116,39 +106,35 @@ Description: boot animation, logger and I/O multiplexer - label control
 
 Package: plymouth-themes
 Architecture: linux-any
-Depends:
- ${misc:Depends},
- ${shlibs:Depends},
- plymouth (= ${binary:Version}),
- fontconfig-config,
- fonts-dejavu-core | ttf-dejavu-core,
- plymouth-label (= ${binary:Version}),
-Conflicts:
- plymouth-themes-all,
- plymouth-themes-fade-in,
- plymouth-themes-glow,
- plymouth-themes-script,
- plymouth-themes-solar,
- plymouth-themes-spinfinity,
- plymouth-themes-spinner,
-Replaces:
- plymouth-themes-all,
- plymouth-themes-fade-in,
- plymouth-themes-glow,
- plymouth-themes-script,
- plymouth-themes-solar,
- plymouth-themes-spinfinity,
- plymouth-themes-spinner,
- plymouth-drm (<< 0.9.0-6~)
-Provides:
- plymouth-theme,
- plymouth-themes-all,
- plymouth-themes-fade-in,
- plymouth-themes-glow,
- plymouth-themes-script,
- plymouth-themes-solar,
- plymouth-themes-spinfinity,
- plymouth-themes-spinner,
+Depends: fontconfig-config,
+         fonts-dejavu-core | ttf-dejavu-core,
+         plymouth (= ${binary:Version}),
+         plymouth-label (= ${binary:Version}),
+         ${misc:Depends},
+         ${shlibs:Depends}
+Conflicts: plymouth-themes-all,
+           plymouth-themes-fade-in,
+           plymouth-themes-glow,
+           plymouth-themes-script,
+           plymouth-themes-solar,
+           plymouth-themes-spinfinity,
+           plymouth-themes-spinner
+Replaces: plymouth-drm (<< 0.9.0-6~),
+          plymouth-themes-all,
+          plymouth-themes-fade-in,
+          plymouth-themes-glow,
+          plymouth-themes-script,
+          plymouth-themes-solar,
+          plymouth-themes-spinfinity,
+          plymouth-themes-spinner
+Provides: plymouth-theme,
+          plymouth-themes-all,
+          plymouth-themes-fade-in,
+          plymouth-themes-glow,
+          plymouth-themes-script,
+          plymouth-themes-solar,
+          plymouth-themes-spinfinity,
+          plymouth-themes-spinner
 Breaks: plymouth-drm (<< 0.9.0-6~)
 Description: boot animation, logger and I/O multiplexer - themes
  Plymouth provides a boot-time I/O multiplexing framework - the most obvious
