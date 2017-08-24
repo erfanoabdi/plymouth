@@ -1,10 +1,9 @@
 Author: Michael Prokop <mika@debian.org>
 Description: Fixing wrong return code of plymouth-set-default-theme (Closes: #605018).
 
-diff -Naurp plymouth.orig/scripts/plymouth-set-default-theme.in plymouth/scripts/plymouth-set-default-theme.in
---- plymouth.orig/scripts/plymouth-set-default-theme.in
-+++ plymouth/scripts/plymouth-set-default-theme.in
-@@ -192,5 +192,7 @@ grep -q '^[[]Daemon[]]' ${PLYMOUTH_CONFD
+--- a/scripts/plymouth-set-default-theme.in
++++ b/scripts/plymouth-set-default-theme.in
+@@ -184,5 +184,7 @@ grep -q '^[[]Daemon[]]' ${PLYMOUTH_CONFD
  sed -i -e '/^Theme[[:blank:]]*=.*/d' ${PLYMOUTH_CONFDIR}/plymouthd.conf
  sed -i -e "s/^\([[]Daemon[]]\)\n*/\1\nTheme=${THEME_NAME}/" ${PLYMOUTH_CONFDIR}/plymouthd.conf
  

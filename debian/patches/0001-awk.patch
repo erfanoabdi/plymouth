@@ -1,9 +1,8 @@
 Author: Daniel Baumann <mail@daniel-baumann.ch>
 Description: Hack to fix awk call.
 
-diff -Naurp plymouth.orig/scripts/plymouth-set-default-theme.in plymouth/scripts/plymouth-set-default-theme.in
---- plymouth.orig/scripts/plymouth-set-default-theme.in
-+++ plymouth/scripts/plymouth-set-default-theme.in
+--- a/scripts/plymouth-set-default-theme.in
++++ b/scripts/plymouth-set-default-theme.in
 @@ -45,15 +45,7 @@ function list_themes ()
  function read_theme_name_from_file ()
  {

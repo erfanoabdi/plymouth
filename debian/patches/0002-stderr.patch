@@ -3,9 +3,8 @@ Description:
  Use fd for stdout instead of device, since the latter may not always exist,
  e.g. in chroots (Closes: #581649).
 
-diff -Naurp plymouth.orig/scripts/plymouth-populate-initrd.in plymouth/scripts/plymouth-populate-initrd.in
---- plymouth.orig/scripts/plymouth-populate-initrd.in
-+++ plymouth/scripts/plymouth-populate-initrd.in
+--- a/scripts/plymouth-populate-initrd.in
++++ b/scripts/plymouth-populate-initrd.in
 @@ -340,7 +340,7 @@ function usage() {
      local output="/dev/stdout"
      local rc=0
@@ -15,7 +14,7 @@ diff -Naurp plymouth.orig/scripts/plymouth-populate-initrd.in plymouth/scripts/p
          rc=1
      fi
  
-@@ -385,20 +385,20 @@ inst ${PLYMOUTH_POLICYDIR}/plymouthd.def
+@@ -385,13 +385,13 @@ inst ${PLYMOUTH_POLICYDIR}/plymouthd.def
  inst ${PLYMOUTH_CONFDIR}/plymouthd.conf $INITRDDIR
  
  if [ -z "$PLYMOUTH_THEME_NAME" ]; then
@@ -28,9 +27,10 @@ diff -Naurp plymouth.orig/scripts/plymouth-populate-initrd.in plymouth/scripts/p
      conf=$INITRDDIR/${PLYMOUTH_CONFDIR}/plymouthd.conf
 -    echo "modifying plymouthd.conf: Theme=$PLYMOUTH_THEME_NAME" > /dev/stderr
 +    echo "modifying plymouthd.conf: Theme=$PLYMOUTH_THEME_NAME" >&2
-     sed -i "s/^ *Theme *=.*/# theme modified by plymouth-populate-initrd\nTheme=$PLYMOUTH_THEME_NAME/" $conf
- fi
- 
+     # make sure the section and key exist so we can modify them
+     grep -q "^ *\[Daemon\]" $conf || echo "[Daemon]" >> $conf
+     grep -q "^ *Theme *=" $conf || echo "Theme=fade-in" >> $conf
+@@ -401,7 +401,7 @@ fi
  PLYMOUTH_MODULE_NAME=$(grep "ModuleName *= *" ${PLYMOUTH_DATADIR}/plymouth/themes/${PLYMOUTH_THEME_NAME}/${PLYMOUTH_THEME_NAME}.plymouth | sed 's/ModuleName *= *//')
  
  if [ ! -f ${PLYMOUTH_PLUGIN_PATH}/${PLYMOUTH_MODULE_NAME}.so ]; then
@@ -39,9 +39,8 @@ diff -Naurp plymouth.orig/scripts/plymouth-populate-initrd.in plymouth/scripts/p
      exit 1
  fi
  
-diff -Naurp plymouth.orig/scripts/plymouth-set-default-theme.in plymouth/scripts/plymouth-set-default-theme.in
---- plymouth.orig/scripts/plymouth-set-default-theme.in
-+++ plymouth/scripts/plymouth-set-default-theme.in
+--- a/scripts/plymouth-set-default-theme.in
++++ b/scripts/plymouth-set-default-theme.in
 @@ -76,14 +76,14 @@ while [ $# -gt 0 ]; do
  
          -l|--list)
