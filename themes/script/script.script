@@ -152,27 +152,19 @@ Plymouth.SetQuitFunction(quit_callback);
 
 #----------------------------------------- Message --------------------------------
 
-message_sprites = [];
-message_sprite_count = 0;
-message_sprite_y = 10;
+message_sprite = Sprite();
+message_sprite.SetPosition(10, 10, 10000);
 
 fun display_message_callback (text)
 {
   my_image = Image.Text(text, 1, 1, 1);
-  message_sprites[message_sprite_count] = Sprite(my_image);
-  message_sprites[message_sprite_count].SetPosition(10, message_sprite_y, 10000);
-  message_sprites[message_sprite_count].text = text;
-  message_sprite_count++;
-  message_sprite_y += my_image.GetHeight();
+  message_sprite.SetImage(my_image);
 }
 
 fun hide_message_callback (text)
 {
-  for (i = 0; i < message_sprite_count; i++)
-    {
-      if (message_sprites[i].text == text)
-        message_sprites[i] = NULL;
-    }
+  message_sprite = Sprite();
+  message_sprite.SetPosition(10, 10, 10000);
 }
 
 Plymouth.SetDisplayMessageFunction (display_message_callback);

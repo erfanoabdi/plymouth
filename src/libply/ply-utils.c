@@ -78,6 +78,8 @@
 static int errno_stack[PLY_ERRNO_STACK_SIZE];
 static int errno_stack_position = 0;
 
+static int overridden_device_scale = 0;
+
 bool
 ply_open_unidirectional_pipe (int *sender_fd,
                               int *receiver_fd)
@@ -419,6 +421,29 @@ ply_fd_may_block (int fd)
         flags = fcntl (fd, F_GETFL);
 
         return (flags & O_NONBLOCK) != 0;
+}
+
+bool
+ply_set_fd_as_blocking (int fd)
+{
+        int flags;
+        int ret = 0;
+
+        assert (fd >= 0);
+
+        flags = fcntl (fd, F_GETFL);
+
+        if (flags == -1) {
+                return false;
+        }
+
+        if (flags & O_NONBLOCK) {
+                flags &= ~O_NONBLOCK;
+
+                ret = fcntl (fd, F_SETFL, flags);
+        }
+
+        return ret == 0;
 }
 
 char **
@@ -936,4 +961,58 @@ out:
 
         return (pid_t) ppid;
 }
+
+void
+ply_set_device_scale (int device_scale)
+{
+    overridden_device_scale = device_scale;
+    ply_trace ("Device scale is set to %d", device_scale);
+}
+
+/* The minimum resolution at which we turn on a device-scale of 2 */
+#define HIDPI_LIMIT 192
+#define HIDPI_MIN_HEIGHT 1200
+
+int
+ply_get_device_scale (uint32_t width,
+                      uint32_t height,
+                      uint32_t width_mm,
+                      uint32_t height_mm)
+{
+        int device_scale;
+        double dpi_x, dpi_y;
+        const char *force_device_scale;
+
+        device_scale = 1;
+
+        if ((force_device_scale = getenv ("PLYMOUTH_FORCE_SCALE")))
+                return strtoul (force_device_scale, NULL, 0);
+
+        if (overridden_device_scale != 0)
+                return overridden_device_scale;
+
+        if (height < HIDPI_MIN_HEIGHT)
+                return 1;
+
+        /* Somebody encoded the aspect ratio (16/9 or 16/10)
+         * instead of the physical size */
+        if ((width_mm == 160 && height_mm == 90) ||
+            (width_mm == 160 && height_mm == 100) ||
+            (width_mm == 16 && height_mm == 9) ||
+            (width_mm == 16 && height_mm == 10))
+                return 1;
+
+        if (width_mm > 0 && height_mm > 0) {
+                dpi_x = (double)width / (width_mm / 25.4);
+                dpi_y = (double)height / (height_mm / 25.4);
+                /* We don't completely trust these values so both
+                   must be high, and never pick higher ratio than
+                   2 automatically */
+                if (dpi_x > HIDPI_LIMIT && dpi_y > HIDPI_LIMIT)
+                        device_scale = 2;
+        }
+
+        return device_scale;
+}
+
 /* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

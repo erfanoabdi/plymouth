@@ -416,6 +416,22 @@ static script_return_t sprite_window_set_background_bottom_color (script_state_t
         return script_return_obj_null ();
 }
 
+static void script_lib_draw_brackground (ply_pixel_buffer_t *pixel_buffer,
+                                         ply_rectangle_t *clip_area,
+                                         script_lib_sprite_data_t *data)
+{
+        if (data->background_color_start == data->background_color_end) {
+                ply_pixel_buffer_fill_with_hex_color (pixel_buffer,
+                                                      clip_area,
+                                                      data->background_color_start);
+        } else {
+                ply_pixel_buffer_fill_with_gradient (pixel_buffer,
+                                                     clip_area,
+                                                     data->background_color_start,
+                                                     data->background_color_end);
+        }
+}
+
 static void script_lib_sprite_draw_area (script_lib_display_t *display,
                                          ply_pixel_buffer_t   *pixel_buffer,
                                          int                   x,
@@ -425,6 +441,7 @@ static void script_lib_sprite_draw_area (script_lib_display_t *display,
 {
         ply_rectangle_t clip_area;
         ply_list_node_t *node;
+        sprite_t *sprite;
         script_lib_sprite_data_t *data = display->data;
 
         clip_area.x = x;
@@ -432,21 +449,32 @@ static void script_lib_sprite_draw_area (script_lib_display_t *display,
         clip_area.width = width;
         clip_area.height = height;
 
-        if (data->background_color_start == data->background_color_end) {
-                ply_pixel_buffer_fill_with_hex_color (pixel_buffer,
-                                                      &clip_area,
-                                                      data->background_color_start);
+
+        node = ply_list_get_first_node (data->sprite_list);
+        sprite = ply_list_node_get_data (node);
+
+        /* Check If the first sprite should be rendered opaque */
+        if (sprite->image && !sprite->remove_me &&
+            ply_pixel_buffer_is_opaque (sprite->image) && sprite->opacity == 1.0)  {
+                int position_x = sprite->x - display->x;
+                int position_y = sprite->y - display->y;
+
+                /* In that case only draw the background if the sprite doesn't
+                 * cover the complete area */
+                if (position_x > x || position_y > y ||
+                    (ply_pixel_buffer_get_width (sprite->image) + position_x) < (x + width) ||
+                    (ply_pixel_buffer_get_height (sprite->image) + position_y) < (y + height))
+                        script_lib_draw_brackground (pixel_buffer, &clip_area, data);
         } else {
-                ply_pixel_buffer_fill_with_gradient (pixel_buffer,
-                                                     &clip_area,
-                                                     data->background_color_start,
-                                                     data->background_color_end);
+                script_lib_draw_brackground (pixel_buffer, &clip_area, data);
         }
+
         for (node = ply_list_get_first_node (data->sprite_list);
              node;
              node = ply_list_get_next_node (data->sprite_list, node)) {
-                sprite_t *sprite = ply_list_node_get_data (node);
                 int position_x, position_y;
+
+                sprite = ply_list_node_get_data (node);
 
                 if (!sprite->image) continue;
                 if (sprite->remove_me) continue;

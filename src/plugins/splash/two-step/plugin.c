@@ -267,11 +267,15 @@ view_load (view_t *view)
 
         view_load_end_animation (view);
 
-        ply_trace ("loading progress animation");
-        if (!ply_progress_animation_load (view->progress_animation)) {
-                ply_trace ("optional progress animation wouldn't load");
-                ply_progress_animation_free (view->progress_animation);
-                view->progress_animation = NULL;
+        if (view->progress_animation != NULL) {
+                ply_trace ("loading progress animation");
+                if (!ply_progress_animation_load (view->progress_animation)) {
+                        ply_trace ("optional progress animation wouldn't load");
+                        ply_progress_animation_free (view->progress_animation);
+                        view->progress_animation = NULL;
+                }
+        } else {
+                ply_trace ("this theme has no progress animation");
         }
 
         if (view->throbber != NULL) {
@@ -875,7 +879,12 @@ draw_background (view_t             *view,
         if (view->background_image != NULL) {
                 uint32_t *data;
                 data = ply_image_get_data (view->background_image);
-                ply_pixel_buffer_fill_with_argb32_data (pixel_buffer, &area, data);
+
+                /* We must pass NULL as fill area, because the fill area
+                   must be sized as the image we're sourcing from, otherwise
+                   sampling does not work
+                */
+                ply_pixel_buffer_fill_with_argb32_data_with_clip (pixel_buffer, NULL, NULL, data);
         }
 
         if (plugin->watermark_image != NULL) {
@@ -986,7 +995,14 @@ add_pixel_display (ply_boot_splash_plugin_t *plugin,
         ply_pixel_display_set_draw_handler (view->display,
                                             (ply_pixel_display_draw_handler_t)
                                             on_draw, view);
-        ply_list_append_data (plugin->views, view);
+        if (plugin->is_visible) {
+                if (view_load (view))
+                        ply_list_append_data (plugin->views, view);
+                else
+                        view_free (view);
+        } else {
+                ply_list_append_data (plugin->views, view);
+        }
 }
 
 static void
@@ -1329,8 +1345,8 @@ system_update (ply_boot_splash_plugin_t *plugin,
 
                 view = ply_list_node_get_data (node);
                 next_node = ply_list_get_next_node (plugin->views, node);
-                ply_progress_animation_set_percent_done (view->progress_animation,
-                                                         (double) progress / 100.f);
+                if (view->progress_animation != NULL)
+                        ply_progress_animation_set_percent_done (view->progress_animation, (double) progress / 100.f);
                 node = next_node;
         }
 }

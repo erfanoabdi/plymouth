@@ -3,3 +3,4 @@
 [Daemon]
 Theme=spinner
 ShowDelay=5
+DeviceTimeout=5

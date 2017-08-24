@@ -46,8 +46,7 @@ typedef void (*ply_logger_filter_handler_t) (void         *user_data,
 ply_logger_t *ply_logger_new (void);
 void ply_logger_free (ply_logger_t *logger);
 bool ply_logger_open_file (ply_logger_t *logger,
-                           const char   *filename,
-                           bool          world_readable);
+                           const char   *filename);
 void ply_logger_close_file (ply_logger_t *logger);
 void ply_logger_set_output_fd (ply_logger_t *logger,
                                int           fd);
@@ -92,7 +91,7 @@ bool ply_logger_is_tracing_enabled (ply_logger_t *logger);
                         ply_logger_flush (logger);                                             \
                         errno = _old_errno;                                                    \
                         ply_logger_inject (logger,                                             \
-                                           "[%s:%d] %45.45s:" format "\r\n",                   \
+                                           "[%s:%d] %45.45s:" format "\n",                   \
                                            __FILE__, __LINE__, __func__, ## args);              \
                         ply_logger_flush (logger);                                             \
                         errno = _old_errno;                                                    \
@@ -108,7 +107,7 @@ bool ply_logger_is_tracing_enabled (ply_logger_t *logger);
 /* convenience macros
  */
 #define ply_open_log_file(filename)                                            \
-        ply_logger_open_file (ply_logger_get_default (), filename, false)
+        ply_logger_open_file (ply_logger_get_default (), filename)
 #define ply_close_log_file()                                                   \
         ply_logger_close_file (ply_logger_get_default ())
 #define ply_flush_log()                                                        \

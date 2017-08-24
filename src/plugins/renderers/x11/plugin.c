@@ -56,6 +56,7 @@
 #include "ply-logger.h"
 #include "ply-rectangle.h"
 #include "ply-region.h"
+#include "ply-utils.h"
 
 #include "ply-renderer.h"
 #include "ply-renderer-plugin.h"
@@ -64,9 +65,10 @@ struct _ply_renderer_head
 {
         ply_renderer_backend_t *backend;
         ply_pixel_buffer_t     *pixel_buffer;
-        ply_rectangle_t         area;
+        ply_rectangle_t         area; /* in device pixels */
         GtkWidget              *window;
         cairo_surface_t        *image;
+        uint32_t                scale;
         uint32_t                is_fullscreen : 1;
 };
 
@@ -148,8 +150,13 @@ open_device (ply_renderer_backend_t *backend)
         Display *display;
         int display_fd;
 
+        gdk_set_allowed_backends ("x11");
+
         if (!gtk_init_check (0, NULL))
                 return false;
+
+        /* Force gtk+ to deal in device pixels */
+        gdk_x11_display_set_window_scale (gdk_display_get_default (), 1);
 
         display = GDK_DISPLAY_XDISPLAY (gdk_display_get_default ());
         display_fd = ConnectionNumber (display);
@@ -161,6 +168,12 @@ open_device (ply_renderer_backend_t *backend)
                                                           backend);
 
         return true;
+}
+
+static const char *
+get_device_name (ply_renderer_backend_t *backend)
+{
+        return gdk_display_get_name (gdk_display_get_default ());
 }
 
 static void
@@ -183,7 +196,9 @@ create_fake_multi_head_setup (ply_renderer_backend_t *backend)
         head->area.y = 0;
         head->area.width = 800;   /* FIXME hardcoded */
         head->area.height = 600;
+        head->scale = 1;
         head->pixel_buffer = ply_pixel_buffer_new (head->area.width, head->area.height);
+        ply_pixel_buffer_set_device_scale (head->pixel_buffer, head->scale);
 
         ply_list_append_data (backend->heads, head);
 
@@ -194,7 +209,9 @@ create_fake_multi_head_setup (ply_renderer_backend_t *backend)
         head->area.y = 0;
         head->area.width = 640;   /* FIXME hardcoded */
         head->area.height = 480;
+        head->scale = 1;
         head->pixel_buffer = ply_pixel_buffer_new (head->area.width, head->area.height);
+        ply_pixel_buffer_set_device_scale (head->pixel_buffer, head->scale);
 
         ply_list_append_data (backend->heads, head);
 }
@@ -204,8 +221,11 @@ create_fullscreen_single_head_setup (ply_renderer_backend_t *backend)
 {
         ply_renderer_head_t *head;
         GdkRectangle monitor_geometry;
+        int width_mm, height_mm;
 
         gdk_screen_get_monitor_geometry (gdk_screen_get_default (), 0, &monitor_geometry);
+        width_mm = gdk_screen_get_monitor_width_mm (gdk_screen_get_default (), 0);
+        height_mm = gdk_screen_get_monitor_height_mm (gdk_screen_get_default (), 0);
 
         head = calloc (1, sizeof(ply_renderer_head_t));
 
@@ -215,7 +235,11 @@ create_fullscreen_single_head_setup (ply_renderer_backend_t *backend)
         head->area.width = monitor_geometry.width;
         head->area.height = monitor_geometry.height;
         head->is_fullscreen = true;
+        head->scale = ply_get_device_scale (monitor_geometry.width,
+                                            monitor_geometry.height,
+                                            width_mm, height_mm);
         head->pixel_buffer = ply_pixel_buffer_new (head->area.width, head->area.height);
+        ply_pixel_buffer_set_device_scale (head->pixel_buffer, head->scale);
 
         ply_list_append_data (backend->heads, head);
 }
@@ -380,6 +404,12 @@ flush_head (ply_renderer_backend_t *backend,
                 area_to_flush = (ply_rectangle_t *) ply_list_node_get_data (node);
                 next_node = ply_list_get_next_node (areas_to_flush, node);
 
+                cairo_surface_mark_dirty_rectangle (head->image,
+                                                    area_to_flush->x,
+                                                    area_to_flush->y,
+                                                    area_to_flush->width,
+                                                    area_to_flush->height);
+
                 gtk_widget_queue_draw_area (head->window,
                                             area_to_flush->x,
                                             area_to_flush->y,
@@ -515,7 +545,8 @@ ply_renderer_backend_get_interface (void)
                 .get_input_source             = get_input_source,
                 .open_input_source            = open_input_source,
                 .set_handler_for_input_source = set_handler_for_input_source,
-                .close_input_source           = close_input_source
+                .close_input_source           = close_input_source,
+                .get_device_name              = get_device_name
         };
 
         return &plugin_interface;

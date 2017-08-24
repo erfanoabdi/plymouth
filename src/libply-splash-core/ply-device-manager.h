@@ -21,7 +21,11 @@
 #define PLY_DEVICE_MANAGER_H
 
 #include <stdbool.h>
-#include "ply-seat.h"
+
+#include "ply-keyboard.h"
+#include "ply-pixel-display.h"
+#include "ply-renderer.h"
+#include "ply-text-display.h"
 
 typedef enum
 {
@@ -31,20 +35,30 @@ typedef enum
 } ply_device_manager_flags_t;
 
 typedef struct _ply_device_manager ply_device_manager_t;
-typedef void (*ply_seat_added_handler_t) (void       *,
-                                          ply_seat_t *);
-typedef void (*ply_seat_removed_handler_t) (void       *,
-                                            ply_seat_t *);
+typedef void (* ply_keyboard_added_handler_t) (void *, ply_keyboard_t *);
+typedef void (* ply_keyboard_removed_handler_t) (void *, ply_keyboard_t *);
+typedef void (* ply_pixel_display_added_handler_t) (void *, ply_pixel_display_t *);
+typedef void (* ply_pixel_display_removed_handler_t) (void *, ply_pixel_display_t *);
+typedef void (* ply_text_display_added_handler_t) (void *, ply_text_display_t *);
+typedef void (* ply_text_display_removed_handler_t) (void *, ply_text_display_t *);
 
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
 ply_device_manager_t *ply_device_manager_new (const char                *default_tty,
                                               ply_device_manager_flags_t flags);
-void ply_device_manager_watch_seats (ply_device_manager_t      *manager,
-                                     ply_seat_added_handler_t   seat_added_handler,
-                                     ply_seat_removed_handler_t seat_removed_handler,
-                                     void                      *data);
-bool ply_device_manager_has_open_seats (ply_device_manager_t *manager);
-ply_list_t *ply_device_manager_get_seats (ply_device_manager_t *manager);
+void ply_device_manager_watch_devices (ply_device_manager_t                *manager,
+                                       double                               device_timeout,
+                                       ply_keyboard_added_handler_t         keyboard_added_handler,
+                                       ply_keyboard_removed_handler_t       keyboard_removed_handler,
+                                       ply_pixel_display_added_handler_t    pixel_display_added_handler,
+                                       ply_pixel_display_removed_handler_t  pixel_display_removed_handler,
+                                       ply_text_display_added_handler_t     text_display_added_handler,
+                                       ply_text_display_removed_handler_t   text_display_removed_handler,
+                                       void                                *data);
+bool ply_device_manager_has_serial_consoles (ply_device_manager_t *manager);
+bool ply_device_manager_has_displays (ply_device_manager_t *manager);
+ply_list_t *ply_device_manager_get_keyboards (ply_device_manager_t *manager);
+ply_list_t *ply_device_manager_get_pixel_displays (ply_device_manager_t *manager);
+ply_list_t *ply_device_manager_get_text_displays (ply_device_manager_t *manager);
 void ply_device_manager_free (ply_device_manager_t *manager);
 void ply_device_manager_activate_keyboards (ply_device_manager_t *manager);
 void ply_device_manager_deactivate_keyboards (ply_device_manager_t *manager);

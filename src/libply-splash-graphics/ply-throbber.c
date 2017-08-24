@@ -337,6 +337,15 @@ void
 ply_throbber_stop (ply_throbber_t *throbber,
                    ply_trigger_t  *stop_trigger)
 {
+        if (throbber->is_stopped) {
+                ply_trace ("throbber already stopped");
+                if (stop_trigger != NULL) {
+                        ply_trace ("pulling stop trigger right away");
+                        ply_trigger_pull (stop_trigger, NULL);
+                }
+                return;
+        }
+
         if (stop_trigger == NULL) {
                 ply_throbber_stop_now (throbber);
                 return;

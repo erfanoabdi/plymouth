@@ -472,6 +472,9 @@ add_text_display (ply_boot_splash_plugin_t *plugin,
                                            on_draw, view);
 
         ply_list_append_data (plugin->views, view);
+
+        if (plugin->is_animating)
+                view_start_animation (view);
 }
 
 static void
@@ -553,7 +556,9 @@ on_boot_progress (ply_boot_splash_plugin_t *plugin,
                 next_node = ply_list_get_next_node (plugin->views, node);
 
                 ply_text_step_bar_set_percent_done (view->step_bar, percent_done);
-                ply_text_step_bar_draw (view->step_bar);
+
+                if (plugin->is_animating)
+                        ply_text_step_bar_draw (view->step_bar);
 
                 node = next_node;
         }

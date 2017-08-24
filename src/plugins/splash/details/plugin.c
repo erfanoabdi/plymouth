@@ -77,6 +77,8 @@ struct _ply_boot_splash_plugin
         ply_list_t                    *views;
         ply_boot_splash_display_type_t state;
         ply_list_t                    *messages;
+
+        ply_buffer_t                  *boot_buffer;
 };
 
 static view_t *
@@ -239,6 +241,15 @@ add_text_display (ply_boot_splash_plugin_t *plugin,
                 ply_terminal_activate_vt (terminal);
 
         ply_list_append_data (plugin->views, view);
+
+        if (plugin->boot_buffer != NULL) {
+                size_t size;
+                const char *bytes;
+
+                size = ply_buffer_get_size (plugin->boot_buffer);
+                bytes = ply_buffer_get_bytes (plugin->boot_buffer);
+                view_write (view, bytes, size);
+        }
 }
 
 static void
@@ -282,8 +293,9 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
                                        plugin);
 
         if (boot_buffer) {
-                size = ply_buffer_get_size (boot_buffer);
+                plugin->boot_buffer = boot_buffer;
 
+                size = ply_buffer_get_size (boot_buffer);
                 write_on_views (plugin, ply_buffer_get_bytes (boot_buffer), size);
         }
 
@@ -330,7 +342,7 @@ display_normal (ply_boot_splash_plugin_t *plugin)
         ply_list_node_t *node;
 
         if (plugin->state != PLY_BOOT_SPLASH_DISPLAY_NORMAL)
-                write_on_views (plugin, "\r\n", strlen ("\r\n"));
+                write_on_views (plugin, "\n", strlen ("\n"));
 
         plugin->state = PLY_BOOT_SPLASH_DISPLAY_NORMAL;
 
@@ -343,7 +355,7 @@ display_normal (ply_boot_splash_plugin_t *plugin)
                 next_node = ply_list_get_next_node (plugin->messages, node);
 
                 write_on_views (plugin, message, strlen (message));
-                write_on_views (plugin, "\r\n", strlen ("\r\n"));
+                write_on_views (plugin, "\n", strlen ("\n"));
 
                 ply_list_remove_node (plugin->messages, node);
                 node = next_node;
@@ -358,7 +370,7 @@ display_password (ply_boot_splash_plugin_t *plugin,
         int i;
 
         if (plugin->state != PLY_BOOT_SPLASH_DISPLAY_PASSWORD_ENTRY)
-                write_on_views (plugin, "\r\n", strlen ("\r\n"));
+                write_on_views (plugin, "\n", strlen ("\n"));
         else
                 write_on_views (plugin,
                                 CLEAR_LINE_SEQUENCE,
@@ -387,7 +399,7 @@ display_question (ply_boot_splash_plugin_t *plugin,
                   const char               *entry_text)
 {
         if (plugin->state != PLY_BOOT_SPLASH_DISPLAY_QUESTION_ENTRY)
-                write_on_views (plugin, "\r\n", strlen ("\r\n"));
+                write_on_views (plugin, "\n", strlen ("\n"));
         else
                 write_on_views (plugin,
                                 CLEAR_LINE_SEQUENCE,
@@ -407,7 +419,7 @@ display_message (ply_boot_splash_plugin_t *plugin,
 {
         if (plugin->state == PLY_BOOT_SPLASH_DISPLAY_NORMAL) {
                 write_on_views (plugin, message, strlen (message));
-                write_on_views (plugin, "\r\n", strlen ("\r\n"));
+                write_on_views (plugin, "\n", strlen ("\n"));
         } else {
                 ply_list_append_data (plugin->messages, strdup (message));
         }

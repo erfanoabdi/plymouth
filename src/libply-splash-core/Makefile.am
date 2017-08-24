@@ -21,7 +21,6 @@ libply_splash_core_HEADERS = \
 		    ply-pixel-display.h                                       \
 		    ply-renderer.h                                            \
 		    ply-renderer-plugin.h                                     \
-		    ply-seat.h                                                \
 		    ply-terminal.h                                            \
 		    ply-text-display.h                                        \
 		    ply-text-progress-bar.h                                   \
@@ -47,7 +46,6 @@ libply_splash_core_la_SOURCES = \
 		    ply-terminal.c                                           \
 		    ply-pixel-buffer.c                                       \
 		    ply-renderer.c                                           \
-		    ply-seat.c                                               \
 		    ply-boot-splash.c
 
 MAINTAINERCLEANFILES = Makefile.in

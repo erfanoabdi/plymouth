@@ -93,6 +93,8 @@ struct _ply_keyboard
         ply_list_t                  *backspace_handler_list;
         ply_list_t                  *escape_handler_list;
         ply_list_t                  *enter_handler_list;
+
+        uint32_t is_active : 1;
 };
 
 static bool ply_keyboard_watch_for_terminal_input (ply_keyboard_t *keyboard);
@@ -323,6 +325,12 @@ ply_keyboard_stop_watching_for_renderer_input (ply_keyboard_t *keyboard)
                                          keyboard->provider.if_renderer->input_source);
 }
 
+bool
+ply_keyboard_is_active (ply_keyboard_t *keyboard)
+{
+        return keyboard->is_active;
+}
+
 static void
 on_terminal_data (ply_keyboard_t *keyboard)
 {
@@ -369,21 +377,29 @@ ply_keyboard_watch_for_input (ply_keyboard_t *keyboard)
 {
         assert (keyboard != NULL);
 
+        if (keyboard->is_active)
+                return true;
+
         switch (keyboard->provider_type) {
         case PLY_KEYBOARD_PROVIDER_TYPE_RENDERER:
-                return ply_keyboard_watch_for_renderer_input (keyboard);
+                keyboard->is_active = ply_keyboard_watch_for_renderer_input (keyboard);
+                break;
 
         case PLY_KEYBOARD_PROVIDER_TYPE_TERMINAL:
-                return ply_keyboard_watch_for_terminal_input (keyboard);
+                keyboard->is_active = ply_keyboard_watch_for_terminal_input (keyboard);
+                break;
         }
 
-        return false;
+        return keyboard->is_active;
 }
 
 void
 ply_keyboard_stop_watching_for_input (ply_keyboard_t *keyboard)
 {
         assert (keyboard != NULL);
+
+        if (!keyboard->is_active)
+                return;
 
         switch (keyboard->provider_type) {
         case PLY_KEYBOARD_PROVIDER_TYPE_RENDERER:
@@ -394,6 +410,8 @@ ply_keyboard_stop_watching_for_input (ply_keyboard_t *keyboard)
                 ply_keyboard_stop_watching_for_terminal_input (keyboard);
                 break;
         }
+
+        keyboard->is_active = false;
 }
 
 void

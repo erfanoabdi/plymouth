@@ -353,6 +353,11 @@ ply_animation_stop_now (ply_animation_t *animation)
 void
 ply_animation_stop (ply_animation_t *animation)
 {
+        if (animation->is_stopped) {
+                ply_trace ("animation already stopped, ignoring stop request");
+                return;
+        }
+
         if (animation->stop_trigger == NULL) {
                 ply_animation_stop_now (animation);
                 return;
