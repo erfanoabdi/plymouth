@@ -1,2 +1,2 @@
-version=3
-http://www.freedesktop.org/software/plymouth/releases/plymouth-(.*).tar.bz2
+version=4
+http://www.freedesktop.org/software/plymouth/releases/@PACKAGE@@ANY_VERSION@@ARCHIVE_EXT@

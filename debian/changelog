@@ -1,3 +1,9 @@
+plymouth (0.9.2-6) UNRELEASED; urgency=medium
+
+  * debian/watch: Bump to version 4 and use the macro's
+
+ -- Laurent Bigonville <bigon@debian.org>  Thu, 24 Aug 2017 15:14:50 +0200
+
 plymouth (0.9.2-5) unstable; urgency=medium
 
   [ Aurélien COUDERC ]
