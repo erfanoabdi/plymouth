@@ -50,21 +50,20 @@ install-data-hook:
 		$(LN_S) ../plymouth-halt.service)
 
 uninstall-hook:
-	rm -f \
 	(cd $(DESTDIR)$(SYSTEMD_UNIT_DIR)/initrd-switch-root.target.wants && \
-		rm -f plymouth-start.service plymouth-switch-root.service)   \
+		rm -f plymouth-start.service plymouth-switch-root.service)
 	(cd $(DESTDIR)$(SYSTEMD_UNIT_DIR)/sysinit.target.wants &&            \
-		rm -f plymouth-start.service plymouth-read-write.service)    \
+		rm -f plymouth-start.service plymouth-read-write.service)
 	(cd $(DESTDIR)$(SYSTEMD_UNIT_DIR)/multi-user.target.wants &&         \
-		rm -f plymouth-quit.service plymouth-quit-wait.service)      \
+		rm -f plymouth-quit.service plymouth-quit-wait.service)
 	(cd $(DESTDIR)$(SYSTEMD_UNIT_DIR)/reboot.target.wants &&             \
-		rm -f plymouth-reboot.service)                               \
+		rm -f plymouth-reboot.service)
 	(cd $(DESTDIR)$(SYSTEMD_UNIT_DIR)/kexec.target.wants &&              \
-		rm -f plymouth-kexec.service)                                \
+		rm -f plymouth-kexec.service)
 	(cd $(DESTDIR)$(SYSTEMD_UNIT_DIR)/poweroff.target.wants &&           \
-		rm -f plymouth-poweroff.service)                             \
+		rm -f plymouth-poweroff.service)
 	(cd $(DESTDIR)$(SYSTEMD_UNIT_DIR)/halt.target.wants &&               \
-		rm -f plymouth-halt.service)                                 \
+		rm -f plymouth-halt.service)
 	rmdir --ignore-fail-on-non-empty                                     \
 		$(DESTDIR)$(SYSTEMD_UNIT_DIR)/sysinit.target.wants           \
 		$(DESTDIR)$(SYSTEMD_UNIT_DIR)/multi-user.target.wants        \

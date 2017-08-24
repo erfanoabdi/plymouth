@@ -392,6 +392,9 @@ fi
 if [ $THEME_OVERRIDE ]; then
     conf=$INITRDDIR/${PLYMOUTH_CONFDIR}/plymouthd.conf
     echo "modifying plymouthd.conf: Theme=$PLYMOUTH_THEME_NAME" > /dev/stderr
+    # make sure the section and key exist so we can modify them
+    grep -q "^ *\[Daemon\]" $conf || echo "[Daemon]" >> $conf
+    grep -q "^ *Theme *=" $conf || echo "Theme=fade-in" >> $conf
     sed -i "s/^ *Theme *=.*/# theme modified by plymouth-populate-initrd\nTheme=$PLYMOUTH_THEME_NAME/" $conf
 fi
 

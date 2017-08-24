@@ -40,7 +40,7 @@
 #include "ply-list.h"
 
 #ifndef PLY_LOGGER_OPEN_FLAGS
-#define PLY_LOGGER_OPEN_FLAGS (O_WRONLY | O_TRUNC | O_CREAT | O_NOFOLLOW | O_CLOEXEC)
+#define PLY_LOGGER_OPEN_FLAGS (O_WRONLY | O_APPEND | O_CREAT | O_NOFOLLOW | O_CLOEXEC)
 #endif
 
 #ifndef PLY_LOGGER_MAX_INJECTION_SIZE
@@ -310,8 +310,7 @@ ply_logger_free (ply_logger_t *logger)
 
 bool
 ply_logger_open_file (ply_logger_t *logger,
-                      const char   *filename,
-                      bool          world_readable)
+                      const char   *filename)
 {
         int fd;
         mode_t mode;
@@ -319,20 +318,10 @@ ply_logger_open_file (ply_logger_t *logger,
         assert (logger != NULL);
         assert (filename != NULL);
 
-        if (world_readable)
-                mode = 0644;
-        else
-                mode = 0600;
-
-        fd = open (filename, PLY_LOGGER_OPEN_FLAGS, mode);
+        fd = open (filename, PLY_LOGGER_OPEN_FLAGS, 0600);
 
         if (fd < 0)
                 return false;
-
-        if (fchmod (fd, mode) < 0) {
-                close (fd);
-                return false;
-        }
 
         ply_logger_set_output_fd (logger, fd);
 

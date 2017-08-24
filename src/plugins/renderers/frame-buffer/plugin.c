@@ -365,6 +365,12 @@ open_device (ply_renderer_backend_t *backend)
         return true;
 }
 
+static const char *
+get_device_name (ply_renderer_backend_t *backend)
+{
+        return backend->device_name;
+}
+
 static void
 close_device (ply_renderer_backend_t *backend)
 {
@@ -732,7 +738,8 @@ ply_renderer_backend_get_interface (void)
                 .get_input_source             = get_input_source,
                 .open_input_source            = open_input_source,
                 .set_handler_for_input_source = set_handler_for_input_source,
-                .close_input_source           = close_input_source
+                .close_input_source           = close_input_source,
+                .get_device_name              = get_device_name
         };
 
         return &plugin_interface;

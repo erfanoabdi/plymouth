@@ -4,7 +4,7 @@ if BUILD_DOCUMENTATION
 SUBDIRS += docs
 endif
 
-DISTCHECK_CONFIGURE_FLAGS = --disable-tests --without-system-root-install
+DISTCHECK_CONFIGURE_FLAGS = --disable-tests --disable-systemd-integration
 
 EXTRA_DIST = ChangeLog                                                         \
              README

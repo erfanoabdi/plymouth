@@ -1,4 +1,4 @@
-AC_INIT([plymouth],[0.9.2],[https://bugs.freedesktop.org/enter_bug.cgi?product=plymouth])
+AC_INIT([plymouth],[0.9.3],[https://bugs.freedesktop.org/enter_bug.cgi?product=plymouth])
 AC_CONFIG_SRCDIR(src/main.c)
 AC_CONFIG_HEADER(config.h)
 AC_CONFIG_AUX_DIR(build-tools)
@@ -11,7 +11,7 @@ AM_PROG_CC_C_O
 AC_HEADER_STDC
 AC_C_CONST
 
-AM_INIT_AUTOMAKE([dist-bzip2 no-dist-gzip])
+AM_INIT_AUTOMAKE([dist-xz no-dist-gzip])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 AM_MAINTAINER_MODE([enable])
 
@@ -38,9 +38,18 @@ PKG_CHECK_MODULES(IMAGE, [libpng >= 1.2.16 ])
 AC_SUBST(IMAGE_CFLAGS)
 AC_SUBST(IMAGE_LIBS)
 
-PKG_CHECK_MODULES(UDEV, [libudev]);
-AC_SUBST(UDEV_CFLAGS)
-AC_SUBST(UDEV_LIBS)
+AC_ARG_WITH(udev, AS_HELP_STRING([--with-udev], [Add udev support]),, with_udev=yes)
+
+if test "x$with_udev" != "xno" ; then
+  PKG_CHECK_MODULES(UDEV, [libudev], have_udev=yes, have_udev=no)
+  AC_SUBST(UDEV_CFLAGS)
+  AC_SUBST(UDEV_LIBS)
+  if test "x$have_udev" = "xyes"; then
+    AC_DEFINE(HAVE_UDEV, 1, [Define if have udev support])
+  else
+    AC_MSG_ERROR([libudev is required unless --without-udev is passed])
+  fi
+fi
 
 PLYMOUTH_CFLAGS=""
 PLYMOUTH_LIBS="-lm -lrt -ldl"
@@ -117,16 +126,21 @@ if test x$enable_upstart_monitoring = xyes; then
 fi
 AM_CONDITIONAL(ENABLE_UPSTART_MONITORING, [test "$enable_upstart_monitoring" = yes])
 
-AC_ARG_ENABLE(systemd-integration, AS_HELP_STRING([--enable-systemd-integration],[coordinate boot up with systemd]),enable_systemd_integration=$enableval,enable_systemd_integration=no)
+AC_ARG_ENABLE(systemd-integration, AS_HELP_STRING([--enable-systemd-integration],[coordinate boot up with systemd]),enable_systemd_integration=$enableval,enable_systemd_integration=yes)
 AM_CONDITIONAL(ENABLE_SYSTEMD_INTEGRATION, [test "$enable_systemd_integration" = yes])
 
 if test x$enable_systemd_integration = xyes; then
   AC_DEFINE(PLY_ENABLE_SYSTEMD_INTEGRATION, 1, [Coordinate boot up with systemd])
-  SYSTEMD_UNIT_DIR=$($PKG_CONFIG --variable=systemdsystemunitdir systemd)
+  AC_ARG_WITH([systemdunitdir], AC_HELP_STRING([--with-systemdunitdir=DIR],
+    [path to systemd service directory]), [path_systemdunit=${withval}],
+      [path_systemdunit="`$PKG_CONFIG --variable=systemdsystemunitdir systemd`"])
+  if (test -n "${path_systemdunit}"); then
+    SYSTEMD_UNIT_DIR="${path_systemdunit}"
+  fi
   AC_SUBST(SYSTEMD_UNIT_DIR)
 fi
 
-AC_ARG_WITH(system-root-install, AS_HELP_STRING([--with-system-root-install],[Install client in /bin and daemon in /sbin]),with_system_root_install=${withval},with_system_root_install=yes)
+AC_ARG_WITH(system-root-install, AS_HELP_STRING([--with-system-root-install],[Install client in /bin and daemon in /sbin]),with_system_root_install=${withval},with_system_root_install=no)
 AM_CONDITIONAL(WITH_SYSTEM_ROOT_INSTALL,  [test "$with_system_root_install" = yes])
 
 if test x$with_system_root_install = xyes; then
@@ -254,6 +268,9 @@ PLYMOUTH_CFLAGS="$PLYMOUTH_CFLAGS $WARN_CFLAGS"
 
 plymouththemedir=$datadir/plymouth/themes
 AS_AC_EXPAND(PLYMOUTH_THEME_PATH, $plymouththemedir)
+
+plymouthruntimethemedir=$plymouthruntimedir/themes
+AS_AC_EXPAND(PLYMOUTH_RUNTIME_THEME_PATH, $plymouthruntimethemedir)
 
 plymouthplugindir=$libdir/plymouth/
 AS_AC_EXPAND(PLYMOUTH_PLUGIN_PATH, $plymouthplugindir)

@@ -113,15 +113,18 @@ get_cairo_context_for_pixel_buffer (ply_label_plugin_control_t *label,
         cairo_t *cairo_context;
         unsigned char *data;
         ply_rectangle_t size;
+        uint32_t scale;
 
         data = (unsigned char *) ply_pixel_buffer_get_argb32_data (pixel_buffer);
         ply_pixel_buffer_get_size (pixel_buffer, &size);
+        scale = ply_pixel_buffer_get_device_scale (pixel_buffer);
 
         cairo_surface = cairo_image_surface_create_for_data (data,
                                                              CAIRO_FORMAT_ARGB32,
-                                                             size.width,
-                                                             size.height,
-                                                             size.width * 4);
+                                                             size.width * scale,
+                                                             size.height * scale,
+                                                             size.width * scale * 4);
+        cairo_surface_set_device_scale (cairo_surface, scale, scale);
         cairo_context = cairo_create (cairo_surface);
         cairo_surface_destroy (cairo_surface);
 

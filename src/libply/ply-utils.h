@@ -82,6 +82,7 @@ bool ply_read_uint32 (int       fd,
 bool ply_fd_has_data (int fd);
 bool ply_fd_can_take_data (int fd);
 bool ply_fd_may_block (int fd);
+bool ply_set_fd_as_blocking (int fd);
 char **ply_copy_string_array (const char *const *array);
 void ply_free_string_array (char **array);
 bool ply_string_has_prefix (const char *string,
@@ -119,6 +120,13 @@ int ply_utf8_string_get_length (const char *string,
 
 char *ply_get_process_command_line (pid_t pid);
 pid_t ply_get_process_parent_pid (pid_t pid);
+
+void ply_set_device_scale (int device_scale);
+
+int ply_get_device_scale (uint32_t width,
+                          uint32_t height,
+                          uint32_t width_mm,
+                          uint32_t height_mm);
 
 #endif
 

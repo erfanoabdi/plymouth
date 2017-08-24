@@ -81,6 +81,18 @@ ply_pixel_display_new (ply_renderer_t      *renderer,
         return display;
 }
 
+ply_renderer_t *
+ply_pixel_display_get_renderer (ply_pixel_display_t *display)
+{
+        return display->renderer;
+}
+
+ply_renderer_head_t *
+ply_pixel_display_get_renderer_head (ply_pixel_display_t *display)
+{
+        return display->head;
+}
+
 unsigned long
 ply_pixel_display_get_width (ply_pixel_display_t *display)
 {

@@ -625,7 +625,14 @@ add_pixel_display (ply_boot_splash_plugin_t *plugin,
                                             (ply_pixel_display_draw_handler_t)
                                             on_draw, view);
 
-        ply_list_append_data (plugin->views, view);
+        if (plugin->is_visible) {
+                if (view_load (view))
+                        ply_list_append_data (plugin->views, view);
+                else
+                        view_free (view);
+        } else {
+                ply_list_append_data (plugin->views, view);
+        }
 }
 
 static void

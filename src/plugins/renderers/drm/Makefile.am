@@ -16,12 +16,7 @@ drm_la_LDFLAGS = -module -avoid-version -export-dynamic
 drm_la_LIBADD = $(PLYMOUTH_LIBS) $(DRM_LIBS)                                  \
                          ../../../libply/libply.la                            \
                          ../../../libply-splash-core/libply-splash-core.la
-drm_la_SOURCES = $(srcdir)/plugin.c                                           \
-                 $(srcdir)/ply-renderer-driver.h
-drm_la_SOURCES += $(srcdir)/ply-renderer-generic-driver.h                     \
-                  $(srcdir)/ply-renderer-generic-driver.c
-
-
+drm_la_SOURCES = $(srcdir)/plugin.c
 
 endif
 

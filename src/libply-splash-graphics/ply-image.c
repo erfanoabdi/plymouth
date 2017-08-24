@@ -99,10 +99,13 @@ transform_to_argb32 (png_struct   *png,
                 blue = data[i + 2];
                 alpha = data[i + 3];
 
-                red = (uint8_t) CLAMP (((red / 255.0) * (alpha / 255.0)) * 255.0, 0, 255.0);
-                green = (uint8_t) CLAMP (((green / 255.0) * (alpha / 255.0)) * 255.0,
-                                         0, 255.0);
-                blue = (uint8_t) CLAMP (((blue / 255.0) * (alpha / 255.0)) * 255.0, 0, 255.0);
+                /* pre-multiply the alpha if there's translucency */
+                if (alpha != 0xff) {
+                        red = (uint8_t) CLAMP (((red / 255.0) * (alpha / 255.0)) * 255.0, 0, 255.0);
+                        green = (uint8_t) CLAMP (((green / 255.0) * (alpha / 255.0)) * 255.0,
+                                                 0, 255.0);
+                        blue = (uint8_t) CLAMP (((blue / 255.0) * (alpha / 255.0)) * 255.0, 0, 255.0);
+                }
 
                 pixel_value = (alpha << 24) | (red << 16) | (green << 8) | (blue << 0);
                 memcpy (data + i, &pixel_value, sizeof(uint32_t));
