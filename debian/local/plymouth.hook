@@ -155,6 +155,6 @@ for _LIBRARY in /lib/@DEB_HOST_MULTIARCH@/libnss_files*
 do
 	if [ -e "${_LIBRARY}" ]
 	then
-		copy_exec ${_LIBRARY} /lib
+		copy_exec "${_LIBRARY}"
 	fi
 done
