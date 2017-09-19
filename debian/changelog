@@ -1,8 +1,16 @@
-plymouth (0.9.2-6) UNRELEASED; urgency=medium
+plymouth (0.9.3-1) unstable; urgency=medium
 
+  [ Laurent Bigonville ]
   * debian/watch: Bump to version 4 and use the macro's
+  * New upstream version 0.9.3
+  * debian/libplymouth4.symbols: Adjust the symbols file
+  * Refresh the patches and drop the one merged upstream
 
- -- Laurent Bigonville <bigon@debian.org>  Thu, 24 Aug 2017 15:14:50 +0200
+  [ Scott Moser ]
+  * debian/local/plymouth.hook: add only a single copy of nss libs in
+    initramfs.  (Closes: #874502)
+
+ -- Laurent Bigonville <bigon@debian.org>  Tue, 19 Sep 2017 15:09:29 +0200
 
 plymouth (0.9.2-5) unstable; urgency=medium
 
