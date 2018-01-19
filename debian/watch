@@ -1,2 +1,2 @@
 version=4
-http://www.freedesktop.org/software/plymouth/releases/@PACKAGE@@ANY_VERSION@@ARCHIVE_EXT@
+https://www.freedesktop.org/software/plymouth/releases/@PACKAGE@@ANY_VERSION@@ARCHIVE_EXT@
