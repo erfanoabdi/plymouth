@@ -5,8 +5,10 @@ plymouth (0.9.3-2) UNRELEASED; urgency=medium
       d/p/0002-scripts-Use-2-instead-of-dev-stderr.patch
     - d/p/0006-x11-don-t-call-gdk_display_get_name-before-gtk_init.patch:
       Fixes a crash when the x11 renderer is installed (Closes: #878115)
+  * debian/control: Drop obsolete dh-systemd build-dependency and bump
+    debhelper minimal version
 
- -- Laurent Bigonville <bigon@debian.org>  Fri, 19 Jan 2018 10:38:04 +0100
+ -- Laurent Bigonville <bigon@debian.org>  Fri, 19 Jan 2018 10:41:34 +0100
 
 plymouth (0.9.3-1) unstable; urgency=medium
 
