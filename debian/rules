@@ -67,6 +67,10 @@ override_dh_install:
 	install -D -m 0755 debian/local/plymouth-update-initrd debian/plymouth/usr/lib/$(DEB_HOST_MULTIARCH)/plymouth/plymouth-update-initrd
 	install -D -m 0644 debian/local/plymouth.lsb debian/plymouth/lib/lsb/init-functions.d/99-plymouth
 
+	# Adding apport file (from Ubuntu)
+	mkdir -p debian/plymouth/usr/share/apport/package-hooks
+	install -m 644 debian/source_plymouth.apport debian/plymouth/usr/share/apport/package-hooks/source_plymouth.py
+
 override_dh_systemd_start:
 	dh_systemd_start --no-start
 
