@@ -1,11 +1,11 @@
-plymouth (0.9.3-3) UNRELEASED; urgency=medium
+plymouth (0.9.3-3) unstable; urgency=medium
 
   * debian/local/plymouth.hook: Call fc-cache when generating the initramfs,
     this will create the fc cache and .uuid files and should mitigate bug
     #897572
   * debian/control: Update VCS-* fields to point to the salsa machine
 
- -- Laurent Bigonville <bigon@debian.org>  Mon, 14 May 2018 11:25:06 +0200
+ -- Laurent Bigonville <bigon@debian.org>  Mon, 14 May 2018 11:25:26 +0200
 
 plymouth (0.9.3-2) unstable; urgency=medium
 
