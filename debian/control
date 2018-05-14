@@ -105,7 +105,8 @@ Description: boot animation, logger and I/O multiplexer - label control
 
 Package: plymouth-themes
 Architecture: linux-any
-Depends: fontconfig-config,
+Depends: fontconfig,
+         fontconfig-config,
          fonts-dejavu-core | ttf-dejavu-core,
          plymouth (= ${binary:Version}),
          plymouth-label (= ${binary:Version}),
@@ -134,7 +135,7 @@ Provides: plymouth-theme,
           plymouth-themes-solar,
           plymouth-themes-spinfinity,
           plymouth-themes-spinner
-Breaks: plymouth-drm (<< 0.9.0-6~)
+Breaks: libfontconfig1 (<< 2.13.0-5~), plymouth-drm (<< 0.9.0-6~)
 Description: boot animation, logger and I/O multiplexer - themes
  Plymouth provides a boot-time I/O multiplexing framework - the most obvious
  use for which is to provide an attractive graphical animation in place of

@@ -91,6 +91,8 @@ case "${THEME_NAME}" in
 		cp -a /etc/fonts/fonts.conf "${DESTDIR}/etc/fonts"
 		cp -rL /etc/fonts/conf.d/60-latin.conf "${DESTDIR}/etc/fonts/conf.d"
 		mkdir -p "${DESTDIR}/var/cache/fontconfig"
+		# This is only needed because fc-cache bellow fails if the directory doesn't exist
+		mkdir -p "${DESTDIR}/usr/local/share/fonts"
 
 		# fonts-dejavu
 		if [ -e /usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf ]
@@ -105,6 +107,7 @@ case "${THEME_NAME}" in
 			cp -a /usr/share/fonts/truetype/ttf-dejavu/DejaVuSerif.ttf "${DESTDIR}/usr/share/fonts/truetype/ttf-dejavu"
 			cp -a /usr/share/fonts/truetype/ttf-dejavu/DejaVuSans.ttf  "${DESTDIR}/usr/share/fonts/truetype/ttf-dejavu"
 		fi
+		fc-cache -s -y "${DESTDIR}" > /dev/null 2>&1
 
 		# pango
 		if ls /usr/lib/@DEB_HOST_MULTIARCH@/pango/1* > /dev/null 2>&1
