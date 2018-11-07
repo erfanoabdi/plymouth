@@ -61,7 +61,7 @@ show the splash screen.
 
 To decrypt your root, run
 
-lymouth ask-for-password --command="/sbin/cryptsetup luksOpen -T ..."
+plymouth ask-for-password --command="/sbin/cryptsetup luksOpen -T ..."
 
 where the --command is whatever makes sense for you.
 

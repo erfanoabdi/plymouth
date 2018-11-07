@@ -89,6 +89,7 @@ void ply_boot_splash_attach_progress (ply_boot_splash_t *splash,
 void ply_boot_splash_become_idle (ply_boot_splash_t                *splash,
                                   ply_boot_splash_on_idle_handler_t idle_handler,
                                   void                             *user_data);
+bool ply_boot_splash_uses_pixel_displays (ply_boot_splash_t *splash);
 
 
 #endif

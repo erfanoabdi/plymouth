@@ -462,8 +462,8 @@ static void script_lib_sprite_draw_area (script_lib_display_t *display,
                 /* In that case only draw the background if the sprite doesn't
                  * cover the complete area */
                 if (position_x > x || position_y > y ||
-                    (ply_pixel_buffer_get_width (sprite->image) + position_x) < (x + width) ||
-                    (ply_pixel_buffer_get_height (sprite->image) + position_y) < (y + height))
+                    ((int)ply_pixel_buffer_get_width (sprite->image) + position_x) < (x + width) ||
+                    ((int)ply_pixel_buffer_get_height (sprite->image) + position_y) < (y + height))
                         script_lib_draw_brackground (pixel_buffer, &clip_area, data);
         } else {
                 script_lib_draw_brackground (pixel_buffer, &clip_area, data);
@@ -741,11 +741,13 @@ void
 script_lib_sprite_refresh (script_lib_sprite_data_t *data)
 {
         ply_list_node_t *node;
-        ply_region_t *region = ply_region_new ();
+        ply_region_t *region;
         ply_list_t *rectable_list;
 
         if (!data)
             return;
+
+        region = ply_region_new ();
 
         ply_list_sort_stable (data->sprite_list, &sprite_compare_z);
 

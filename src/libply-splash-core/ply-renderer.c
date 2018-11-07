@@ -314,7 +314,8 @@ ply_renderer_deactivate (ply_renderer_t *renderer)
 {
         assert (renderer->plugin_interface != NULL);
 
-        return renderer->plugin_interface->deactivate (renderer->backend);
+        renderer->plugin_interface->deactivate (renderer->backend);
+        renderer->is_active = false;
 }
 
 bool

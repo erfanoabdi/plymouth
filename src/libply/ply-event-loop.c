@@ -496,8 +496,10 @@ ply_event_loop_new (void)
 
         loop->signal_dispatcher = ply_signal_dispatcher_new ();
 
-        if (loop->signal_dispatcher == NULL)
+        if (loop->signal_dispatcher == NULL) {
+                ply_event_loop_free (loop);
                 return NULL;
+        }
 
         ply_event_loop_watch_fd (loop,
                                  ply_signal_dispatcher_receiver_fd,

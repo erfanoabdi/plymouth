@@ -37,9 +37,21 @@ typedef struct _ply_pixel_buffer ply_pixel_buffer_t;
          | ((uint8_t) (CLAMP (g * 255.0, 0.0, 255.0)) << 8)                      \
          | ((uint8_t) (CLAMP (b * 255.0, 0.0, 255.0))))
 
+typedef enum
+{
+        PLY_PIXEL_BUFFER_ROTATE_UPRIGHT = 0,
+        PLY_PIXEL_BUFFER_ROTATE_UPSIDE_DOWN,
+        PLY_PIXEL_BUFFER_ROTATE_CLOCKWISE,
+        PLY_PIXEL_BUFFER_ROTATE_COUNTER_CLOCKWISE
+} ply_pixel_buffer_rotation_t;
+
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
 ply_pixel_buffer_t *ply_pixel_buffer_new (unsigned long width,
                                           unsigned long height);
+ply_pixel_buffer_t *
+ply_pixel_buffer_new_with_device_rotation (unsigned long width,
+                                           unsigned long height,
+                                           ply_pixel_buffer_rotation_t device_rotation);
 void ply_pixel_buffer_free (ply_pixel_buffer_t *buffer);
 void ply_pixel_buffer_get_size (ply_pixel_buffer_t *buffer,
                                 ply_rectangle_t    *size);

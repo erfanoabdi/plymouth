@@ -386,6 +386,7 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
                                 strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_NAK)))
                         ply_trace ("could not finish writing is-not-root nak: %m");
 
+                free (argument);
                 free (command);
                 return;
         }
@@ -466,6 +467,8 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
 
                 if (server->deactivate_handler != NULL)
                         server->deactivate_handler (server->user_data, deactivate_trigger, server);
+                else
+                        ply_trigger_free (deactivate_trigger);
 
                 free (argument);
                 free (command);
@@ -491,6 +494,8 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
 
                 if (server->quit_handler != NULL)
                         server->quit_handler (server->user_data, retain_splash, quit_trigger, server);
+                else
+                        ply_trigger_free (quit_trigger);
 
                 free (argument);
                 free (command);
@@ -511,6 +516,9 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
                                                           argument,
                                                           answer,
                                                           server);
+                } else {
+                        ply_trigger_free (answer);
+                        free (argument);
                 }
                 /* will reply later
                  */
@@ -592,6 +600,9 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
                                                       argument,
                                                       answer,
                                                       server);
+                } else {
+                        ply_trigger_free (answer);
+                        free (argument);
                 }
                 /* will reply later
                  */
@@ -621,6 +632,9 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
                                                              argument,
                                                              answer,
                                                              server);
+                } else {
+                        ply_trigger_free (answer);
+                        free (argument);
                 }
                 /* will reply later
                  */
@@ -659,6 +673,7 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
                                         strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_NAK)))
                                 ply_trace ("could not finish writing nak: %m");
 
+                        free (argument);
                         free (command);
                         return;
                 }
@@ -670,6 +685,7 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
                                 strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_NAK)))
                         ply_trace ("could not finish writing ping reply: %m");
 
+                free (argument);
                 free (command);
                 return;
         }
@@ -678,6 +694,7 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
                         PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK,
                         strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK)))
                 ply_trace ("could not finish writing ack: %m");
+        free (argument);
         free (command);
 }
 

@@ -144,6 +144,7 @@ animate_at_time (ply_throbber_t *throbber,
         ply_pixel_buffer_t *const *frames;
         bool should_continue;
         double percent_in_sequence;
+        int last_frame_number;
 
         number_of_frames = ply_array_get_size (throbber->frames);
 
@@ -152,11 +153,19 @@ animate_at_time (ply_throbber_t *throbber,
 
         should_continue = true;
         percent_in_sequence = fmod (time, THROBBER_DURATION) / THROBBER_DURATION;
+        last_frame_number = throbber->frame_number;
         throbber->frame_number = (int) (number_of_frames * percent_in_sequence);
 
-        if (throbber->stop_trigger != NULL)
+        if (throbber->stop_trigger != NULL) {
+                /* If we are trying to stop, make sure we don't skip the last
+                 * frame and loop around. Clamp it to the last frame.
+                 */
+                if (last_frame_number > throbber->frame_number)
+                      throbber->frame_number = number_of_frames - 1;
+
                 if (throbber->frame_number == number_of_frames - 1)
                         should_continue = false;
+        }
 
         frames = (ply_pixel_buffer_t *const *) ply_array_get_pointer_elements (throbber->frames);
         ply_pixel_buffer_get_size (frames[throbber->frame_number], &throbber->frame_area);

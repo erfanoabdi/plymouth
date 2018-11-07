@@ -1,4 +1,4 @@
-AC_INIT([plymouth],[0.9.3],[https://bugs.freedesktop.org/enter_bug.cgi?product=plymouth])
+AC_INIT([plymouth],[0.9.4],[https://bugs.freedesktop.org/enter_bug.cgi?product=plymouth])
 AC_CONFIG_SRCDIR(src/main.c)
 AC_CONFIG_HEADER(config.h)
 AC_CONFIG_AUX_DIR(build-tools)
@@ -78,7 +78,7 @@ if test x$enable_gtk = xyes; then
   AC_SUBST(GTK_LIBS)
 fi
 
-AC_ARG_ENABLE(drm, AS_HELP_STRING([--enable-drm-renderer],[enable building drm kms support]),enable_drm_renderer=$enableval,enable_drm_renderer=yes)
+AC_ARG_ENABLE(drm, AS_HELP_STRING([--enable-drm],[enable building drm kms support]),enable_drm_renderer=$enableval,enable_drm_renderer=yes)
 AM_CONDITIONAL(ENABLE_DRM_RENDERER,  [test "$enable_drm_renderer" = yes])
 
 if test x$enable_drm_renderer = xyes; then
@@ -227,6 +227,7 @@ if test "$GCC" = "yes" -a "$set_more_warnings" != "no"; then
    -Wwrite-strings -Wnested-externs -Wpointer-arith \
    -Wswitch-enum -Wstrict-aliasing=2 -Winit-self -Wunsafe-loop-optimizations \
    -Wno-missing-field-initializers -Wno-unused-parameter -Wno-unused-result \
+   -Wno-cast-function-type \
    -Wcast-align -Wsign-compare -Wp,-D_FORTIFY_SOURCE=2"
 elif test "$GCC" = "yes"; then
   AC_MSG_RESULT(no)

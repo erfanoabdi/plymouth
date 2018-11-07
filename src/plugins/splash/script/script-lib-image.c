@@ -200,7 +200,10 @@ static script_return_t image_text (script_state_t *state,
         }
         script_obj_unref (align_obj);
 
-        if (!text) return script_return_obj_null ();
+        if (!text) {
+                free (font);
+                return script_return_obj_null ();
+        }
 
         label = ply_label_new ();
         ply_label_set_text (label, text);

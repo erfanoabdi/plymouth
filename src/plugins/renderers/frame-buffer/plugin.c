@@ -392,9 +392,9 @@ close_device (ply_renderer_backend_t *backend)
         backend->head.area.height = 0;
 }
 
-static const char const *get_visual_name (int visual)
+static const char *get_visual_name (int visual)
 {
-        static const char const *visuals[] =
+        static const char * const visuals[] =
         {
                 [FB_VISUAL_MONO01] = "FB_VISUAL_MONO01",
                 [FB_VISUAL_MONO10] = "FB_VISUAL_MONO10",

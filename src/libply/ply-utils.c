@@ -24,6 +24,7 @@
 #include "ply-utils.h"
 
 #include <assert.h>
+#include <ctype.h>
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -79,6 +80,9 @@ static int errno_stack[PLY_ERRNO_STACK_SIZE];
 static int errno_stack_position = 0;
 
 static int overridden_device_scale = 0;
+
+static char kernel_command_line[PLY_MAX_COMMAND_LINE_SIZE];
+static bool kernel_command_line_is_set;
 
 bool
 ply_open_unidirectional_pipe (int *sender_fd,
@@ -1013,6 +1017,96 @@ ply_get_device_scale (uint32_t width,
         }
 
         return device_scale;
+}
+
+static const char *
+ply_get_kernel_command_line (void)
+{
+        const char *remaining_command_line;
+        char *key;
+        int fd;
+
+        if (kernel_command_line_is_set)
+                return kernel_command_line;
+
+        ply_trace ("opening /proc/cmdline");
+        fd = open ("/proc/cmdline", O_RDONLY);
+
+        if (fd < 0) {
+                ply_trace ("couldn't open it: %m");
+                return NULL;
+        }
+
+        ply_trace ("reading kernel command line");
+        if (read (fd, kernel_command_line, sizeof(kernel_command_line) - 1) < 0) {
+                ply_trace ("couldn't read it: %m");
+                close (fd);
+                return NULL;
+        }
+
+        /* we now use plymouth.argument for kernel commandline arguments.
+         * It used to be plymouth:argument. This bit just rewrites all : to be .
+         */
+        remaining_command_line = kernel_command_line;
+        while ((key = strstr (remaining_command_line, "plymouth:")) != NULL) {
+                char *colon;
+
+                colon = key + strlen ("plymouth");
+                *colon = '.';
+
+                remaining_command_line = colon + 1;
+        }
+        ply_trace ("Kernel command line is: '%s'", kernel_command_line);
+
+        close (fd);
+
+        kernel_command_line_is_set = true;
+        return kernel_command_line;
+}
+
+const char *
+ply_kernel_command_line_get_string_after_prefix (const char *prefix)
+{
+        const char *command_line = ply_get_kernel_command_line();
+        char *argument;
+
+        if (!command_line)
+                return NULL;
+
+        argument = strstr (command_line, prefix);
+
+        if (argument == NULL)
+                return NULL;
+
+        if (argument == command_line ||
+            argument[-1] == ' ')
+                return argument + strlen (prefix);
+
+        return NULL;
+}
+
+bool
+ply_kernel_command_line_has_argument (const char *argument)
+{
+        const char *string;
+
+        string = ply_kernel_command_line_get_string_after_prefix (argument);
+
+        if (string == NULL)
+                return false;
+
+        if (!isspace ((int) string[0]) && string[0] != '\0')
+                return false;
+
+        return true;
+}
+
+void
+ply_kernel_command_line_override (const char *command_line)
+{
+        strncpy (kernel_command_line, command_line, sizeof(kernel_command_line));
+        kernel_command_line[sizeof(kernel_command_line) - 1] = '\0';
+        kernel_command_line_is_set = true;
 }
 
 /* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

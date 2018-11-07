@@ -208,8 +208,10 @@ ply_boot_splash_load (ply_boot_splash_t *splash)
 
         key_file = ply_key_file_new (splash->theme_path);
 
-        if (!ply_key_file_load (key_file))
+        if (!ply_key_file_load (key_file)) {
+                ply_key_file_free (key_file);
                 return false;
+        }
 
         module_name = ply_key_file_get_value (key_file, "Plymouth Theme", "ModuleName");
 
@@ -693,6 +695,12 @@ ply_boot_splash_become_idle (ply_boot_splash_t                *splash,
                                  splash);
 
         splash->plugin_interface->become_idle (splash->plugin, splash->idle_trigger);
+}
+
+bool
+ply_boot_splash_uses_pixel_displays (ply_boot_splash_t *splash)
+{
+        return splash->plugin_interface->add_pixel_display != NULL;
 }
 
 /* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */
