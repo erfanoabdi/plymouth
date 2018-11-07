@@ -49,7 +49,6 @@ typedef struct
         ply_event_loop_t     *loop;
         ply_boot_client_t    *client;
         ply_command_parser_t *command_parser;
-        char                  kernel_command_line[PLY_MAX_COMMAND_LINE_SIZE];
 } state_t;
 
 typedef struct
@@ -704,31 +703,6 @@ on_quit_request (state_t    *state,
                                              on_failure, state);
 }
 
-static bool
-get_kernel_command_line (state_t *state)
-{
-        int fd;
-
-        ply_trace ("opening /proc/cmdline");
-        fd = open ("/proc/cmdline", O_RDONLY);
-
-        if (fd < 0) {
-                ply_trace ("couldn't open it: %m");
-                return false;
-        }
-
-        ply_trace ("reading kernel command line");
-        if (read (fd, state->kernel_command_line, sizeof(state->kernel_command_line) - 1) < 0) {
-                ply_trace ("couldn't read it: %m");
-                close (fd);
-                return false;
-        }
-
-        ply_trace ("Kernel command line is: '%s'", state->kernel_command_line);
-        close (fd);
-        return true;
-}
-
 static void
 on_update_root_fs_request (state_t    *state,
                            const char *command)
@@ -897,7 +871,7 @@ main (int    argc,
                                         "get-splash-plugin-path", "Get directory where splash plugins are installed", PLY_COMMAND_OPTION_TYPE_FLAG,
                                         "newroot", "Tell boot daemon that new root filesystem is mounted", PLY_COMMAND_OPTION_TYPE_STRING,
                                         "quit", "Tell boot daemon to quit", PLY_COMMAND_OPTION_TYPE_FLAG,
-                                        "ping", "Check of boot daemon is running", PLY_COMMAND_OPTION_TYPE_FLAG,
+                                        "ping", "Check if boot daemon is running", PLY_COMMAND_OPTION_TYPE_FLAG,
                                         "has-active-vt", "Check if boot daemon has an active vt", PLY_COMMAND_OPTION_TYPE_FLAG,
                                         "sysinit", "Tell boot daemon root filesystem is mounted read-write", PLY_COMMAND_OPTION_TYPE_FLAG,
                                         "show-splash", "Show splash screen", PLY_COMMAND_OPTION_TYPE_FLAG,
@@ -1099,12 +1073,8 @@ main (int    argc,
                 return 0;
         }
 
-        if (get_kernel_command_line (&state)) {
-                if ((strstr (state.kernel_command_line, "plymouth.debug") != NULL ||
-                     strstr (state.kernel_command_line, "plymouth:debug") != NULL)
-                    && !ply_is_tracing ())
-                        ply_toggle_tracing ();
-        }
+        if (ply_kernel_command_line_has_argument ("plymouth.debug") && !ply_is_tracing ())
+                ply_toggle_tracing ();
 
         if (should_be_verbose && !ply_is_tracing ())
                 ply_toggle_tracing ();

@@ -31,7 +31,8 @@ typedef enum
 {
         PLY_DEVICE_MANAGER_FLAGS_NONE = 0,
         PLY_DEVICE_MANAGER_FLAGS_IGNORE_SERIAL_CONSOLES = 1 << 0,
-                PLY_DEVICE_MANAGER_FLAGS_IGNORE_UDEV = 1 << 1
+        PLY_DEVICE_MANAGER_FLAGS_IGNORE_UDEV = 1 << 1,
+        PLY_DEVICE_MANAGER_FLAGS_SKIP_RENDERERS = 1 << 2
 } ply_device_manager_flags_t;
 
 typedef struct _ply_device_manager ply_device_manager_t;
@@ -54,6 +55,8 @@ void ply_device_manager_watch_devices (ply_device_manager_t                *mana
                                        ply_text_display_added_handler_t     text_display_added_handler,
                                        ply_text_display_removed_handler_t   text_display_removed_handler,
                                        void                                *data);
+void ply_device_manager_pause (ply_device_manager_t *manager);
+void ply_device_manager_unpause (ply_device_manager_t *manager);
 bool ply_device_manager_has_serial_consoles (ply_device_manager_t *manager);
 bool ply_device_manager_has_displays (ply_device_manager_t *manager);
 ply_list_t *ply_device_manager_get_keyboards (ply_device_manager_t *manager);

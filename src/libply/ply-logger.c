@@ -313,7 +313,6 @@ ply_logger_open_file (ply_logger_t *logger,
                       const char   *filename)
 {
         int fd;
-        mode_t mode;
 
         assert (logger != NULL);
         assert (filename != NULL);

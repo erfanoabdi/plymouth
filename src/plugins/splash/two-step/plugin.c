@@ -205,6 +205,10 @@ view_load_end_animation (view_t *view)
         case PLY_BOOT_SPLASH_MODE_SHUTDOWN:
                 animation_prefix = "shutdown-animation-";
                 break;
+        case PLY_BOOT_SPLASH_MODE_INVALID:
+        default:
+                ply_trace ("unexpected splash mode 0x%x\n", plugin->mode);
+                return;
         }
 
         ply_trace ("trying prefix: %s", animation_prefix);
@@ -658,6 +662,8 @@ create_plugin (ply_key_file_t *key_file)
                         ply_trace ("unknown progress function %s, defaulting to linear", progress_function);
                         plugin->progress_function = PROGRESS_FUNCTION_TYPE_LINEAR;
                 }
+
+                free (progress_function);
         }
 
         plugin->views = ply_list_new ();

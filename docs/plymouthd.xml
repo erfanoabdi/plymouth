@@ -103,7 +103,7 @@ that control its behaviour.
 
                         <varlistentry>
                                 <term><option>--tty=STRING</option></term>
-                                <listitem><para>TTY to ues instead of default.</para></listitem>
+                                <listitem><para>TTY to use instead of default.</para></listitem>
                         </varlistentry>
                 </variablelist>
         </refsect1>

@@ -105,6 +105,11 @@ create_backend (const char     *device_name,
 {
         ply_renderer_backend_t *backend;
 
+        gdk_set_allowed_backends ("x11");
+
+        if (!gtk_init_check (0, NULL))
+                return false;
+
         backend = calloc (1, sizeof(ply_renderer_backend_t));
 
         backend->loop = ply_event_loop_get_default ();
@@ -149,11 +154,6 @@ open_device (ply_renderer_backend_t *backend)
 {
         Display *display;
         int display_fd;
-
-        gdk_set_allowed_backends ("x11");
-
-        if (!gtk_init_check (0, NULL))
-                return false;
 
         /* Force gtk+ to deal in device pixels */
         gdk_x11_display_set_window_scale (gdk_display_get_default (), 1);

@@ -54,6 +54,7 @@ static script_op_t *script_parse_op (script_scan_t *scan);
 static script_exp_t *script_parse_exp (script_scan_t *scan);
 static ply_list_t *script_parse_op_list (script_scan_t *scan);
 static void script_parse_op_list_free (ply_list_t *op_list);
+static void script_parse_exp_free (script_exp_t *exp);
 
 static script_exp_t *script_parse_new_exp (script_exp_type_t        type,
                                            script_debug_location_t *location)
@@ -225,10 +226,33 @@ static void script_parse_advance_scan_by_string (script_scan_t *scan,
         }
 }
 
+static void
+free_parameter_list (script_scan_t *scan,
+                     ply_list_t    *parameter_list)
+{
+        if (parameter_list != NULL) {
+                ply_list_node_t *node;
+
+                node = ply_list_get_first_node (parameter_list);
+                while (node != NULL) {
+                        ply_list_node_t *next_node;
+                        char *parameter;
+
+                        parameter = ply_list_node_get_data (node);
+                        next_node = ply_list_get_next_node (parameter_list, node);
+                        free (parameter);
+                        ply_list_remove_node (parameter_list, node);
+
+                        node = next_node;
+                }
+        }
+}
+
 static script_function_t *script_parse_function_def (script_scan_t *scan)
 {
         script_scan_token_t *curtoken = script_scan_get_current_token (scan);
-        ply_list_t *parameter_list;
+        script_function_t *function = NULL;
+        ply_list_t *parameter_list = NULL;
 
         if (!script_scan_token_is_symbol_of_value (curtoken, '(')) {
                 script_parse_error (&curtoken->location,
@@ -243,7 +267,7 @@ static script_function_t *script_parse_function_def (script_scan_t *scan)
                 if (!script_scan_token_is_identifier (curtoken)) {
                         script_parse_error (&curtoken->location,
                                             "Function declaration parameters must be valid identifiers");
-                        return NULL;
+                        goto out;
                 }
                 char *parameter = strdup (curtoken->data.string);
                 ply_list_append_data (parameter_list, parameter);
@@ -254,7 +278,7 @@ static script_function_t *script_parse_function_def (script_scan_t *scan)
                 if (!script_scan_token_is_symbol_of_value (curtoken, ',')) {
                         script_parse_error (&curtoken->location,
                                             "Function declaration parameters must separated with ',' and terminated with a ')'");
-                        return NULL;
+                        goto out;
                 }
                 curtoken = script_scan_get_next_token (scan);
         }
@@ -263,9 +287,12 @@ static script_function_t *script_parse_function_def (script_scan_t *scan)
 
         script_op_t *func_op = script_parse_op (scan);
 
-        script_function_t *function = script_function_script_new (func_op,
-                                                                  NULL,
-                                                                  parameter_list);
+        function = script_function_script_new (func_op,
+                                               NULL,
+                                               parameter_list);
+        parameter_list = NULL;
+out:
+        free_parameter_list (scan, parameter_list);
         return function;
 }
 
@@ -327,8 +354,18 @@ static script_exp_t *script_parse_exp_tm (script_scan_t *scan)
                         curtoken = script_scan_get_current_token (scan);
                         if (script_scan_token_is_symbol_of_value (curtoken, ']')) break;
                         if (!script_scan_token_is_symbol_of_value (curtoken, ',')) {
+                                ply_list_node_t *node;
                                 script_parse_error (&curtoken->location,
                                                     "Set parameters should be separated with a ',' and terminated with a ']'");
+
+
+                                for (node = ply_list_get_first_node (parameters);
+                                     node;
+                                     node = ply_list_get_next_node (parameters, node)) {
+                                        script_exp_t *sub = ply_list_node_get_data (node);
+                                        script_parse_exp_free (sub);
+                                }
+                                ply_list_free (parameters);
                                 return NULL;
                         }
                         curtoken = script_scan_get_next_token (scan);
@@ -377,8 +414,18 @@ static script_exp_t *script_parse_exp_pi (script_scan_t *scan)
                                 curtoken = script_scan_get_current_token (scan);
                                 if (script_scan_token_is_symbol_of_value (curtoken, ')')) break;
                                 if (!script_scan_token_is_symbol_of_value (curtoken, ',')) {
+                                        ply_list_node_t *node;
+
                                         script_parse_error (&curtoken->location,
                                                             "Function parameters should be separated with a ',' and terminated with a ')'");
+
+                                        for (node = ply_list_get_first_node (parameters);
+                                             node;
+                                             node = ply_list_get_next_node (parameters, node)) {
+                                                script_exp_t *sub = ply_list_node_get_data (node);
+                                                script_parse_exp_free (sub);
+                                        }
+                                        ply_list_free (parameters);
                                         return NULL;
                                 }
                                 curtoken = script_scan_get_next_token (scan);
@@ -992,6 +1039,7 @@ script_op_t *script_parse_file (const char *filename)
         curtoken = script_scan_get_current_token (scan);
         if (curtoken->type != SCRIPT_SCAN_TOKEN_TYPE_EOF) {
                 script_parse_error (&curtoken->location, "Unparsed characters at end of file");
+                script_parse_op_list_free (list);
                 return NULL;
         }
         script_op_t *op = script_parse_new_op_block (list, &location);
@@ -1015,6 +1063,7 @@ script_op_t *script_parse_string (const char *string,
         curtoken = script_scan_get_current_token (scan);
         if (curtoken->type != SCRIPT_SCAN_TOKEN_TYPE_EOF) {
                 script_parse_error (&curtoken->location, "Unparsed characters at end of file");
+                script_parse_op_list_free (list);
                 return NULL;
         }
         script_op_t *op = script_parse_new_op_block (list, &location);

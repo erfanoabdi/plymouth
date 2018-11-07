@@ -84,14 +84,14 @@ while [ $# -gt 0 ]; do
 
         -l|--list)
                 if [ -n "$THEME_NAME" ]; then
-                        echo "You can only specify --list or a theme name, not both" > /dev/stderr
-                        echo $(usage) > /dev/stderr
+                        echo "You can only specify --list or a theme name, not both" >&2
+                        echo $(usage) >&2
                         exit 1
                 fi
 
                 if [ $DO_RESET -ne 0 ]; then
-                        echo "You can only specify --reset or --list, not both" > /dev/stderr
-                        echo $(usage) > /dev/stderr
+                        echo "You can only specify --reset or --list, not both" >&2
+                        echo $(usage) >&2
                         exit 1
                 fi
 
@@ -104,14 +104,14 @@ while [ $# -gt 0 ]; do
 
         -r|--reset|default)
                 if [ -n "$THEME_NAME" ]; then
-                        echo "You can only specify --reset or a theme name, not both" > /dev/stderr
-                        echo $(usage) > /dev/stderr
+                        echo "You can only specify --reset or a theme name, not both" >&2
+                        echo $(usage) >&2
                         exit 1
                 fi
 
                 if [ $DO_LIST -ne 0 ]; then
-                        echo "You can only specify --reset or --list, not both" > /dev/stderr
-                        echo $(usage) > /dev/stderr
+                        echo "You can only specify --reset or --list, not both" >&2
+                        echo $(usage) >&2
                         exit 1
                 fi
 
@@ -124,20 +124,20 @@ while [ $# -gt 0 ]; do
 
         *)
                 if [ -n "$THEME_NAME" ]; then
-                        echo "You can only specify one theme at a time" > /dev/stderr
-                        echo $(usage) > /dev/stderr
+                        echo "You can only specify one theme at a time" >&2
+                        echo $(usage) >&2
                         exit 1
                 fi
 
                 if [ $DO_RESET -ne 0 ]; then
-                        echo "You can only specify --reset or a theme name, not both" > /dev/stderr
-                        echo $(usage) > /dev/stderr
+                        echo "You can only specify --reset or a theme name, not both" >&2
+                        echo $(usage) >&2
                         exit 1
                 fi
 
                 if [ $DO_LIST -ne 0 ]; then
-                        echo "You can only specify --list or a theme name, not both" > /dev/stderr
-                        echo $(usage) > /dev/stderr
+                        echo "You can only specify --list or a theme name, not both" >&2
+                        echo $(usage) >&2
                         exit 1
                 fi
 
@@ -163,7 +163,7 @@ if [ $DO_RESET -eq 0 ] && [ $DO_INITRD_REBUILD -eq 0 ] && [ -z $THEME_NAME ]; th
 fi
 
 if [ `id -u` -ne 0 ]; then
-        echo "This program must be run as root" > /dev/stderr
+        echo "This program must be run as root" >&2
         exit 1
 fi
 
@@ -174,14 +174,14 @@ if [ $DO_RESET -ne 0 ]; then
 fi
 
 if [ ! -e ${PLYMOUTH_DATADIR}/plymouth/themes/${THEME_NAME}/${THEME_NAME}.plymouth ]; then
-        echo "${PLYMOUTH_DATADIR}/plymouth/themes/${THEME_NAME}/${THEME_NAME}.plymouth does not exist" > /dev/stderr
+        echo "${PLYMOUTH_DATADIR}/plymouth/themes/${THEME_NAME}/${THEME_NAME}.plymouth does not exist" >&2
         exit 1
 fi
 
 MODULE_NAME=$(grep "ModuleName *= *" ${PLYMOUTH_DATADIR}/plymouth/themes/${THEME_NAME}/${THEME_NAME}.plymouth | sed 's/ModuleName *= *//')
 
 if [ ! -e ${PLYMOUTH_PLUGIN_PATH}${MODULE_NAME}.so ]; then
-        echo "${PLYMOUTH_PLUGIN_PATH}${MODULE_NAME}.so does not exist" > /dev/stderr
+        echo "${PLYMOUTH_PLUGIN_PATH}${MODULE_NAME}.so does not exist" >&2
         exit 1
 fi
 

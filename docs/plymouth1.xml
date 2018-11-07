@@ -298,7 +298,7 @@ The following commands are understood:
 <variablelist>
 <varlistentry>
   <term><option>--keys=STRING</option></term>
-  <listitem><para>Keys to remove sensitivitiy from</para></listitem>
+  <listitem><para>Keys to remove sensitivity from</para></listitem>
 </varlistentry>
 </variablelist>
 </listitem>
