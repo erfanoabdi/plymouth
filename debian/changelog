@@ -8,8 +8,9 @@ plymouth (0.9.4-1) UNRELEASED; urgency=medium
     - Add support screen rotation (Closes: #905429)
     - Drop patches merged upstream
     - debian/patches/0005-cmdline.patch: Refreshed
+  * debian/control: Bump Standards-Version to 4.2.1 (no further changes)
 
- -- Laurent Bigonville <bigon@debian.org>  Wed, 07 Nov 2018 18:23:34 +0100
+ -- Laurent Bigonville <bigon@debian.org>  Wed, 07 Nov 2018 18:24:04 +0100
 
 plymouth (0.9.3-3) unstable; urgency=medium
 
