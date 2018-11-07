@@ -4,12 +4,3 @@
 0005-cmdline.patch
 0008-show-delay.patch
 drop-systemd-vconsole-setup-service.patch
-
-# Upstream
-0001-terminal-add-include-for-sysmacros.h.patch
-0002-scripts-Use-2-instead-of-dev-stderr.patch
-0003-device-manager-fall-back-to-text-mode-if-graphical-d.patch
-0004-populate-initrd-handle-themes-with-subdirs.patch
-0005-INSTALL-Fix-a-spelling-error-in-the-command-example.patch
-0006-x11-don-t-call-gdk_display_get_name-before-gtk_init.patch
-0007-device-manager-drop-superfluous-create_pixel_display.patch
