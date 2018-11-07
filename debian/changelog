@@ -10,8 +10,9 @@ plymouth (0.9.4-1) UNRELEASED; urgency=medium
     - debian/patches/0005-cmdline.patch: Refreshed
     - debian/libplymouth4.symbols: Add newly exported symbols
   * debian/control: Bump Standards-Version to 4.2.1 (no further changes)
+  * Do not explicitly set the compression algorithm, to please lintian
 
- -- Laurent Bigonville <bigon@debian.org>  Wed, 07 Nov 2018 18:29:17 +0100
+ -- Laurent Bigonville <bigon@debian.org>  Wed, 07 Nov 2018 18:30:44 +0100
 
 plymouth (0.9.3-3) unstable; urgency=medium
 
