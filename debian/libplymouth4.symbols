@@ -53,6 +53,7 @@ libply-splash-core.so.4 libplymouth4 #MINVER#
  ply_boot_splash_unset_keyboard@Base 0.9.3
  ply_boot_splash_update_output@Base 0.9.2
  ply_boot_splash_update_status@Base 0.9.2
+ ply_boot_splash_uses_pixel_displays@Base 0.9.4
  ply_device_manager_activate_keyboards@Base 0.9.2
  ply_device_manager_activate_renderers@Base 0.9.2
  ply_device_manager_deactivate_keyboards@Base 0.9.2
@@ -65,6 +66,8 @@ libply-splash-core.so.4 libplymouth4 #MINVER#
  ply_device_manager_has_displays@Base 0.9.3
  ply_device_manager_has_serial_consoles@Base 0.9.3
  ply_device_manager_new@Base 0.9.2
+ ply_device_manager_pause@Base 0.9.4
+ ply_device_manager_unpause@Base 0.9.4
  ply_device_manager_watch_devices@Base 0.9.3
  ply_keyboard_add_backspace_handler@Base 0.9.2
  ply_keyboard_add_enter_handler@Base 0.9.2
@@ -102,6 +105,7 @@ libply-splash-core.so.4 libplymouth4 #MINVER#
  ply_pixel_buffer_get_width@Base 0.9.2
  ply_pixel_buffer_is_opaque@Base 0.9.3
  ply_pixel_buffer_new@Base 0.9.2
+ ply_pixel_buffer_new_with_device_rotation@Base 0.9.4
  ply_pixel_buffer_pop_clip_area@Base 0.9.2
  ply_pixel_buffer_push_clip_area@Base 0.9.2
  ply_pixel_buffer_resize@Base 0.9.2
@@ -369,6 +373,9 @@ libply.so.4 libplymouth4 #MINVER#
  ply_hashtable_resize@Base 0.9.2
  ply_hashtable_string_compare@Base 0.9.2
  ply_hashtable_string_hash@Base 0.9.2
+ ply_kernel_command_line_get_string_after_prefix@Base 0.9.4
+ ply_kernel_command_line_has_argument@Base 0.9.4
+ ply_kernel_command_line_override@Base 0.9.4
  ply_key_file_foreach_entry@Base 0.9.2
  ply_key_file_free@Base 0.9.2
  ply_key_file_get_value@Base 0.9.2
