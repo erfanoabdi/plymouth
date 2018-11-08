@@ -1,4 +1,4 @@
-plymouth (0.9.4-1) UNRELEASED; urgency=medium
+plymouth (0.9.4-1) unstable; urgency=medium
 
   [ Ondřej Nový ]
   * d/copyright: Use https protocol in Format field
@@ -13,7 +13,7 @@ plymouth (0.9.4-1) UNRELEASED; urgency=medium
   * Do not explicitly set the compression algorithm, to please lintian
   * debian/rules: Use dh_missing --fail-missing instead of dh_install
 
- -- Laurent Bigonville <bigon@debian.org>  Wed, 07 Nov 2018 18:35:35 +0100
+ -- Laurent Bigonville <bigon@debian.org>  Thu, 08 Nov 2018 02:03:31 +0100
 
 plymouth (0.9.3-3) unstable; urgency=medium
 
