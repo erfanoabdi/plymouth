@@ -1,3 +1,11 @@
+plymouth (0.9.4-2) UNRELEASED; urgency=medium
+
+  * Pass SYSTEMD_ASK_PASSWORD_AGENT=/bin/systemd-tty-ask-password-agent
+    to configure for reproducibility on merged-usr vs non-merged.
+    (Closes: #915213)
+
+ -- Andreas Henriksson <andreas@fatal.se>  Sat, 01 Dec 2018 19:58:48 +0100
+
 plymouth (0.9.4-1) unstable; urgency=medium
 
   [ Ondřej Nový ]
