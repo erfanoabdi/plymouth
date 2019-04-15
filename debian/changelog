@@ -1,3 +1,10 @@
+plymouth (0.9.4-2) UNRELEASED; urgency=medium
+
+  * debian/plymouth.links: Drop the manpage symlink plymouth-log-viewer.8, the
+    executable is not installed anymore (Closes: #922320)
+
+ -- Laurent Bigonville <bigon@debian.org>  Mon, 15 Apr 2019 11:16:35 +0200
+
 plymouth (0.9.4-1.1) unstable; urgency=medium
 
   [ Andreas Henriksson ]
