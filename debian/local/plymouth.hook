@@ -127,7 +127,17 @@ case "${THEME_NAME}" in
 esac
 
 # add drm modules
-copy_modules_dir kernel/drivers/gpu/drm mga r128 savage sis tdfx via
+if [ "$MODULES" = "dep" ]; then
+	for DRM_DEVICE in "/sys/class/drm"/*; do
+		DRM_DEVICE="$(readlink -f "$DRM_DEVICE")" \
+			&& sys_walk_mod_add "$DRM_DEVICE" \
+			|| echo "W: plymouth: couldn't include modules for '$DRM_DEVICE'"
+	done
+elif [ "$MODULES" = "list" ]; then
+	echo "W: plymouth: not including drm modules since MODULES=list"
+else
+	copy_modules_dir kernel/drivers/gpu/drm mga r128 savage sis tdfx via
+fi
 
 # copy renderers
 copy_exec /usr/lib/@DEB_HOST_MULTIARCH@/plymouth/renderers/frame-buffer.so
