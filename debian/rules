@@ -76,8 +76,8 @@ override_dh_autoreconf:
 	dh_autoreconf --as-needed
 
 override_dh_installinit:
-	dh_installinit --no-start -- start . 2 3 4 5 . stop . 0 6 .
-	dh_installinit --no-start --name=plymouth-log -- start . S .
+	dh_installinit --no-start
+	dh_installinit --no-start --name=plymouth-log
 
 override_dh_link:
 	# correcting symlink targets
