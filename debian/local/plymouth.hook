@@ -55,8 +55,8 @@ mkdir -p "${DESTDIR}/${THEMES}"
 cp -r "${THEMES}/${THEME_NAME}" "${DESTDIR}/${THEMES}"
 
 # copy binaries and base plugins
-copy_exec /bin/plymouth
-copy_exec /sbin/plymouthd
+copy_exec /usr/bin/plymouth
+copy_exec /usr/sbin/plymouthd
 
 for PLUGIN in ${PLUGINS}
 do

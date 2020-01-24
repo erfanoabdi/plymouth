@@ -15,7 +15,7 @@ PATH="/sbin:/bin:/usr/sbin:/usr/bin"
 NAME="plymouth-log"
 DESC="Boot splash manager (write log file)"
 
-test -x /bin/plymouth || exit 0
+test -x /usr/bin/plymouth || exit 0
 
 if [ -r "/etc/default/${NAME}" ]
 then
@@ -30,7 +30,7 @@ case "${1}" in
 	start)
 		if plymouth --ping
 		then
-			/bin/plymouth update-root-fs --read-write
+			/usr/bin/plymouth update-root-fs --read-write
 		fi
 		;;
 

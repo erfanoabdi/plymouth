@@ -32,13 +32,12 @@ override_dh_auto_configure:
 		--with-background-color=0x005a8a \
 		--with-logo=/usr/share/plymouth/debian-logo.png \
 		--with-release-file=/etc/os-release \
-		--with-system-root-install \
+		--without-system-root-install \
 		--without-rhgb-compat-link
 
 override_dh_auto_install:
 	dh_auto_install
 
-	rm -f debian/tmp/lib/$(DEB_HOST_MULTIARCH)/*.la
 	rm -f debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)/*.la
 	rm -f debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)/plymouth/*.la
 	rm -f debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)/plymouth/*/*.la
@@ -46,12 +45,6 @@ override_dh_auto_install:
 	rm -f debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)/plymouth/*/*.a
 
 override_dh_install:
-	# Moving /usr/lib to /lib
-	mv debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)/*.so.* debian/tmp/lib/$(DEB_HOST_MULTIARCH)
-
-	mv debian/tmp/lib/$(DEB_HOST_MULTIARCH)/*.so debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)
-	mv debian/tmp/lib/$(DEB_HOST_MULTIARCH)/*.a debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)
-
 	dh_install
 
 	# Adding other debian specific files
@@ -82,15 +75,6 @@ override_dh_autoreconf:
 override_dh_installinit:
 	dh_installinit --no-start
 	dh_installinit --no-start --name=plymouth-log
-
-override_dh_link:
-	# correcting symlink targets
-	for LIB in debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)/*.so; \
-	do \
-		dh_link -plibplymouth-dev lib/$(DEB_HOST_MULTIARCH)/$$(basename $$(readlink $${LIB})) usr/lib/$(DEB_HOST_MULTIARCH)/$$(basename $${LIB}); \
-	done
-
-	dh_link --remaining-packages
 
 override_dh_makeshlibs:
 	dh_makeshlibs -Xusr/lib/$(DEB_HOST_MULTIARCH)/plymouth

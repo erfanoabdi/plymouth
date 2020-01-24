@@ -1,4 +1,4 @@
-lib/*/libply-boot-client.so.*
-lib/*/libply-splash-core.so.*
-lib/*/libply-splash-graphics.so.*
-lib/*/libply.so.*
+usr/lib/*/libply-boot-client.so.*
+usr/lib/*/libply-splash-core.so.*
+usr/lib/*/libply-splash-graphics.so.*
+usr/lib/*/libply.so.*

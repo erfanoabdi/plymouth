@@ -2,6 +2,15 @@
 
 set -e
 
+# Several (init)scripts are referencing these executables, add compatibility
+# symlinks for systems not converted to usr-merge
+if [ "$1" = 'configure' -a ! -e '/bin/plymouth' ]; then
+	ln -s /usr/bin/plymouth /bin/plymouth
+fi
+if [ "$1" = 'configure' -a ! -e '/sbin/plymouthd' ]; then
+	ln -s /usr/sbin/plymouthd /sbin/plymouthd
+fi
+
 case "${1}" in
 	configure|abort-upgrade|abort-remove|abort-deconfigure)
 		if which update-initramfs >/dev/null 2>&1 && [ -e /etc/initramfs-tools/initramfs.conf ]; then

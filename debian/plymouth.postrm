@@ -4,6 +4,13 @@ set -e
 
 case "${1}" in
 	remove)
+		# Remove the compatibility symlinks
+		if [ -L '/bin/plymouth' ]; then
+			rm /bin/plymouth
+		fi
+		if [ -L '/sbin/plymouthd' ]; then
+			rm /sbin/plymouthd
+		fi
 		if which update-initramfs >/dev/null 2>&1 && [ -e /etc/initramfs-tools/initramfs.conf ]; then
 			update-initramfs -u
 		fi

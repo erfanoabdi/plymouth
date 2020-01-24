@@ -32,6 +32,6 @@ done
 if [ "${SPLASH}" = "true" ]
 then
 	mkdir -m 0755 /run/plymouth
-	/sbin/plymouthd --mode=boot --attach-to-session --pid-file=/run/plymouth/pid
-	/bin/plymouth --show-splash
+	/usr/sbin/plymouthd --mode=boot --attach-to-session --pid-file=/run/plymouth/pid
+	/usr/bin/plymouth --show-splash
 fi
