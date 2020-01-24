@@ -5,11 +5,13 @@ plymouth (0.9.4-2) UNRELEASED; urgency=medium
     executable is not installed anymore (Closes: #922320)
   * debian/rules: Stop passing start and stop actions for update-rc.d to
     dh_installinit. update-rc.d is not supporting that for quite some time
+  * debian/plymouth.postinst: Remove old cleanup code needed for early 0.9.0
+    uploads
 
   [ Alper Nebi Yasak ]
   * Include less modules when appropriate. (Closes: #940014)
 
- -- Laurent Bigonville <bigon@debian.org>  Fri, 24 Jan 2020 05:10:05 +0100
+ -- Laurent Bigonville <bigon@debian.org>  Fri, 24 Jan 2020 05:14:33 +0100
 
 plymouth (0.9.4-1.1) unstable; urgency=medium
 
