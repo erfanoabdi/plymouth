@@ -1,6 +1,5 @@
 0001-awk.patch
 0003-default-theme.patch
-0004-return-code.patch
 0005-cmdline.patch
 0008-show-delay.patch
 drop-systemd-vconsole-setup-service.patch
