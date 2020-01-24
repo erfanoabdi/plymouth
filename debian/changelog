@@ -12,11 +12,13 @@ plymouth (0.9.4-2) UNRELEASED; urgency=medium
     dh_installsystemd
   * debian/rules: Disable call to dh_installinitramfs, let's manage that
     ourself but update the maintainer scripts to mimic what it's doing.
+  * debian/rules: Drop dh_strip override, plymouth-dbg is gone for at least
+    one release and we don't need the migration bits to the -dbgsym package
 
   [ Alper Nebi Yasak ]
   * Include less modules when appropriate. (Closes: #940014)
 
- -- Laurent Bigonville <bigon@debian.org>  Fri, 24 Jan 2020 06:17:42 +0100
+ -- Laurent Bigonville <bigon@debian.org>  Fri, 24 Jan 2020 06:37:44 +0100
 
 plymouth (0.9.4-1.1) unstable; urgency=medium
 
