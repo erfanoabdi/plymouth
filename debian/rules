@@ -22,7 +22,6 @@ override_dh_auto_configure:
 		SYSTEMD_ASK_PASSWORD_AGENT=/bin/systemd-tty-ask-password-agent \
 		--disable-silent-rules \
 		--prefix=/usr \
-		--libexecdir=/usr/lib/$(DEB_HOST_MULTIARCH) \
 		--localstatedir=/var \
 		--enable-pango \
 		--enable-systemd-integration \
@@ -49,7 +48,7 @@ override_dh_install:
 
 	# Adding other debian specific files
 	install -D -m 0644 debian/local/debian-logo.png debian/plymouth/usr/share/plymouth/debian-logo.png
-	install -D -m 0755 debian/local/plymouth-update-initrd debian/plymouth/usr/lib/$(DEB_HOST_MULTIARCH)/plymouth/plymouth-update-initrd
+	install -D -m 0755 debian/local/plymouth-update-initrd debian/plymouth/usr/libexec/plymouth/plymouth-update-initrd
 	install -D -m 0644 debian/local/plymouth.lsb debian/plymouth/lib/lsb/init-functions.d/99-plymouth
 
 	# Adding apport file (from Ubuntu)

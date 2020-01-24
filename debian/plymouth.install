@@ -2,7 +2,7 @@ usr/bin
 etc/plymouth
 lib/systemd
 usr/sbin
-usr/lib/*/plymouth/*-initrd
+usr/libexec/plymouth/*-initrd
 usr/lib/*/plymouth/details.so
 usr/lib/*/plymouth/renderers/drm.so
 usr/lib/*/plymouth/renderers/frame-buffer.so
