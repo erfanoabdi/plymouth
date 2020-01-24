@@ -4,7 +4,7 @@ set -e
 
 case "${1}" in
 	remove)
-		if which update-initramfs >/dev/null 2>&1; then
+		if which update-initramfs >/dev/null 2>&1 && [ -e /etc/initramfs-tools/initramfs.conf ]; then
 			update-initramfs -u
 		fi
 		;;

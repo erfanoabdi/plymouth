@@ -54,13 +54,6 @@ override_dh_install:
 
 	dh_install
 
-	# Adding initramfs-tools integration
-	install -D -m 0755 debian/local/plymouth.hook debian/plymouth/usr/share/initramfs-tools/hooks/plymouth
-	sed -i -e 's|@DEB_HOST_MULTIARCH@|$(DEB_HOST_MULTIARCH)|g' debian/plymouth/usr/share/initramfs-tools/hooks/plymouth
-	install -D -m 0755 debian/local/plymouth.init-premount debian/plymouth/usr/share/initramfs-tools/scripts/init-premount/plymouth
-	install -D -m 0755 debian/local/plymouth.init-bottom debian/plymouth/usr/share/initramfs-tools/scripts/init-bottom/plymouth
-	install -D -m 0755 debian/local/plymouth.panic debian/plymouth/usr/share/initramfs-tools/scripts/panic/plymouth
-
 	# Adding other debian specific files
 	install -D -m 0644 debian/local/debian-logo.png debian/plymouth/usr/share/plymouth/debian-logo.png
 	install -D -m 0755 debian/local/plymouth-update-initrd debian/plymouth/usr/lib/$(DEB_HOST_MULTIARCH)/plymouth/plymouth-update-initrd
@@ -69,6 +62,16 @@ override_dh_install:
 	# Adding apport file (from Ubuntu)
 	mkdir -p debian/plymouth/usr/share/apport/package-hooks
 	install -m 644 debian/source_plymouth.apport debian/plymouth/usr/share/apport/package-hooks/source_plymouth.py
+
+# Disable dh_installinitramfs as we are managing this ourself
+override_dh_installinitramfs:
+	# Adding initramfs-tools integration
+	install -D -m 0755 debian/local/plymouth.hook debian/plymouth/usr/share/initramfs-tools/hooks/plymouth
+	sed -i -e 's|@DEB_HOST_MULTIARCH@|$(DEB_HOST_MULTIARCH)|g' debian/plymouth/usr/share/initramfs-tools/hooks/plymouth
+	install -D -m 0755 debian/local/plymouth.init-premount debian/plymouth/usr/share/initramfs-tools/scripts/init-premount/plymouth
+	install -D -m 0755 debian/local/plymouth.init-bottom debian/plymouth/usr/share/initramfs-tools/scripts/init-bottom/plymouth
+	install -D -m 0755 debian/local/plymouth.panic debian/plymouth/usr/share/initramfs-tools/scripts/panic/plymouth
+
 
 override_dh_installsystemd:
 	dh_installsystemd --no-start --no-restart-after-upgrade
