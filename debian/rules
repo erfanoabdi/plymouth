@@ -9,15 +9,7 @@ export DEB_LDFLAGS_MAINT_APPEND=-Wl,-z,defs -Wl,-O1 -Wl,--as-needed
 %:
 	dh ${@}
 
-override_dh_auto_clean:
-	dh_auto_clean
-
-	rm -f build-tools/config.guess build-tools/config.sub
-
 override_dh_auto_configure:
-	cp -f /usr/share/misc/config.guess build-tools
-	cp -f /usr/share/misc/config.sub build-tools
-
 	dh_auto_configure -- \
 		SYSTEMD_ASK_PASSWORD_AGENT=/bin/systemd-tty-ask-password-agent \
 		--disable-silent-rules \
