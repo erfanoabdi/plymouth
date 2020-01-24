@@ -7,7 +7,7 @@ DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
 export DEB_LDFLAGS_MAINT_APPEND=-Wl,-z,defs -Wl,-O1 -Wl,--as-needed
 
 %:
-	dh ${@} --parallel --with autoreconf,systemd
+	dh ${@}
 
 override_dh_auto_clean:
 	dh_auto_clean
@@ -22,6 +22,7 @@ override_dh_auto_configure:
 		SYSTEMD_ASK_PASSWORD_AGENT=/bin/systemd-tty-ask-password-agent \
 		--disable-silent-rules \
 		--prefix=/usr \
+		--libexecdir=/usr/lib/$(DEB_HOST_MULTIARCH) \
 		--localstatedir=/var \
 		--enable-pango \
 		--enable-systemd-integration \
@@ -69,8 +70,8 @@ override_dh_install:
 	mkdir -p debian/plymouth/usr/share/apport/package-hooks
 	install -m 644 debian/source_plymouth.apport debian/plymouth/usr/share/apport/package-hooks/source_plymouth.py
 
-override_dh_systemd_start:
-	dh_systemd_start --no-start
+override_dh_installsystemd:
+	dh_installsystemd --no-start --no-restart-after-upgrade
 
 override_dh_autoreconf:
 	dh_autoreconf --as-needed

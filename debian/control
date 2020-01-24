@@ -3,8 +3,7 @@ Section: misc
 Priority: optional
 Maintainer: Laurent Bigonville <bigon@debian.org>
 Uploaders: Sjoerd Simons <sjoerd@debian.org>
-Build-Depends: debhelper (>= 9.20160709~),
-               dh-autoreconf,
+Build-Depends: debhelper-compat (= 12),
                docbook-xsl,
                libdrm-dev,
                libgtk-3-dev (>= 3.14.0),
