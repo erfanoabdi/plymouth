@@ -30,7 +30,7 @@ Depends: init-system-helpers (>= 1.18),
          ${misc:Depends},
          ${shlibs:Depends}
 Conflicts: console-common
-Breaks: plymouth-drm (<< 0.9.0-6~), plymouth-themes (<< 0.9.0-8~)
+Breaks: plymouth-drm (<< 0.9.0-6~), plymouth-themes (<< 0.9.0-8~), mawk (<< 1.3.4)
 Replaces: plymouth-drm (<< 0.9.0-6~), plymouth-themes (<< 0.9.0-8~)
 Suggests: desktop-base, plymouth-themes
 Description: boot animation, logger and I/O multiplexer
