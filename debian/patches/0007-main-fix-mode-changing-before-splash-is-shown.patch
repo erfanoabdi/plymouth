@@ -1,0 +1,53 @@
+From: Laurent Bigonville <bigon@bigon.be>
+Date: Tue, 7 Apr 2020 09:22:02 -0400
+Subject: main: fix mode changing before splash is shown
+
+At the moment switching modes affects two aspects of how plymouth
+runs.
+
+1) What log file is opened (i.e., boot.log or no log file at all)
+2) What type of splash gets shown (the details of which are relegated
+   to the individual splash plugins)
+
+The mode change handler has a check in place to avoid changing the
+type of splash getting shown in the event no splash is supposed to
+be shown yet.  This check just makes the function return without
+doing anything.
+
+Unfortunately, the check is placed at the top of the function, so
+it runs before the log file is changed.
+
+This commit moves the check lower down, so the log file gets properly
+updated when the mode is changed.
+---
+ src/main.c | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/src/main.c b/src/main.c
+index 3d370d3..c6f7cf2 100644
+--- a/src/main.c
++++ b/src/main.c
+@@ -223,11 +223,6 @@ on_change_mode (state_t    *state,
+ {
+         ply_boot_splash_mode_t splash_mode;
+ 
+-        if (state->boot_splash == NULL) {
+-                ply_trace ("no splash set");
+-                return;
+-        }
+-
+         ply_trace ("updating mode to '%s'", mode);
+         if (strcmp (mode, "boot-up") == 0)
+                 state->mode = PLY_MODE_BOOT;
+@@ -242,6 +237,11 @@ on_change_mode (state_t    *state,
+                 prepare_logging (state);
+         }
+ 
++        if (state->boot_splash == NULL) {
++                ply_trace ("no splash set");
++                return;
++        }
++
+         splash_mode = get_splash_mode_from_mode (state->mode);
+ 
+         if (!ply_boot_splash_show (state->boot_splash, splash_mode)) {
