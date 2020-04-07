@@ -1,9 +1,12 @@
-plymouth (0.9.4-3) UNRELEASED; urgency=medium
+plymouth (0.9.4-3) unstable; urgency=medium
 
   * Drop debian/patches/0001-awk.patch and add a break against mawk (<< 1.3.4),
     the awk script has been tested gainst mawk (>= 1.3.4) and gawk
+  * Add RemainAfterExit=yes to plymouth's systemd service files, cherry-picked
+    patch from upstream
+  * Properly close the boot.log file when changing mode (Closes: #943424)
 
- -- Laurent Bigonville <bigon@debian.org>  Wed, 29 Jan 2020 02:15:08 +0100
+ -- Laurent Bigonville <bigon@debian.org>  Tue, 07 Apr 2020 17:06:13 +0200
 
 plymouth (0.9.4-2) unstable; urgency=medium
 
