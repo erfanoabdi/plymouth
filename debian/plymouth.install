@@ -11,6 +11,7 @@ usr/lib/*/plymouth/tribar.so
 usr/libexec/plymouth/*-initrd
 usr/sbin
 usr/sbin
+usr/share/locale
 usr/share/man/man1/plymouth-set-default-theme.1
 usr/share/man/man1/plymouth.1
 usr/share/man/man8/plymouth.8
