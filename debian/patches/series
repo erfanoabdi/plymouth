@@ -2,6 +2,3 @@
 0005-cmdline.patch
 0008-show-delay.patch
 drop-systemd-vconsole-setup-service.patch
-0005-Add-RemainAfterExit-yes-to-plymouth-s-systemd-servic.patch
-0006-main-switch-log-file-when-switching-mode.patch
-0007-main-fix-mode-changing-before-splash-is-shown.patch

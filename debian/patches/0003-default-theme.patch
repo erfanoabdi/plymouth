@@ -16,5 +16,5 @@ Description: Ship configuration file with default theme set (Closes: #594999).
  [Daemon]
 -Theme=spinner
 +Theme=futureprototype
- ShowDelay=5
- DeviceTimeout=5
+ ShowDelay=0
+ DeviceTimeout=8

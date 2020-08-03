@@ -8,12 +8,3 @@ Description: Setting no delay for fast booting machines (Closes: #752746).
  #[Daemon]
  #Theme=futureprototype
 +#ShowDelay=0
---- a/src/plymouthd.defaults
-+++ b/src/plymouthd.defaults
-@@ -2,5 +2,5 @@
- # upgrades.
- [Daemon]
- Theme=futureprototype
--ShowDelay=5
-+ShowDelay=0
- DeviceTimeout=5

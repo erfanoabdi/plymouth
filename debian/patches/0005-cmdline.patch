@@ -4,7 +4,7 @@ Description:
 
 --- a/systemd-units/plymouth-halt.service.in
 +++ b/systemd-units/plymouth-halt.service.in
-@@ -4,7 +4,8 @@ After=getty@tty1.service display-manager
+@@ -4,6 +4,7 @@ After=getty@tty1.service display-manager
  Before=systemd-halt.service
  DefaultDependencies=no
  ConditionKernelCommandLine=!plymouth.enable=0
@@ -12,10 +12,9 @@ Description:
  ConditionVirtualization=!container
  
  [Service]
- ExecStart=@PLYMOUTH_DAEMON_DIR@/plymouthd --mode=shutdown --attach-to-session
 --- a/systemd-units/plymouth-kexec.service.in
 +++ b/systemd-units/plymouth-kexec.service.in
-@@ -4,7 +4,8 @@ After=getty@tty1.service display-manager
+@@ -4,6 +4,7 @@ After=getty@tty1.service display-manager
  Before=systemd-kexec.service
  DefaultDependencies=no
  ConditionKernelCommandLine=!plymouth.enable=0
@@ -23,10 +22,9 @@ Description:
  ConditionVirtualization=!container
  
  [Service]
- ExecStart=@PLYMOUTH_DAEMON_DIR@/plymouthd --mode=shutdown --attach-to-session
 --- a/systemd-units/plymouth-poweroff.service.in
 +++ b/systemd-units/plymouth-poweroff.service.in
-@@ -4,7 +4,8 @@ After=getty@tty1.service display-manager
+@@ -4,6 +4,7 @@ After=getty@tty1.service display-manager
  Before=systemd-poweroff.service
  DefaultDependencies=no
  ConditionKernelCommandLine=!plymouth.enable=0
@@ -34,10 +32,9 @@ Description:
  ConditionVirtualization=!container
  
  [Service]
- ExecStart=@PLYMOUTH_DAEMON_DIR@/plymouthd --mode=shutdown --attach-to-session
 --- a/systemd-units/plymouth-reboot.service.in
 +++ b/systemd-units/plymouth-reboot.service.in
-@@ -4,7 +4,8 @@ After=getty@tty1.service display-manager
+@@ -4,6 +4,7 @@ After=getty@tty1.service display-manager
  Before=systemd-reboot.service
  DefaultDependencies=no
  ConditionKernelCommandLine=!plymouth.enable=0
@@ -45,10 +42,9 @@ Description:
  ConditionVirtualization=!container
  
  [Service]
- ExecStart=@PLYMOUTH_DAEMON_DIR@/plymouthd --mode=shutdown --attach-to-session
 --- a/systemd-units/plymouth-start.service.in
 +++ b/systemd-units/plymouth-start.service.in
-@@ -5,7 +5,8 @@ Wants=systemd-ask-password-plymouth.path
+@@ -5,6 +5,7 @@ Wants=systemd-ask-password-plymouth.path
  After=systemd-vconsole-setup.service systemd-udev-trigger.service systemd-udevd.service
  Before=systemd-ask-password-plymouth.service
  ConditionKernelCommandLine=!plymouth.enable=0
@@ -56,7 +52,6 @@ Description:
  ConditionVirtualization=!container
  
  [Service]
- ExecStart=@PLYMOUTH_DAEMON_DIR@/plymouthd --mode=boot --pid-file=@plymouthruntimedir@/pid --attach-to-session
 --- a/systemd-units/systemd-ask-password-plymouth.path.in
 +++ b/systemd-units/systemd-ask-password-plymouth.path.in
 @@ -6,6 +6,7 @@ Conflicts=shutdown.target
@@ -65,16 +60,15 @@ Description:
  ConditionKernelCommandLine=!plymouth.enable=0
 +ConditionKernelCommandLine=!nosplash
  ConditionPathExists=/run/plymouth/pid
+ ConditionVirtualization=!container
  
- [Path]
 --- a/systemd-units/systemd-ask-password-plymouth.service.in
 +++ b/systemd-units/systemd-ask-password-plymouth.service.in
-@@ -6,7 +6,8 @@ Conflicts=shutdown.target
+@@ -6,6 +6,7 @@ Conflicts=shutdown.target
  After=plymouth-start.service
  Before=shutdown.target
  ConditionKernelCommandLine=!plymouth.enable=0
 +ConditionKernelCommandLine=!nosplash
  ConditionVirtualization=!container
- ConditionPathExists=/run/plymouth/pid
+ ConditionPathExists=@plymouthruntimedir@/pid
  
- [Service]
