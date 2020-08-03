@@ -19,7 +19,6 @@ override_dh_auto_configure:
 		--enable-systemd-integration \
 		--enable-static \
 		--enable-tracing \
-		--disable-gdm-transition \
 		--with-background-color=0x005a8a \
 		--with-logo=/usr/share/plymouth/debian-logo.png \
 		--with-release-file=/etc/os-release \
