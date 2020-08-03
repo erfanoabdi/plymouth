@@ -299,7 +299,8 @@ long
 ply_label_get_width (ply_label_t *label)
 {
         if (label->plugin_interface == NULL)
-                return 0;
+                if (!ply_label_load_plugin (label))
+                        return 0;
 
         return label->plugin_interface->get_width_of_control (label->control);
 }
@@ -308,7 +309,8 @@ long
 ply_label_get_height (ply_label_t *label)
 {
         if (label->plugin_interface == NULL)
-                return 0;
+                if (!ply_label_load_plugin (label))
+                        return 0;
 
         return label->plugin_interface->get_height_of_control (label->control);
 }

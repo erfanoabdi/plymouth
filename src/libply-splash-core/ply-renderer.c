@@ -297,6 +297,15 @@ ply_renderer_close (ply_renderer_t *renderer)
         renderer->is_active = false;
 }
 
+bool
+ply_renderer_handle_change_event (ply_renderer_t *renderer)
+{
+        if (renderer->plugin_interface->handle_change_event)
+                return renderer->plugin_interface->handle_change_event (renderer->backend);
+
+        return false;
+}
+
 void
 ply_renderer_activate (ply_renderer_t *renderer)
 {
@@ -408,6 +417,39 @@ ply_renderer_close_input_source (ply_renderer_t              *renderer,
         renderer->plugin_interface->close_input_source (renderer->backend,
                                                         input_source);
         renderer->input_source_is_open = false;
+}
+
+bool
+ply_renderer_get_panel_properties (ply_renderer_t              *renderer,
+                                   int                         *width,
+                                   int                         *height,
+                                   ply_pixel_buffer_rotation_t *rotation,
+                                   int                         *scale)
+{
+        if (!renderer->plugin_interface->get_panel_properties)
+                return false;
+
+        return renderer->plugin_interface->get_panel_properties (renderer->backend,
+                                                                 width, height,
+                                                                 rotation, scale);
+}
+
+bool
+ply_renderer_get_capslock_state (ply_renderer_t *renderer)
+{
+        if (!renderer->plugin_interface->get_capslock_state)
+                return false;
+
+        return renderer->plugin_interface->get_capslock_state (renderer->backend);
+}
+
+const char *
+ply_renderer_get_keymap (ply_renderer_t *renderer)
+{
+        if (!renderer->plugin_interface->get_keymap)
+                return NULL;
+
+        return renderer->plugin_interface->get_keymap (renderer->backend);
 }
 
 /* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

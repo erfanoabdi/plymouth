@@ -9,9 +9,19 @@ Image.Rotate = fun (angle)
   return Image.Adopt (this._Rotate(angle));
 };
 
+Image.Crop = fun (x, y, width, height)
+{
+  return Image.Adopt (this._Crop(x, y, width, height));
+};
+
 Image.Scale = fun (width, height)
 {
   return Image.Adopt (this._Scale(width, height));
+};
+
+Image.Tile = fun (width, height)
+{
+  return Image.Adopt (this._Tile(width, height));
 };
 
 Image.Text = fun (text, red, green, blue, alpha, font, align)

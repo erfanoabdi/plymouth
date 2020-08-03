@@ -23,6 +23,7 @@
 #define PLY_ARRAY_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 typedef struct _ply_array ply_array_t;
 typedef enum _ply_array_element_type ply_array_element_type_t;
@@ -46,6 +47,8 @@ uint32_t const *ply_array_get_uint32_elements (ply_array_t *array);
 void **ply_array_steal_pointer_elements (ply_array_t *array);
 
 uint32_t *ply_array_steal_uint32_elements (ply_array_t *array);
+bool ply_array_contains_uint32_element (ply_array_t   *array,
+                                        const uint32_t element);
 #endif
 
 #endif /* PLY_ARRAY_H */

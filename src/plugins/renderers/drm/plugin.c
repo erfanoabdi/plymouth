@@ -1,6 +1,6 @@
 /* plugin.c - drm backend renderer plugin
  *
- * Copyright (C) 2006-2009 Red Hat, Inc.
+ * Copyright (C) 2006-2019 Red Hat, Inc.
  *               2008 Charlie Brej <cbrej@cs.man.ac.uk>
  *
  * This program is free software; you can redistribute it and/or modify
@@ -22,6 +22,7 @@
  *             Kristian Høgsberg <krh@redhat.com>
  *             Peter Jones <pjones@redhat.com>
  *             Ray Strode <rstrode@redhat.com>
+ *             Hans de Goede <hdegoede@redhat.com>
  */
 #include "config.h"
 
@@ -77,13 +78,13 @@ struct _ply_renderer_head
         unsigned long           row_stride;
 
         ply_array_t            *connector_ids;
-        drmModeConnector       *connector0;
-        int                     connector0_mode_index;
+        drmModeModeInfo         connector0_mode;
 
         uint32_t                controller_id;
-        uint32_t                encoder_id;
         uint32_t                console_buffer_id;
         uint32_t                scan_out_buffer_id;
+        bool                    scan_out_buffer_needs_reset;
+        bool                    uses_hw_rotation;
 
         int                     gamma_size;
         uint16_t                *gamma;
@@ -116,6 +117,21 @@ typedef struct
         uint32_t added_fb : 1;
 } ply_renderer_buffer_t;
 
+typedef struct
+{
+        drmModeModeInfo mode;
+        uint32_t connector_id;
+        uint32_t connector_type;
+        uint32_t controller_id;
+        uint32_t possible_controllers;
+        int device_scale;
+        int link_status;
+        ply_pixel_buffer_rotation_t rotation;
+        bool tiled;
+        bool connected;
+        bool uses_hw_rotation;
+} ply_output_t;
+
 struct _ply_renderer_backend
 {
         ply_event_loop_t                *loop;
@@ -127,9 +143,13 @@ struct _ply_renderer_backend
 
         ply_renderer_input_source_t      input_source;
         ply_list_t                      *heads;
-        ply_hashtable_t                 *heads_by_connector_id;
+        ply_hashtable_t                 *heads_by_controller_id;
 
         ply_hashtable_t                 *output_buffers;
+
+        ply_output_t                    *outputs;
+        int                              outputs_len;
+        int                              connected_count;
 
         int32_t                          dither_red;
         int32_t                          dither_green;
@@ -138,31 +158,22 @@ struct _ply_renderer_backend
         uint32_t                         is_active : 1;
         uint32_t        requires_explicit_flushing : 1;
         uint32_t                use_preferred_mode : 1;
+
+        int                              panel_width;
+        int                              panel_height;
+        ply_pixel_buffer_rotation_t      panel_rotation;
+        int                              panel_scale;
 };
 
 ply_renderer_plugin_interface_t *ply_renderer_backend_get_interface (void);
-static void ply_renderer_head_redraw (ply_renderer_backend_t *backend,
-                                      ply_renderer_head_t    *head);
 static bool open_input_source (ply_renderer_backend_t      *backend,
                                ply_renderer_input_source_t *input_source);
-static bool reset_scan_out_buffer_if_needed (ply_renderer_backend_t *backend,
-                                             ply_renderer_head_t    *head);
 static void flush_head (ply_renderer_backend_t *backend,
                         ply_renderer_head_t    *head);
 
-static bool efi_enabled (void)
-{
-        return ply_directory_exists ("/sys/firmware/efi/efivars");
-}
-
 /* A small helper to determine if we should try to keep the current mode
- * or pick the best mode ourselves, we keep the current mode if:
- * 1. The user specified a specific mode using video= on the commandline
- * 2. The code to pick the best mode was added because with flicker-free boot
- *    we can no longer rely on the kernel's fbcon code setting things up.
- *    We should be able to do a better job then fbcon regardless, but for
- *    now lets only use the new code on flicker-free systems until it is
- *    more mature, this means only using it on UEFI systems.
+ * or pick the best mode ourselves, we keep the current mode only if the
+ * user specified a specific mode using video= on the commandline.
  */
 static bool
 should_use_preferred_mode (void)
@@ -170,9 +181,6 @@ should_use_preferred_mode (void)
         bool use_preferred_mode = true;
 
         if (ply_kernel_command_line_get_string_after_prefix ("video="))
-                use_preferred_mode = false;
-
-        if (!efi_enabled ())
                 use_preferred_mode = false;
 
         ply_trace ("should_use_preferred_mode: %d", use_preferred_mode);
@@ -407,159 +415,12 @@ destroy_output_buffer (ply_renderer_backend_t *backend,
         ply_renderer_buffer_free (backend, buffer);
 }
 
-static ply_pixel_buffer_rotation_t
-connector_orientation_prop_to_rotation (drmModePropertyPtr prop,
-                                        int orientation)
-{
-        const char *name = prop->enums[orientation].name;
-
-        if (strcmp (name, "Upside Down") == 0)
-                return PLY_PIXEL_BUFFER_ROTATE_UPSIDE_DOWN;
-
-        if (strcmp (name, "Left Side Up") == 0) {
-                /* Left side up, rotate counter clockwise to correct */
-                return PLY_PIXEL_BUFFER_ROTATE_COUNTER_CLOCKWISE;
-        }
-
-        if (strcmp (name, "Right Side Up") == 0) {
-                /* Left side up, rotate clockwise to correct */
-                return PLY_PIXEL_BUFFER_ROTATE_CLOCKWISE;
-        }
-
-        return PLY_PIXEL_BUFFER_ROTATE_UPRIGHT;
-}
-
-static void
-ply_renderer_connector_get_rotation_and_tiled (ply_renderer_backend_t      *backend,
-                                               drmModeConnector            *connector,
-                                               ply_pixel_buffer_rotation_t *rotation,
-                                               bool                        *tiled)
-{
-        drmModePropertyPtr prop;
-        int i;
-
-        *rotation = PLY_PIXEL_BUFFER_ROTATE_UPRIGHT;
-        *tiled = false;
-
-        for (i = 0; i < connector->count_props; i++) {
-                prop = drmModeGetProperty (backend->device_fd, connector->props[i]);
-                if (!prop)
-                        continue;
-
-                if ((prop->flags & DRM_MODE_PROP_ENUM) &&
-                    strcmp (prop->name, "panel orientation") == 0)
-                        *rotation = connector_orientation_prop_to_rotation (prop, connector->prop_values[i]);
-
-                if ((prop->flags & DRM_MODE_PROP_BLOB) &&
-                    strcmp (prop->name, "TILE") == 0)
-                        *tiled = true;
-
-                drmModeFreeProperty (prop);
-        }
-}
-
 static bool
-ply_renderer_head_add_connector (ply_renderer_head_t *head,
-                                 drmModeConnector    *connector,
-                                 int                  connector_mode_index)
-{
-        drmModeModeInfo *mode;
-
-        mode = &connector->modes[connector_mode_index];
-
-        if (mode->hdisplay != head->area.width || mode->vdisplay != head->area.height) {
-                ply_trace ("Tried to add connector with resolution %dx%d to %dx%d head",
-                           (int) mode->hdisplay, (int) mode->vdisplay,
-                           (int) head->area.width, (int) head->area.height);
-                return false;
-        } else {
-                ply_trace ("Adding connector with id %d to %dx%d head",
-                           (int) connector->connector_id,
-                           (int) head->area.width, (int) head->area.height);
-        }
-
-        ply_array_add_uint32_element (head->connector_ids, connector->connector_id);
-
-        return true;
-}
-
-static ply_renderer_head_t *
-ply_renderer_head_new (ply_renderer_backend_t     *backend,
-                       drmModeConnector           *connector,
-                       int                         connector_mode_index,
-                       uint32_t                    encoder_id,
-                       uint32_t                    controller_id,
-                       uint32_t                    console_buffer_id,
-                       int                         gamma_size,
-                       ply_pixel_buffer_rotation_t rotation)
-{
-        ply_renderer_head_t *head;
-        drmModeModeInfo *mode;
-        int i, step;
-
-        head = calloc (1, sizeof(ply_renderer_head_t));
-
-        head->backend = backend;
-        head->encoder_id = encoder_id;
-        head->connector_ids = ply_array_new (PLY_ARRAY_ELEMENT_TYPE_UINT32);
-        head->controller_id = controller_id;
-        head->console_buffer_id = console_buffer_id;
-
-        assert (connector_mode_index < connector->count_modes);
-        mode = &connector->modes[connector_mode_index];
-
-        head->connector0 = connector;
-        head->connector0_mode_index = connector_mode_index;
-
-        head->area.x = 0;
-        head->area.y = 0;
-        head->area.width = mode->hdisplay;
-        head->area.height = mode->vdisplay;
-
-        if (gamma_size) {
-                head->gamma_size = gamma_size;
-                head->gamma = malloc (gamma_size * 3 * sizeof(uint16_t));
-
-                step = UINT16_MAX / (gamma_size - 1);
-                for (i = 0; i < gamma_size; i++) {
-                        head->gamma[0 * gamma_size + i] = i * step; /* red */
-                        head->gamma[1 * gamma_size + i] = i * step; /* green */
-                        head->gamma[2 * gamma_size + i] = i * step; /* blue */
-                }
-        }
-
-        ply_renderer_head_add_connector (head, connector, connector_mode_index);
-        assert (ply_array_get_size (head->connector_ids) > 0);
-
-        head->pixel_buffer = ply_pixel_buffer_new_with_device_rotation (head->area.width, head->area.height, rotation);
-        ply_pixel_buffer_set_device_scale (head->pixel_buffer,
-                                           ply_get_device_scale (head->area.width,
-                                                                 head->area.height,
-                                                                 connector->mmWidth,
-                                                                 connector->mmHeight));
-
-        ply_trace ("Creating %ldx%ld renderer head", head->area.width, head->area.height);
-        ply_pixel_buffer_fill_with_color (head->pixel_buffer, NULL,
-                                          0.0, 0.0, 0.0, 1.0);
-
-        return head;
-}
-
-static void
-ply_renderer_head_free (ply_renderer_head_t *head)
-{
-        ply_trace ("freeing %ldx%ld renderer head", head->area.width, head->area.height);
-        ply_pixel_buffer_free (head->pixel_buffer);
-
-        drmModeFreeConnector (head->connector0);
-        ply_array_free (head->connector_ids);
-        free (head->gamma);
-        free (head);
-}
-
-static void
-ply_renderer_head_clear_plane_rotation (ply_renderer_backend_t *backend,
-                                        ply_renderer_head_t    *head)
+get_primary_plane_rotation (ply_renderer_backend_t *backend,
+                            uint32_t               controller_id,
+                            int                   *primary_id_ret,
+                            int                   *rotation_prop_id_ret,
+                            uint64_t              *rotation_ret)
 {
         drmModeObjectPropertiesPtr plane_props;
         drmModePlaneResPtr plane_resources;
@@ -571,13 +432,16 @@ ply_renderer_head_clear_plane_rotation (ply_renderer_backend_t *backend,
         int primary_id = -1;
         int err;
 
+        if (!controller_id)
+                return false;
+
         err = drmSetClientCap (backend->device_fd, DRM_CLIENT_CAP_UNIVERSAL_PLANES, 1);
         if (err)
-                return;
+                return false;
 
         plane_resources = drmModeGetPlaneResources (backend->device_fd);
         if (!plane_resources)
-                return;
+                return false;
 
         for (i = 0; i < plane_resources->count_planes; i++) {
                 plane = drmModeGetPlane (backend->device_fd,
@@ -585,7 +449,7 @@ ply_renderer_head_clear_plane_rotation (ply_renderer_backend_t *backend,
                 if (!plane)
                         continue;
 
-                if (plane->crtc_id != head->controller_id) {
+                if (plane->crtc_id != controller_id) {
                         drmModeFreePlane (plane);
                         continue;
                 }
@@ -623,7 +487,205 @@ ply_renderer_head_clear_plane_rotation (ply_renderer_backend_t *backend,
                 rotation_prop_id = -1;
         }
 
-        if (primary_id != -1 && rotation_prop_id != -1 && rotation != DRM_MODE_ROTATE_0) {
+        drmModeFreePlaneResources (plane_resources);
+
+        if (primary_id != -1 && rotation_prop_id != -1) {
+                *primary_id_ret = primary_id;
+                *rotation_prop_id_ret = rotation_prop_id;
+                *rotation_ret = rotation;
+                return true;
+        }
+
+        return false;
+}
+
+static ply_pixel_buffer_rotation_t
+connector_orientation_prop_to_rotation (drmModePropertyPtr prop,
+                                        int orientation)
+{
+        const char *name = prop->enums[orientation].name;
+
+        if (strcmp (name, "Upside Down") == 0)
+                return PLY_PIXEL_BUFFER_ROTATE_UPSIDE_DOWN;
+
+        if (strcmp (name, "Left Side Up") == 0) {
+                /* Left side up, rotate counter clockwise to correct */
+                return PLY_PIXEL_BUFFER_ROTATE_COUNTER_CLOCKWISE;
+        }
+
+        if (strcmp (name, "Right Side Up") == 0) {
+                /* Left side up, rotate clockwise to correct */
+                return PLY_PIXEL_BUFFER_ROTATE_CLOCKWISE;
+        }
+
+        return PLY_PIXEL_BUFFER_ROTATE_UPRIGHT;
+}
+
+static void
+ply_renderer_connector_get_rotation_and_tiled (ply_renderer_backend_t      *backend,
+                                               drmModeConnector            *connector,
+                                               ply_output_t                *output)
+{
+        int i, primary_id, rotation_prop_id;
+        drmModePropertyPtr prop;
+        uint64_t rotation;
+
+        output->rotation = PLY_PIXEL_BUFFER_ROTATE_UPRIGHT;
+        output->tiled = false;
+
+        for (i = 0; i < connector->count_props; i++) {
+                prop = drmModeGetProperty (backend->device_fd, connector->props[i]);
+                if (!prop)
+                        continue;
+
+                if ((prop->flags & DRM_MODE_PROP_ENUM) &&
+                    strcmp (prop->name, "panel orientation") == 0)
+                        output->rotation = connector_orientation_prop_to_rotation (prop, connector->prop_values[i]);
+
+                if ((prop->flags & DRM_MODE_PROP_BLOB) &&
+                    strcmp (prop->name, "TILE") == 0 &&
+                    connector->prop_values[i] != 0)
+                        output->tiled = true;
+
+                if ((prop->flags & DRM_MODE_PROP_ENUM) &&
+                    strcmp (prop->name, "link-status") == 0) {
+                        output->link_status = connector->prop_values[i];
+                        ply_trace ("link-status %d", output->link_status);
+                }
+
+                drmModeFreeProperty (prop);
+        }
+
+        /* If the firmware setup the plane to use hw 180° rotation, then we keep
+         * the hw rotation. This avoids a flicker and avoids the splash turning
+         * upside-down when mutter turns hw-rotation back on and then fades from
+         * the splash to the login screen.
+         */
+        if (output->rotation == PLY_PIXEL_BUFFER_ROTATE_UPSIDE_DOWN &&
+            get_primary_plane_rotation (backend, output->controller_id,
+                                        &primary_id, &rotation_prop_id,
+                                        &rotation) &&
+            rotation == DRM_MODE_ROTATE_180) {
+                ply_trace("Keeping hw 180° rotation");
+                output->rotation = PLY_PIXEL_BUFFER_ROTATE_UPRIGHT;
+                output->uses_hw_rotation = true;
+        }
+}
+
+static bool
+ply_renderer_head_add_connector (ply_renderer_head_t *head,
+                                 ply_output_t        *output)
+{
+        if (output->link_status == DRM_MODE_LINK_STATUS_BAD)
+                head->scan_out_buffer_needs_reset = true;
+
+        if (output->mode.hdisplay != head->area.width || output->mode.vdisplay != head->area.height) {
+                ply_trace ("Tried to add connector with resolution %dx%d to %dx%d head",
+                           (int) output->mode.hdisplay, (int) output->mode.vdisplay,
+                           (int) head->area.width, (int) head->area.height);
+                return false;
+        }
+
+        if (ply_array_contains_uint32_element (head->connector_ids, output->connector_id)) {
+                ply_trace ("Head already contains connector with id %d", output->connector_id);
+                return false;
+        }
+
+        ply_trace ("Adding connector with id %d to %dx%d head",
+                   (int) output->connector_id, (int) head->area.width, (int) head->area.height);
+        ply_array_add_uint32_element (head->connector_ids, output->connector_id);
+
+        return true;
+}
+
+static ply_renderer_head_t *
+ply_renderer_head_new (ply_renderer_backend_t     *backend,
+                       ply_output_t               *output,
+                       uint32_t                    console_buffer_id,
+                       int                         gamma_size)
+{
+        ply_renderer_head_t *head;
+        int i, step;
+
+        head = calloc (1, sizeof(ply_renderer_head_t));
+
+        head->backend = backend;
+        head->connector_ids = ply_array_new (PLY_ARRAY_ELEMENT_TYPE_UINT32);
+        head->controller_id = output->controller_id;
+        head->console_buffer_id = console_buffer_id;
+        head->connector0_mode = output->mode;
+        head->uses_hw_rotation = output->uses_hw_rotation;
+
+        head->area.x = 0;
+        head->area.y = 0;
+        head->area.width = output->mode.hdisplay;
+        head->area.height = output->mode.vdisplay;
+
+        if (gamma_size) {
+                head->gamma_size = gamma_size;
+                head->gamma = malloc (gamma_size * 3 * sizeof(uint16_t));
+
+                step = UINT16_MAX / (gamma_size - 1);
+                for (i = 0; i < gamma_size; i++) {
+                        head->gamma[0 * gamma_size + i] = i * step; /* red */
+                        head->gamma[1 * gamma_size + i] = i * step; /* green */
+                        head->gamma[2 * gamma_size + i] = i * step; /* blue */
+                }
+        }
+
+        ply_renderer_head_add_connector (head, output);
+        assert (ply_array_get_size (head->connector_ids) > 0);
+
+        head->pixel_buffer = ply_pixel_buffer_new_with_device_rotation (head->area.width, head->area.height, output->rotation);
+        ply_pixel_buffer_set_device_scale (head->pixel_buffer, output->device_scale);
+
+        ply_trace ("Creating %ldx%ld renderer head", head->area.width, head->area.height);
+        ply_pixel_buffer_fill_with_color (head->pixel_buffer, NULL,
+                                          0.0, 0.0, 0.0, 1.0);
+        /* Delay flush till first actual draw */
+        ply_region_clear (ply_pixel_buffer_get_updated_areas (head->pixel_buffer));
+
+        if (output->connector_type == DRM_MODE_CONNECTOR_LVDS ||
+            output->connector_type == DRM_MODE_CONNECTOR_eDP ||
+            output->connector_type == DRM_MODE_CONNECTOR_DSI) {
+                backend->panel_width = output->mode.hdisplay;
+                backend->panel_height = output->mode.vdisplay;
+                backend->panel_rotation = output->rotation;
+                backend->panel_scale = output->device_scale;
+        }
+
+        ply_list_append_data (backend->heads, head);
+        ply_hashtable_insert (backend->heads_by_controller_id,
+                              (void *) (intptr_t) output->controller_id,
+                              head);
+        return head;
+}
+
+static void
+ply_renderer_head_free (ply_renderer_head_t *head)
+{
+        ply_trace ("freeing %ldx%ld renderer head", head->area.width, head->area.height);
+        ply_pixel_buffer_free (head->pixel_buffer);
+
+        ply_array_free (head->connector_ids);
+        free (head->gamma);
+        free (head);
+}
+
+static void
+ply_renderer_head_clear_plane_rotation (ply_renderer_backend_t *backend,
+                                        ply_renderer_head_t    *head)
+{
+        int primary_id, rotation_prop_id, err;
+        uint64_t rotation;
+
+        if (head->uses_hw_rotation)
+                return;
+
+        if (get_primary_plane_rotation (backend, head->controller_id,
+                                        &primary_id, &rotation_prop_id,
+                                        &rotation) &&
+            rotation != DRM_MODE_ROTATE_0) {
                 err = drmModeObjectSetProperty (backend->device_fd,
                                                 primary_id,
                                                 DRM_MODE_OBJECT_PLANE,
@@ -632,8 +694,6 @@ ply_renderer_head_clear_plane_rotation (ply_renderer_backend_t *backend,
                 ply_trace ("Cleared rotation on primary plane %d result %d",
                            primary_id, err);
         }
-
-        drmModeFreePlaneResources (plane_resources);
 }
 
 static bool
@@ -641,14 +701,12 @@ ply_renderer_head_set_scan_out_buffer (ply_renderer_backend_t *backend,
                                        ply_renderer_head_t    *head,
                                        uint32_t                buffer_id)
 {
-        drmModeModeInfo *mode;
+        drmModeModeInfo *mode = &head->connector0_mode;
         uint32_t *connector_ids;
         int number_of_connectors;
 
         connector_ids = (uint32_t *) ply_array_get_uint32_elements (head->connector_ids);
         number_of_connectors = ply_array_get_size (head->connector_ids);
-
-        mode = &head->connector0->modes[head->connector0_mode_index];
 
         ply_trace ("Setting scan out buffer of %ldx%ld head to our buffer",
                    head->area.width, head->area.height);
@@ -703,11 +761,7 @@ ply_renderer_head_map (ply_renderer_backend_t *backend,
                 return false;
         }
 
-        /* FIXME: Maybe we should blit the fbcon contents instead of the (blank)
-         * shadow buffer?
-         */
-        ply_renderer_head_redraw (backend, head);
-
+        head->scan_out_buffer_needs_reset = true;
         return true;
 }
 
@@ -720,6 +774,47 @@ ply_renderer_head_unmap (ply_renderer_backend_t *backend,
 
         destroy_output_buffer (backend, head->scan_out_buffer_id);
         head->scan_out_buffer_id = 0;
+}
+
+static void
+ply_renderer_head_remove (ply_renderer_backend_t *backend,
+                          ply_renderer_head_t    *head)
+{
+        if (head->scan_out_buffer_id)
+                ply_renderer_head_unmap (backend, head);
+
+        ply_hashtable_remove (backend->heads_by_controller_id,
+                              (void *) (intptr_t) head->controller_id);
+        ply_list_remove_data (backend->heads, head);
+        ply_renderer_head_free (head);
+}
+
+static void
+ply_renderer_head_remove_connector (ply_renderer_backend_t *backend,
+                                    ply_renderer_head_t    *head,
+                                    uint32_t               connector_id)
+{
+        int i, size = ply_array_get_size (head->connector_ids);
+        uint32_t *connector_ids;
+
+        if (!ply_array_contains_uint32_element (head->connector_ids, connector_id)) {
+                ply_trace ("Head does not contain connector %u, cannot remove", connector_id);
+                return;
+        }
+
+        if (size == 1) {
+                ply_renderer_head_remove (backend, head);
+                return;
+        }
+
+        /* Empty the array and re-add all connectors except the one being removed */
+        connector_ids = ply_array_steal_uint32_elements (head->connector_ids);
+        for (i = 0; i < size; i++) {
+                if (connector_ids[i] != connector_id)
+                        ply_array_add_uint32_element (head->connector_ids,
+                                                      connector_ids[i]);
+        }
+        free (connector_ids);
 }
 
 static void
@@ -807,6 +902,7 @@ create_backend (const char     *device_name,
         backend->requires_explicit_flushing = true;
         backend->output_buffers = ply_hashtable_new (ply_hashtable_direct_hash,
                                                      ply_hashtable_direct_compare);
+        backend->heads_by_controller_id = ply_hashtable_new (NULL, NULL);
         backend->use_preferred_mode = should_use_preferred_mode ();
 
         return backend;
@@ -826,15 +922,16 @@ destroy_backend (ply_renderer_backend_t *backend)
 
         free (backend->device_name);
         ply_hashtable_free (backend->output_buffers);
+        ply_hashtable_free (backend->heads_by_controller_id);
 
-        drmModeFreeResources (backend->resources);
-
+        free (backend->outputs);
         free (backend);
 }
 
 static void
 activate (ply_renderer_backend_t *backend)
 {
+        ply_renderer_head_t *head;
         ply_list_node_t *node;
 
         ply_trace ("taking master and scanning out");
@@ -843,24 +940,10 @@ activate (ply_renderer_backend_t *backend)
         drmSetMaster (backend->device_fd);
         node = ply_list_get_first_node (backend->heads);
         while (node != NULL) {
-                ply_list_node_t *next_node;
-                ply_renderer_head_t *head;
-
                 head = (ply_renderer_head_t *) ply_list_node_get_data (node);
-                next_node = ply_list_get_next_node (backend->heads, node);
-
-                if (head->scan_out_buffer_id != 0) {
-                        /* Flush out any pending drawing to the buffer
-                         */
-                        flush_head (backend, head);
-
-                        /* Then send the buffer to the monitor
-                         */
-                        ply_renderer_head_set_scan_out_buffer (backend, head,
-                                                               head->scan_out_buffer_id);
-                }
-
-                node = next_node;
+                /* Flush out any pending drawing to the buffer */
+                flush_head (backend, head);
+                node = ply_list_get_next_node (backend->heads, node);
         }
 }
 
@@ -970,36 +1053,17 @@ close_device (ply_renderer_backend_t *backend)
         unload_backend (backend);
 }
 
-static drmModeCrtc *
-find_controller_for_encoder (ply_renderer_backend_t *backend,
-                             drmModeEncoder         *encoder)
-{
-        drmModeCrtc *controller;
-
-        controller = NULL;
-
-        /* Monitor is already lit. We'll use the same controller.
-         */
-        if (encoder->crtc_id != 0) {
-                controller = drmModeGetCrtc (backend->device_fd, encoder->crtc_id);
-
-                if (controller != NULL) {
-                        ply_trace ("Found already lit monitor");
-                        return controller;
-                }
-        }
-
-        return NULL;
-}
-
-static drmModeEncoder *
-find_encoder_for_connector (ply_renderer_backend_t *backend,
-                            drmModeConnector       *connector)
+static void
+output_get_controller_info (ply_renderer_backend_t *backend,
+                            drmModeConnector       *connector,
+                            ply_output_t           *output)
 {
         int i;
         drmModeEncoder *encoder;
 
         assert (backend != NULL);
+
+        output->possible_controllers = 0xffffffff;
 
         for (i = 0; i < connector->count_encoders; i++) {
                 encoder = drmModeGetEncoder (backend->device_fd,
@@ -1008,13 +1072,21 @@ find_encoder_for_connector (ply_renderer_backend_t *backend,
                 if (encoder == NULL)
                         continue;
 
-                if (encoder->encoder_id == connector->encoder_id)
-                        return encoder;
+                if (encoder->encoder_id == connector->encoder_id && encoder->crtc_id) {
+                        ply_trace ("Found already lit monitor on connector %u using controller %u",
+                                   connector->connector_id, encoder->crtc_id);
+                        output->controller_id = encoder->crtc_id;
+                }
 
+                /* Like mutter and xf86-drv-modesetting only select controllers
+                 * which are supported by all the connector's encoders.
+                 */
+                output->possible_controllers &= encoder->possible_crtcs;
+                ply_trace ("connector %u encoder %u possible controllers 0x%08x/0x%08x",
+                           connector->connector_id, encoder->encoder_id,
+                           encoder->possible_crtcs, output->possible_controllers);
                 drmModeFreeEncoder (encoder);
         }
-
-        return NULL;
 }
 
 static bool
@@ -1037,10 +1109,10 @@ modes_are_equal (drmModeModeInfo *a,
                a->type == b->type;
 }
 
-static int
-find_index_of_mode (ply_renderer_backend_t *backend,
-                    drmModeConnector       *connector,
-                    drmModeModeInfo        *mode)
+static drmModeModeInfo *
+find_matching_connector_mode (ply_renderer_backend_t *backend,
+                              drmModeConnector       *connector,
+                              drmModeModeInfo        *mode)
 {
         int i;
 
@@ -1049,143 +1121,379 @@ find_index_of_mode (ply_renderer_backend_t *backend,
                         ply_trace ("Found connector mode index %d for mode %dx%d",
                                    i, mode->hdisplay, mode->vdisplay);
 
-                        return i;
+                        return &connector->modes[i];
                 }
         }
 
-        return -1;
+        return NULL;
 }
 
-static int
-get_index_of_preferred_mode (drmModeConnector *connector)
+static drmModeModeInfo *
+get_preferred_mode (drmModeConnector *connector)
 {
         int i;
 
         for (i = 0; i < connector->count_modes; i++)
                 if (connector->modes[i].type & DRM_MODE_TYPE_PREFERRED) {
-                        ply_trace ("Found preferred mode %dx%d at index %d\n",
+                        ply_trace ("Found preferred mode %dx%d at index %d",
                                    connector->modes[i].hdisplay,
                                    connector->modes[i].vdisplay, i);
-                        return i;
+                        return &connector->modes[i];
                 }
 
-        return -1;
+        return NULL;
 }
 
-static int
-get_index_of_active_mode (ply_renderer_backend_t *backend,
-                          drmModeCrtc            *controller,
-                          drmModeConnector       *connector)
+static drmModeModeInfo *
+get_active_mode (ply_renderer_backend_t *backend,
+                 drmModeConnector       *connector,
+                 ply_output_t           *output)
 {
-        if (!controller->mode_valid) {
+        drmModeCrtc *controller;
+        drmModeModeInfo *mode;
+
+        controller = drmModeGetCrtc (backend->device_fd, output->controller_id);
+        if (!controller || !controller->mode_valid) {
                 ply_trace ("No valid mode currently active on monitor");
-                return -1;
+                return NULL;
         }
 
         ply_trace ("Looking for connector mode index of active mode %dx%d",
                    controller->mode.hdisplay, controller->mode.vdisplay);
 
-        return find_index_of_mode (backend, connector, &controller->mode);
+        mode = find_matching_connector_mode (backend, connector, &controller->mode);
+
+        drmModeFreeCrtc (controller);
+
+        return mode;
 }
 
-static bool
-create_heads_for_active_connectors (ply_renderer_backend_t *backend)
+static void
+get_output_info (ply_renderer_backend_t *backend,
+                 uint32_t                connector_id,
+                 ply_output_t           *output)
 {
-        int i;
+        drmModeModeInfo *mode = NULL;
         drmModeConnector *connector;
-        ply_hashtable_t *heads_by_controller_id;
 
-        heads_by_controller_id = ply_hashtable_new (NULL, NULL);
+        memset (output, 0, sizeof(*output));
+        output->connector_id = connector_id;
 
-        for (i = 0; i < backend->resources->count_connectors; i++) {
-                ply_renderer_head_t *head;
-                drmModeEncoder *encoder;
-                uint32_t encoder_id;
+        connector = drmModeGetConnector (backend->device_fd, connector_id);
+        if (connector == NULL)
+                return;
+
+        if (connector->connection != DRM_MODE_CONNECTED ||
+            connector->count_modes <= 0)
+                goto out;
+
+        output_get_controller_info (backend, connector, output);
+        ply_renderer_connector_get_rotation_and_tiled (backend, connector, output);
+
+        if (!output->tiled && backend->use_preferred_mode)
+                mode = get_preferred_mode (connector);
+
+        if (!mode && output->controller_id)
+                mode = get_active_mode (backend, connector, output);
+
+        /* If we couldn't find the current active mode, fall back to the first available. */
+        if (!mode) {
+                ply_trace ("falling back to first available mode");
+                mode = &connector->modes[0];
+        }
+        output->mode = *mode;
+        output->device_scale = ply_get_device_scale (mode->hdisplay, mode->vdisplay,
+                                                     connector->mmWidth, connector->mmHeight);
+        output->connector_type = connector->connector_type;
+        output->connected = true;
+out:
+        drmModeFreeConnector (connector);
+}
+
+/* Some controllers can only drive some outputs, we want to find a combination
+ * where all (connected) outputs get a controller. To do this setup_outputs
+ * picks which output to assign a controller for first (trying all outputs), so
+ * that that one will get the first (free) controller and then recurses into
+ * itself to assign the remaining outputs. This tries assigning all remainig
+ * unassigned outputs first and returns the best result of all possible
+ * assignment orders for the remaining unassigned outputs.
+ * This repeats until we find an assignment order which results in a controller
+ * for all outputs, or we've tried all possible assignment orders.
+ */
+
+static uint32_t
+find_controller_for_output (ply_renderer_backend_t *backend,
+                            const ply_output_t     *outputs,
+                            int                     outputs_len,
+                            int                     output_idx)
+{
+        uint32_t possible_controllers = outputs[output_idx].possible_controllers;
+        int i, j;
+
+        for (i = 0; i < backend->resources->count_crtcs; i++) {
+                uint32_t controller_id = backend->resources->crtcs[i];
+
+                if (!(possible_controllers & (1 << i)))
+                        continue; /* controller not usable for this connector */
+
+                for (j = 0; j < outputs_len; j++) {
+                        if (outputs[j].controller_id == controller_id)
+                                break;
+                }
+                if (j < outputs_len)
+                        continue; /* controller already in use */
+
+                return controller_id;
+        }
+
+        return 0;
+}
+
+static int
+count_setup_controllers (const ply_output_t *outputs,
+                         int                 outputs_len)
+{
+        int i, count = 0;
+
+        for (i = 0; i < outputs_len; i++) {
+                if (outputs[i].controller_id)
+                        count++;
+        }
+
+        return count;
+}
+
+static ply_output_t *
+setup_outputs (ply_renderer_backend_t *backend,
+               const ply_output_t     *outputs,
+               int                     outputs_len)
+{
+        const ply_output_t *best_outputs;
+        ply_output_t *new_outputs;
+        int i, count, best_count;
+        uint32_t controller_id;
+
+        best_count = count_setup_controllers (outputs, outputs_len);
+        best_outputs = outputs;
+
+        for (i = 0; i < outputs_len && best_count < backend->connected_count; i++) {
+                /* Not connected or already assigned? */
+                if (!outputs[i].connected || outputs[i].controller_id)
+                        continue;
+
+                /* Assign controller for connector i */
+                controller_id = find_controller_for_output (backend, outputs, outputs_len, i);
+                if (!controller_id)
+                        continue;
+
+                /* Add the new controller to a copy of the passed in connector
+                 * template, we want to try all possible permutations of
+                 * unassigned outputs without modifying the template.
+                 */
+                new_outputs = calloc (outputs_len, sizeof(*new_outputs));
+                memcpy (new_outputs, outputs, outputs_len * sizeof(ply_output_t));
+                new_outputs[i].controller_id = controller_id;
+
+                /* Recurse into ourselves to assign remaining controllers,
+                 * trying all possible assignment orders.
+                 */
+                new_outputs = setup_outputs (backend, new_outputs, outputs_len);
+
+                count = count_setup_controllers (new_outputs, outputs_len);
+                if (count > best_count) {
+                        if (best_outputs != outputs)
+                                free ((void *)best_outputs);
+                        best_outputs = new_outputs;
+                        best_count = count;
+                } else {
+                        free (new_outputs);
+                }
+        }
+
+        if (best_outputs != outputs)
+                free ((void *)outputs);
+
+        /* Our caller is allowed to modify outputs, cast-away the const */
+        return (ply_output_t *)best_outputs;
+}
+
+static void
+remove_output (ply_renderer_backend_t *backend, ply_output_t *output)
+{
+        ply_renderer_head_t *head;
+
+        head = ply_hashtable_lookup (backend->heads_by_controller_id,
+                                     (void *) (intptr_t) output->controller_id);
+        if (head == NULL) {
+                ply_trace ("Could not find head for connector %u, controller %u, cannot remove",
+                           output->connector_id, output->controller_id);
+                return;
+        }
+
+        ply_renderer_head_remove_connector (backend, head, output->connector_id);
+}
+
+/* Check if an output has changed since we last enumerated it; and if
+ * it has changed remove it from the head it is part of.
+ */
+static bool
+check_if_output_has_changed (ply_renderer_backend_t *backend,
+                             ply_output_t *new_output)
+{
+        ply_output_t *old_output = NULL;
+        int i;
+
+        for (i = 0; i < backend->outputs_len; i++) {
+                if (backend->outputs[i].connector_id == new_output->connector_id) {
+                        old_output = &backend->outputs[i];
+                        break;
+                }
+        }
+
+        if (!old_output || !old_output->controller_id)
+                return false;
+
+        if (memcmp(old_output, new_output, sizeof(ply_output_t)) == 0)
+                return false;
+
+        ply_trace ("Output for connector %u changed, removing", old_output->connector_id);
+        remove_output (backend, old_output);
+        return true;
+}
+
+/* Update our outputs array to match the hardware state and
+ * create and/or remove heads as necessary.
+ * Returns true if any heads were modified.
+ */
+static bool
+create_heads_for_active_connectors (ply_renderer_backend_t *backend, bool change)
+{
+        int i, j, number_of_setup_outputs, outputs_len;
+        ply_output_t *outputs;
+        bool changed = false;
+
+        /* Step 1:
+         * Query all outputs and:
+         * 1.1 Remove currently connected outputs from their heads if changed.
+         * 1.2 Build a new outputs array from scratch. For any unchanged
+         *     outputs for which we already have a head, we will end up in
+         *     ply_renderer_head_add_connector which will ignore the already
+         *     added connector.
+         */
+        ply_trace ("(Re)enumerating all outputs");
+
+        outputs = calloc (backend->resources->count_connectors, sizeof(*outputs));
+        outputs_len = backend->resources->count_connectors;
+
+        backend->connected_count = 0;
+        for (i = 0; i < outputs_len; i++) {
+                get_output_info (backend, backend->resources->connectors[i], &outputs[i]);
+
+                if (check_if_output_has_changed (backend, &outputs[i]))
+                        changed = true;
+
+                if (outputs[i].connected)
+                        backend->connected_count++;
+        }
+
+        /* Step 2:
+         * Free the old outputs array, now that we have checked for changes
+         * we no longer need it.
+         */
+        free (backend->outputs);
+        backend->outputs = NULL;
+
+        /* Step 3:
+         * Drop controllers for clones for which we've picked different modes.
+         */
+        for (i = 0; i < outputs_len; i++) {
+                if (!outputs[i].controller_id)
+                        continue;
+
+                for (j = i + 1; j < outputs_len; j++) {
+                        if (!outputs[j].controller_id)
+                                continue;
+
+                        if (outputs[i].controller_id == outputs[j].controller_id &&
+                            (outputs[i].mode.hdisplay != outputs[j].mode.hdisplay ||
+                             outputs[i].mode.vdisplay != outputs[j].mode.vdisplay)) {
+                                ply_trace ("connector %u uses same controller as %u and modes differ, unlinking controller",
+                                           outputs[j].connector_id, outputs[i].connector_id);
+                                outputs[j].controller_id = 0;
+                        }
+                }
+        }
+
+        /* Step 4:
+         * Assign controllers to outputs without a controller
+         */
+        number_of_setup_outputs = count_setup_controllers (outputs, outputs_len);
+        if (number_of_setup_outputs != backend->connected_count) {
+                /* First try, try to assign controllers to outputs without one */
+                ply_trace ("Some outputs don't have controllers, picking controllers");
+                outputs = setup_outputs (backend, outputs, outputs_len);
+                number_of_setup_outputs = count_setup_controllers (outputs, outputs_len);
+        }
+        /* Try again if necessary, re-assing controllers for all outputs.
+         * Note this is skipped when processing change events, as we don't
+         * want to mess with the controller assignment of already lit monitors
+         * in that case.
+         */
+        if (!change && number_of_setup_outputs != backend->connected_count) {
+                ply_trace ("Some outputs still don't have controllers, re-assigning controllers for all outputs");
+                for (i = 0; i < outputs_len; i++) {
+                        if (outputs[i].uses_hw_rotation)
+                                continue; /* Do not re-assign hw-rotated outputs */
+                        outputs[i].controller_id = 0;
+                }
+                outputs = setup_outputs (backend, outputs, outputs_len);
+        }
+        for (i = 0; i < outputs_len; i++)
+                ply_trace ("Using controller %u for connector %u",
+                           outputs[i].controller_id, outputs[i].connector_id);
+
+        /* Step 5:
+         * Create heads for all valid outputs
+         */
+        for (i = 0; i < outputs_len; i++) {
                 drmModeCrtc *controller;
+                ply_renderer_head_t *head;
                 uint32_t controller_id;
                 uint32_t console_buffer_id;
-                int connector_mode_index = -1;
                 int gamma_size;
-                ply_pixel_buffer_rotation_t rotation;
-                bool tiled;
 
-                connector = drmModeGetConnector (backend->device_fd,
-                                                 backend->resources->connectors[i]);
-
-                if (connector == NULL)
+                if (!outputs[i].controller_id)
                         continue;
 
-                if (connector->connection != DRM_MODE_CONNECTED) {
-                        drmModeFreeConnector (connector);
+                controller = drmModeGetCrtc (backend->device_fd, outputs[i].controller_id);
+                if (!controller)
                         continue;
-                }
-
-                if (connector->count_modes <= 0) {
-                        drmModeFreeConnector (connector);
-                        continue;
-                }
-
-                encoder = find_encoder_for_connector (backend, connector);
-
-                if (encoder == NULL) {
-                        drmModeFreeConnector (connector);
-                        continue;
-                }
-
-                encoder_id = encoder->encoder_id;
-                controller = find_controller_for_encoder (backend, encoder);
-                drmModeFreeEncoder (encoder);
-
-                if (controller == NULL) {
-                        drmModeFreeConnector (connector);
-                        continue;
-                }
 
                 controller_id = controller->crtc_id;
-
-                ply_renderer_connector_get_rotation_and_tiled (backend, connector, &rotation, &tiled);
-
-                if (!tiled && backend->use_preferred_mode)
-                        connector_mode_index = get_index_of_preferred_mode (connector);
-
-                if (connector_mode_index < 0)
-                        connector_mode_index = get_index_of_active_mode (backend, controller, connector);
-
-                /* If we couldn't find the current active mode, fall back to the first available.
-                 */
-                if (connector_mode_index < 0) {
-                        ply_trace ("falling back to first available mode");
-                        connector_mode_index = 0;
-                }
-
                 console_buffer_id = controller->buffer_id;
                 gamma_size = controller->gamma_size;
                 drmModeFreeCrtc (controller);
 
-                head = ply_hashtable_lookup (heads_by_controller_id,
+                head = ply_hashtable_lookup (backend->heads_by_controller_id,
                                              (void *) (intptr_t) controller_id);
 
                 if (head == NULL) {
-                        head = ply_renderer_head_new (backend, connector, connector_mode_index,
-                                                      encoder_id, controller_id,
-                                                      console_buffer_id, gamma_size, rotation);
-
-                        ply_list_append_data (backend->heads, head);
-
-                        ply_hashtable_insert (heads_by_controller_id,
-                                              (void *) (intptr_t) controller_id,
-                                              head);
+                        head = ply_renderer_head_new (backend, &outputs[i],
+                                                      console_buffer_id,
+                                                      gamma_size);
+                        changed = true;
                 } else {
-                        if (!ply_renderer_head_add_connector (head, connector, connector_mode_index))
-                                ply_trace ("couldn't connect monitor to existing head");
-
-                        drmModeFreeConnector (connector);
+                        if (ply_renderer_head_add_connector (head, &outputs[i]))
+                                changed = true;
                 }
         }
 
-        ply_hashtable_free (heads_by_controller_id);
+        backend->outputs_len = outputs_len;
+        backend->outputs = outputs;
 
-        return ply_list_get_length (backend->heads) > 0;
+        ply_trace ("outputs %schanged\n", changed ? "" : "un");
+
+        return changed;
 }
 
 static bool
@@ -1225,6 +1533,8 @@ has_32bpp_support (ply_renderer_backend_t *backend)
 static bool
 query_device (ply_renderer_backend_t *backend)
 {
+        bool ret = true;
+
         assert (backend != NULL);
         assert (backend->device_fd >= 0);
 
@@ -1235,38 +1545,55 @@ query_device (ply_renderer_backend_t *backend)
                 return false;
         }
 
-        if (!create_heads_for_active_connectors (backend)) {
+        if (!create_heads_for_active_connectors (backend, false)) {
                 ply_trace ("Could not initialize heads");
-                return false;
-        }
-
-        if (!has_32bpp_support (backend)) {
+                ret = false;
+        } else if (!has_32bpp_support (backend)) {
                 ply_trace ("Device doesn't support 32bpp framebuffer");
+                ret = false;
+        }
+
+        drmModeFreeResources (backend->resources);
+        backend->resources = NULL;
+
+        return ret;
+}
+
+static bool
+handle_change_event (ply_renderer_backend_t *backend)
+{
+        bool ret = true;
+
+        backend->resources = drmModeGetResources (backend->device_fd);
+        if (backend->resources == NULL) {
+                ply_trace ("Could not get card resources for change event");
                 return false;
         }
 
-        return true;
+        ret = create_heads_for_active_connectors (backend, true);
+
+        drmModeFreeResources (backend->resources);
+        backend->resources = NULL;
+
+        return ret;
 }
 
 static bool
 map_to_device (ply_renderer_backend_t *backend)
 {
+        ply_renderer_head_t *head;
         ply_list_node_t *node;
         bool head_mapped;
 
         head_mapped = false;
         node = ply_list_get_first_node (backend->heads);
         while (node != NULL) {
-                ply_list_node_t *next_node;
-                ply_renderer_head_t *head;
-
                 head = (ply_renderer_head_t *) ply_list_node_get_data (node);
-                next_node = ply_list_get_next_node (backend->heads, node);
 
                 if (ply_renderer_head_map (backend, head))
                         head_mapped = true;
 
-                node = next_node;
+                node = ply_list_get_next_node (backend->heads, node);
         }
 
         if (backend->terminal != NULL) {
@@ -1284,19 +1611,14 @@ map_to_device (ply_renderer_backend_t *backend)
 static void
 unmap_from_device (ply_renderer_backend_t *backend)
 {
+        ply_renderer_head_t *head;
         ply_list_node_t *node;
 
         node = ply_list_get_first_node (backend->heads);
         while (node != NULL) {
-                ply_list_node_t *next_node;
-                ply_renderer_head_t *head;
-
                 head = (ply_renderer_head_t *) ply_list_node_get_data (node);
-                next_node = ply_list_get_next_node (backend->heads, node);
-
                 ply_renderer_head_unmap (backend, head);
-
-                node = next_node;
+                node = ply_list_get_next_node (backend->heads, node);
         }
 }
 
@@ -1310,6 +1632,13 @@ reset_scan_out_buffer_if_needed (ply_renderer_backend_t *backend,
         if (backend->terminal != NULL)
                 if (!ply_terminal_is_active (backend->terminal))
                         return false;
+
+        if (head->scan_out_buffer_needs_reset) {
+                ply_renderer_head_set_scan_out_buffer (backend, head,
+                                                       head->scan_out_buffer_id);
+                head->scan_out_buffer_needs_reset = false;
+                return true;
+        }
 
         controller = drmModeGetCrtc (backend->device_fd, head->controller_id);
 
@@ -1331,11 +1660,13 @@ static void
 flush_head (ply_renderer_backend_t *backend,
             ply_renderer_head_t    *head)
 {
+        ply_rectangle_t *area_to_flush;
         ply_region_t *updated_region;
         ply_list_t *areas_to_flush;
         ply_list_node_t *node;
         ply_pixel_buffer_t *pixel_buffer;
         char *map_address;
+        bool dirty = false;
 
         assert (backend != NULL);
 
@@ -1350,44 +1681,33 @@ flush_head (ply_renderer_backend_t *backend,
         updated_region = ply_pixel_buffer_get_updated_areas (pixel_buffer);
         areas_to_flush = ply_region_get_sorted_rectangle_list (updated_region);
 
+        /* A hotplugged head may not be mapped yet, map it now. */
+        if (!head->scan_out_buffer_id) {
+                if (!ply_renderer_head_map (backend, head))
+                        return;
+        }
+
         map_address = begin_flush (backend, head->scan_out_buffer_id);
 
         node = ply_list_get_first_node (areas_to_flush);
         while (node != NULL) {
-                ply_list_node_t *next_node;
-                ply_rectangle_t *area_to_flush;
-
                 area_to_flush = (ply_rectangle_t *) ply_list_node_get_data (node);
 
-                next_node = ply_list_get_next_node (areas_to_flush, node);
+                ply_renderer_head_flush_area (head, area_to_flush, map_address);
+                dirty = true;
 
+                node = ply_list_get_next_node (areas_to_flush, node);
+        }
+
+        if (dirty) {
                 if (reset_scan_out_buffer_if_needed (backend, head))
                         ply_trace ("Needed to reset scan out buffer on %ldx%ld renderer head",
                                    head->area.width, head->area.height);
 
-                ply_renderer_head_flush_area (head, area_to_flush, map_address);
-
-                node = next_node;
+                end_flush (backend, head->scan_out_buffer_id);
         }
 
-        end_flush (backend, head->scan_out_buffer_id);
-
         ply_region_clear (updated_region);
-}
-
-static void
-ply_renderer_head_redraw (ply_renderer_backend_t *backend,
-                          ply_renderer_head_t    *head)
-{
-        ply_region_t *region;
-
-        ply_trace ("Redrawing %ldx%ld renderer head", head->area.width, head->area.height);
-
-        region = ply_pixel_buffer_get_updated_areas (head->pixel_buffer);
-
-        ply_region_add_rectangle (region, &head->area);
-
-        flush_head (backend, head);
 }
 
 static ply_list_t *
@@ -1488,6 +1808,41 @@ close_input_source (ply_renderer_backend_t      *backend,
         input_source->backend = NULL;
 }
 
+static bool
+get_panel_properties (ply_renderer_backend_t      *backend,
+                      int                         *width,
+                      int                         *height,
+                      ply_pixel_buffer_rotation_t *rotation,
+                      int                         *scale)
+{
+        if (!backend->panel_width)
+                return false;
+
+        *width    = backend->panel_width;
+        *height   = backend->panel_height;
+        *rotation = backend->panel_rotation;
+        *scale    = backend->panel_scale;
+        return true;
+}
+
+static bool
+get_capslock_state (ply_renderer_backend_t *backend)
+{
+        if (!backend->terminal)
+                return false;
+
+        return ply_terminal_get_capslock_state (backend->terminal);
+}
+
+static const char *
+get_keymap (ply_renderer_backend_t *backend)
+{
+        if (!backend->terminal)
+                return NULL;
+
+        return ply_terminal_get_keymap (backend->terminal);
+}
+
 ply_renderer_plugin_interface_t *
 ply_renderer_backend_get_interface (void)
 {
@@ -1498,6 +1853,7 @@ ply_renderer_backend_get_interface (void)
                 .open_device                  = open_device,
                 .close_device                 = close_device,
                 .query_device                 = query_device,
+                .handle_change_event          = handle_change_event,
                 .map_to_device                = map_to_device,
                 .unmap_from_device            = unmap_from_device,
                 .activate                     = activate,
@@ -1509,9 +1865,13 @@ ply_renderer_backend_get_interface (void)
                 .open_input_source            = open_input_source,
                 .set_handler_for_input_source = set_handler_for_input_source,
                 .close_input_source           = close_input_source,
-                .get_device_name              = get_device_name
+                .get_device_name              = get_device_name,
+                .get_panel_properties         = get_panel_properties,
+                .get_capslock_state           = get_capslock_state,
+                .get_keymap                   = get_keymap,
         };
 
         return &plugin_interface;
 }
-/* vim: set ts=4 sw=4 et ai ci cino={.5s,^-2,+.5s,t0,g0,e-2,n-2,p2s,(0,=.5s,:.5s */
+
+/* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

@@ -10,3 +10,4 @@ ConditionVirtualization=!container
 ExecStart=@PLYMOUTH_DAEMON_DIR@/plymouthd --mode=shutdown --attach-to-session
 ExecStartPost=-@PLYMOUTH_CLIENT_DIR@/plymouth show-splash
 Type=forking
+RemainAfterExit=yes

@@ -5,6 +5,10 @@ dist_theme_DATA =                                                     \
                   bullet.png                                          \
                   entry.png                                           \
                   lock.png                                            \
+                  capslock.png                                        \
+                  keyboard.png                                        \
+                  keymap-render.png                                   \
+                  animation-0001.png                                  \
                   throbber-00.png                                     \
                   throbber-01.png                                     \
                   throbber-02.png                                     \
@@ -49,3 +53,5 @@ spinfinity.plymouth: $(srcdir)/spinfinity.plymouth.in
 
 EXTRA_DIST = spinfinity.plymouth.in
 
+install-data-hook:
+	ln -sf /usr/share/pixmaps/system-logo-white.png $(DESTDIR)$(themedir)/header-image.png

@@ -36,10 +36,10 @@ void ply_text_step_bar_show (ply_text_step_bar_t *step_bar,
                              ply_text_display_t  *display);
 void ply_text_step_bar_hide (ply_text_step_bar_t *step_bar);
 
-void ply_text_step_bar_set_percent_done (ply_text_step_bar_t *step_bar,
-                                         double               percent_done);
+void ply_text_step_bar_set_fraction_done (ply_text_step_bar_t *step_bar,
+                                          double               fraction_done);
 
-double ply_text_step_bar_get_percent_done (ply_text_step_bar_t *step_bar);
+double ply_text_step_bar_get_fraction_done (ply_text_step_bar_t *step_bar);
 
 int ply_text_step_bar_get_number_of_rows (ply_text_step_bar_t *step_bar);
 int ply_text_step_bar_get_number_of_columns (ply_text_step_bar_t *step_bar);

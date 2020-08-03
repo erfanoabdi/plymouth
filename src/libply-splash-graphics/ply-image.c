@@ -55,6 +55,29 @@ struct _ply_image
         ply_pixel_buffer_t *buffer;
 };
 
+struct bmp_file_header {
+        uint16_t id;
+        uint32_t file_size;
+        uint32_t reserved;
+        uint32_t bitmap_offset;
+} __attribute__((__packed__));
+
+struct bmp_dib_header {
+        uint32_t dib_header_size;
+        int32_t width;
+        int32_t height;
+        uint16_t planes;
+        uint16_t bpp;
+        uint32_t compression;
+        uint32_t bitmap_size;
+        uint32_t horz_resolution;
+        uint32_t vert_resolution;
+        uint32_t colors_used;
+        uint32_t colors_important;
+} __attribute__((__packed__));
+
+const uint8_t png_header[8] = { 0x89, 'P', 'N', 'G', 0x0d, 0x0a, 0x1a, 0x0a };
+
 ply_image_t *
 ply_image_new (const char *filename)
 {
@@ -112,8 +135,8 @@ transform_to_argb32 (png_struct   *png,
         }
 }
 
-bool
-ply_image_load (ply_image_t *image)
+static bool
+ply_image_load_png (ply_image_t *image, FILE *fp)
 {
         png_struct *png;
         png_info *info;
@@ -121,13 +144,9 @@ ply_image_load (ply_image_t *image)
         int bits_per_pixel, color_type, interlace_method;
         png_byte **rows;
         uint32_t *bytes;
-        FILE *fp;
 
         assert (image != NULL);
-
-        fp = fopen (image->filename, "re");
-        if (fp == NULL)
-                return false;
+        assert (fp != NULL);
 
         png = png_create_read_struct (PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
         assert (png != NULL);
@@ -137,10 +156,8 @@ ply_image_load (ply_image_t *image)
 
         png_init_io (png, fp);
 
-        if (setjmp (png_jmpbuf (png)) != 0) {
-                fclose (fp);
+        if (setjmp (png_jmpbuf (png)) != 0)
                 return false;
-        }
 
         png_read_info (png, info);
         png_get_IHDR (png, info,
@@ -188,10 +205,104 @@ ply_image_load (ply_image_t *image)
 
         free (rows);
         png_read_end (png, info);
-        fclose (fp);
         png_destroy_read_struct (&png, &info, NULL);
 
         return true;
+}
+
+static bool
+ply_image_load_bmp (ply_image_t *image, FILE *fp)
+{
+        uint32_t x, y, src_y, width, height, bmp_pitch, *dst;
+        struct bmp_file_header file_header;
+        struct bmp_dib_header dib_header;
+        uint8_t r, g, b, *buf, *src;
+        bool ret = false;
+
+        assert (image != NULL);
+        assert (fp != NULL);
+
+        if (fread (&file_header, 1, sizeof(struct bmp_file_header), fp) != sizeof(struct bmp_file_header))
+                return false;
+
+        if (fread (&dib_header, 1, sizeof(struct bmp_dib_header), fp) != sizeof(struct bmp_dib_header))
+                return false;
+
+        if (dib_header.dib_header_size != 40 || dib_header.width < 0 ||
+            dib_header.planes != 1 || dib_header.bpp != 24 ||
+            dib_header.compression != 0)
+                return false;
+
+        width = dib_header.width;
+        height = abs (dib_header.height);
+        bmp_pitch = (3 * width + 3) & ~3;
+
+        buf = malloc (bmp_pitch * height);
+        assert (buf);
+
+        if (fseek (fp, file_header.bitmap_offset, SEEK_SET) != 0)
+                goto out;
+        
+        if (fread (buf, 1, bmp_pitch * height, fp) != bmp_pitch * height)
+                goto out;
+
+        image->buffer = ply_pixel_buffer_new (width, height);
+        dst = ply_pixel_buffer_get_argb32_data (image->buffer);
+
+        for (y = 0; y < height; y++) {
+                /* Positive header height means upside down row order */
+                if (dib_header.height > 0)
+                        src_y = (height - 1) - y;
+                else
+                        src_y = y;
+
+                src = buf + src_y * bmp_pitch;
+
+                for (x = 0; x < width; x++) {
+                        b = *src++;
+                        g = *src++;
+                        r = *src++;
+                        *dst++ = (0xff << 24) | (r << 16) | (g << 8) | (b << 0);
+                }
+        }
+
+        ply_pixel_buffer_set_opaque (image->buffer, true);
+        ret = true;
+out:
+        free (buf);
+        return ret;
+}
+
+bool
+ply_image_load (ply_image_t *image)
+{
+        uint8_t header[16];
+        bool ret = false;
+        FILE *fp;
+
+        assert (image != NULL);
+
+        fp = fopen (image->filename, "re");
+        if (fp == NULL)
+                return false;
+
+        if (fread (header, 1, 16, fp) != 16)
+                goto out;
+
+        /* Rewind */
+        if (fseek (fp, 0, SEEK_SET) != 0)
+                goto out;
+
+        if (memcmp (header, png_header, sizeof(png_header)) == 0)
+                ret = ply_image_load_png (image, fp);
+
+        else if (((struct bmp_file_header *)header)->id == 0x4d42 &&
+                 ((struct bmp_file_header *)header)->reserved == 0)
+                ret = ply_image_load_bmp (image, fp);
+
+out:
+        fclose (fp);
+        return ret;
 }
 
 uint32_t *

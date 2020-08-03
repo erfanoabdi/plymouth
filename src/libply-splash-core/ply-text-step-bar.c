@@ -37,7 +37,7 @@ struct _ply_text_step_bar
         int                 number_of_rows;
         int                 number_of_columns;
 
-        double              percent_done;
+        double              fraction_done;
         uint32_t            is_hidden : 1;
 };
 
@@ -81,7 +81,7 @@ ply_text_step_bar_draw (ply_text_step_bar_t *step_bar)
                                               step_bar->column,
                                               step_bar->row);
 
-        cur = step_bar->percent_done * step_bar->number_of_columns;
+        cur = step_bar->fraction_done * step_bar->number_of_columns;
         for (i = 0; i < step_bar->number_of_columns; i++) {
                 if (i == cur)
                         ply_text_display_set_foreground_color (step_bar->display,
@@ -132,16 +132,16 @@ ply_text_step_bar_hide (ply_text_step_bar_t *step_bar)
 }
 
 void
-ply_text_step_bar_set_percent_done (ply_text_step_bar_t *step_bar,
-                                    double               percent_done)
+ply_text_step_bar_set_fraction_done (ply_text_step_bar_t *step_bar,
+                                     double               fraction_done)
 {
-        step_bar->percent_done = percent_done;
+        step_bar->fraction_done = fraction_done;
 }
 
 double
-ply_text_step_bar_get_percent_done (ply_text_step_bar_t *step_bar)
+ply_text_step_bar_get_fraction_done (ply_text_step_bar_t *step_bar)
 {
-        return step_bar->percent_done;
+        return step_bar->fraction_done;
 }
 
 int

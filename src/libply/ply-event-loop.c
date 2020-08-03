@@ -641,7 +641,11 @@ ply_event_loop_remove_source_node (ply_event_loop_t *loop,
 
                 status = epoll_ctl (loop->epoll_fd, EPOLL_CTL_DEL, source->fd, NULL);
 
-                if (status < 0)
+                /*
+                 * EBADF means that there was a disconnect handler, which has
+                 * closed the fd, which is fine, do not log an error for this.
+                 */
+                if (status < 0 && errno != EBADF)
                         ply_trace ("failed to delete fd %d from epoll watch list: %m", source->fd);
                 source->is_getting_polled = false;
         }
@@ -1057,14 +1061,8 @@ ply_event_loop_handle_disconnect_for_source (ply_event_loop_t   *loop,
                 destination = (ply_event_destination_t *) ply_list_node_get_data (node);
                 next_node = ply_list_get_next_node (source->destinations, node);
 
-                if (destination->disconnected_handler != NULL) {
-                        ply_trace ("calling disconnected_handler %p for fd %d",
-                                   destination->disconnected_handler, source->fd);
+                if (destination->disconnected_handler != NULL)
                         destination->disconnected_handler (destination->user_data, source->fd);
-
-                        ply_trace ("done calling disconnected_handler %p for fd %d",
-                                   destination->disconnected_handler, source->fd);
-                }
 
                 node = next_node;
         }

@@ -54,12 +54,6 @@ ply_terminal_session_t *ply_terminal_session_new (const char *const *argv);
 void ply_terminal_session_free (ply_terminal_session_t *session);
 void ply_terminal_session_attach_to_event_loop (ply_terminal_session_t *session,
                                                 ply_event_loop_t       *loop);
-bool ply_terminal_session_run (ply_terminal_session_t               *session,
-                               ply_terminal_session_flags_t          flags,
-                               ply_terminal_session_begin_handler_t  begin_handler,
-                               ply_terminal_session_output_handler_t output_handler,
-                               ply_terminal_session_hangup_handler_t done_handler,
-                               void                                 *user_data);
 
 bool ply_terminal_session_attach (ply_terminal_session_t               *session,
                                   ply_terminal_session_flags_t          flags,

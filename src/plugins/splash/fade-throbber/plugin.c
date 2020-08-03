@@ -468,7 +468,8 @@ view_animate_at_time (view_t *view,
         logo_opacity = .5 * sin ((time / 5) * (2 * M_PI)) + .8;
         logo_opacity = CLAMP (logo_opacity, 0, 1.0);
 
-        if (plugin->mode == PLY_BOOT_SPLASH_MODE_SHUTDOWN)
+        if (plugin->mode == PLY_BOOT_SPLASH_MODE_SHUTDOWN ||
+            plugin->mode == PLY_BOOT_SPLASH_MODE_REBOOT)
                 logo_opacity = 1.0;
 
         if (fabs (logo_opacity - view->logo_opacity) <= DBL_MIN)
@@ -579,7 +580,8 @@ start_animation (ply_boot_splash_plugin_t *plugin)
         plugin->start_time = ply_get_timestamp ();
         animate_at_time (plugin, plugin->start_time);
 
-        if (plugin->mode == PLY_BOOT_SPLASH_MODE_SHUTDOWN)
+        if (plugin->mode == PLY_BOOT_SPLASH_MODE_SHUTDOWN ||
+            plugin->mode == PLY_BOOT_SPLASH_MODE_REBOOT)
                 return;
 
         ply_event_loop_watch_for_timeout (plugin->loop,

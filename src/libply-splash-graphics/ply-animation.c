@@ -261,11 +261,11 @@ ply_animation_add_frames (ply_animation_t *animation)
 
         number_of_frames = ply_array_get_size (animation->frames);
         if (number_of_frames == 0) {
-                ply_trace ("%s directory had no files starting with %s\n",
+                ply_trace ("%s directory had no files starting with %s",
                            animation->image_dir, animation->frames_prefix);
                 goto out;
         } else {
-                ply_trace ("animation has %d frames\n", number_of_frames);
+                ply_trace ("animation has %d frames", number_of_frames);
         }
 
         load_finished = true;

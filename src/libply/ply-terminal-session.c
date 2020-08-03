@@ -59,66 +59,8 @@ struct _ply_terminal_session
         uint32_t                              created_terminal_device : 1;
 };
 
-static bool ply_terminal_session_open_console (ply_terminal_session_t *session);
-static bool ply_terminal_session_execute (ply_terminal_session_t *session,
-                                          bool                    look_in_path);
 static void ply_terminal_session_start_logging (ply_terminal_session_t *session);
 static void ply_terminal_session_stop_logging (ply_terminal_session_t *session);
-
-static bool
-ply_terminal_session_open_console (ply_terminal_session_t *session)
-{
-        int fd;
-        const char *terminal_name;
-
-        terminal_name = ptsname (session->pseudoterminal_master_fd);
-
-        fd = open (terminal_name, O_RDONLY);
-
-        if (fd < 0)
-                return false;
-
-        assert (fd == STDIN_FILENO);
-        assert (ttyname (fd) != NULL);
-        assert (strcmp (ttyname (fd), terminal_name) == 0);
-
-        fd = open (terminal_name, O_WRONLY);
-
-        if (fd < 0)
-                return false;
-
-        assert (fd == STDOUT_FILENO);
-        assert (ttyname (fd) != NULL);
-        assert (strcmp (ttyname (fd), terminal_name) == 0);
-
-        fd = open (terminal_name, O_WRONLY);
-
-        if (fd < 0)
-                return false;
-
-        assert (fd == STDERR_FILENO);
-        assert (ttyname (fd) != NULL);
-        assert (strcmp (ttyname (fd), terminal_name) == 0);
-
-        return true;
-}
-
-static bool
-ply_terminal_session_execute (ply_terminal_session_t *session,
-                              bool                    look_in_path)
-{
-        ply_close_all_fds ();
-
-        if (!ply_terminal_session_open_console (session))
-                return false;
-
-        if (look_in_path)
-                execvp (session->argv[0], session->argv);
-        else
-                execv (session->argv[0], session->argv);
-
-        return false;
-}
 
 ply_terminal_session_t *
 ply_terminal_session_new (const char *const *argv)
@@ -241,16 +183,6 @@ open_pseudoterminal (ply_terminal_session_t *session)
 
         ply_trace (" opened device '/dev/ptmx'");
 
-        ply_trace ("creating pseudoterminal");
-        if (grantpt (session->pseudoterminal_master_fd) < 0) {
-                ply_save_errno ();
-                ply_trace ("could not create psuedoterminal: %m");
-                close_pseudoterminal (session);
-                ply_restore_errno ();
-                return false;
-        }
-        ply_trace ("done creating pseudoterminal");
-
         ply_trace ("unlocking pseudoterminal");
         if (unlockpt (session->pseudoterminal_master_fd) < 0) {
                 ply_save_errno ();
@@ -261,80 +193,6 @@ open_pseudoterminal (ply_terminal_session_t *session)
         ply_trace ("unlocked pseudoterminal");
 
         return true;
-}
-
-
-bool
-ply_terminal_session_run (ply_terminal_session_t               *session,
-                          ply_terminal_session_flags_t          flags,
-                          ply_terminal_session_begin_handler_t  begin_handler,
-                          ply_terminal_session_output_handler_t output_handler,
-                          ply_terminal_session_hangup_handler_t hangup_handler,
-                          void                                 *user_data)
-{
-        pid_t pid;
-        bool run_in_parent, look_in_path, should_redirect_console;
-
-        assert (session != NULL);
-        assert (session->loop != NULL);
-        assert (!session->is_running);
-        assert (session->hangup_handler == NULL);
-
-        run_in_parent = (flags & PLY_TERMINAL_SESSION_FLAGS_RUN_IN_PARENT) != 0;
-        look_in_path = (flags & PLY_TERMINAL_SESSION_FLAGS_LOOK_IN_PATH) != 0;
-        should_redirect_console =
-                (flags & PLY_TERMINAL_SESSION_FLAGS_REDIRECT_CONSOLE) != 0;
-
-        ply_trace ("creating terminal device");
-        if (!open_pseudoterminal (session))
-                return false;
-        ply_trace ("done creating terminal device");
-
-        if (should_redirect_console)
-                ply_trace ("redirecting system console to terminal device");
-        if (should_redirect_console &&
-            !ply_terminal_session_redirect_console (session)) {
-                ply_save_errno ();
-                close_pseudoterminal (session);
-                ply_restore_errno ();
-                return false;
-        }
-        if (should_redirect_console)
-                ply_trace ("done redirecting system console to terminal device");
-
-        ply_trace ("creating subprocess");
-        pid = fork ();
-
-        if (pid < 0) {
-                ply_save_errno ();
-                ply_terminal_session_unredirect_console (session);
-                close_pseudoterminal (session);
-                ply_restore_errno ();
-                return false;
-        }
-
-        if (((pid == 0) && run_in_parent) ||
-            ((pid != 0) && !run_in_parent)) {
-                session->is_running = true;
-                session->output_handler = output_handler;
-                session->hangup_handler = hangup_handler;
-                session->user_data = user_data;
-                ply_terminal_session_start_logging (session);
-
-                return true;
-        }
-
-        if (begin_handler != NULL) {
-                ply_trace ("running 'begin handler'");
-                begin_handler (user_data, session);
-                ply_trace ("ran 'begin handler'");
-        }
-
-        ply_trace ("beginning session");
-        ply_terminal_session_execute (session, look_in_path);
-
-        _exit (errno);
-        return false;
 }
 
 bool

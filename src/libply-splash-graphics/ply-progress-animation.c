@@ -62,7 +62,7 @@ struct _ply_progress_animation
         ply_rectangle_t                     area;
         ply_rectangle_t                     frame_area;
 
-        double                              percent_done;
+        double                              fraction_done;
         int                                 previous_frame_number;
 
         double                              transition_start_time;
@@ -88,7 +88,7 @@ ply_progress_animation_new (const char *image_dir,
         progress_animation->frames_prefix = strdup (frames_prefix);
         progress_animation->image_dir = strdup (image_dir);
         progress_animation->is_hidden = true;
-        progress_animation->percent_done = 0.0;
+        progress_animation->fraction_done = 0.0;
         progress_animation->area.x = 0;
         progress_animation->area.y = 0;
         progress_animation->area.width = 0;
@@ -216,7 +216,7 @@ ply_progress_animation_draw (ply_progress_animation_t *progress_animation)
         if (number_of_frames == 0)
                 return;
 
-        frame_number = progress_animation->percent_done * (number_of_frames - 1);
+        frame_number = progress_animation->fraction_done * (number_of_frames - 1);
 
         if (progress_animation->previous_frame_number != frame_number &&
             progress_animation->transition != PLY_PROGRESS_ANIMATION_TRANSITION_NONE &&
@@ -456,17 +456,17 @@ ply_progress_animation_get_height (ply_progress_animation_t *progress_animation)
 }
 
 void
-ply_progress_animation_set_percent_done (ply_progress_animation_t *progress_animation,
-                                         double                    percent_done)
+ply_progress_animation_set_fraction_done (ply_progress_animation_t *progress_animation,
+                                          double                    fraction_done)
 {
-        progress_animation->percent_done = percent_done;
+        progress_animation->fraction_done = fraction_done;
         ply_progress_animation_draw (progress_animation);
 }
 
 double
-ply_progress_animation_get_percent_done (ply_progress_animation_t *progress_animation)
+ply_progress_animation_get_fraction_done (ply_progress_animation_t *progress_animation)
 {
-        return progress_animation->percent_done;
+        return progress_animation->fraction_done;
 }
 
 /* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

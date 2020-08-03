@@ -51,6 +51,7 @@ ply_renderer_head_t *ply_pixel_display_get_renderer_head (ply_pixel_display_t *d
 
 unsigned long ply_pixel_display_get_width (ply_pixel_display_t *display);
 unsigned long ply_pixel_display_get_height (ply_pixel_display_t *display);
+int ply_pixel_display_get_device_scale (ply_pixel_display_t *display);
 
 void ply_pixel_display_set_draw_handler (ply_pixel_display_t             *display,
                                          ply_pixel_display_draw_handler_t draw_handler,
@@ -68,4 +69,5 @@ void ply_pixel_display_unpause_updates (ply_pixel_display_t *display);
 #endif
 
 #endif /* PLY_PIXEL_DISPLAY_H */
-/* vim: set ts=4 sw=4 et ai ci cino={.5s,^-2,+.5s,t0,g0,e-2,n-2,p2s,(0,=.5s,:.5s */
+
+/* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

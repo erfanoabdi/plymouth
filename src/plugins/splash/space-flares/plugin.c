@@ -759,7 +759,7 @@ star_bg_update (view_t *view, sprite_t *sprite, double time)
                 x = star_bg->star_x[i];
                 y = star_bg->star_y[i];
                 uint32_t pixel_colour = star_bg_gradient_colour (x, y, width, height, true, time);
-                if (abs (((image_data[x + y * width] >> 16) & 0xff) - ((pixel_colour >> 16) & 0xff)) > 8) {
+                if (abs ((int)((image_data[x + y * width] >> 16) & 0xff) - (int)((pixel_colour >> 16) & 0xff)) > 8) {
                         image_data[x + y * width] = pixel_colour;
                         star_bg->star_refresh[i] = 1;
                 }
@@ -1149,11 +1149,11 @@ on_timeout (ply_boot_splash_plugin_t *plugin)
 static void
 on_boot_progress (ply_boot_splash_plugin_t *plugin,
                   double                    duration,
-                  double                    percent_done)
+                  double                    fraction_done)
 {
         if (plugin->progress_target < 0)
-                plugin->progress = percent_done;
-        plugin->progress_target = percent_done;
+                plugin->progress = fraction_done;
+        plugin->progress_target = fraction_done;
 }
 
 static void

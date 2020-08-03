@@ -11,5 +11,6 @@ ConditionVirtualization=!container
 ExecStart=@PLYMOUTH_DAEMON_DIR@/plymouthd --mode=boot --pid-file=@plymouthruntimedir@/pid --attach-to-session
 ExecStartPost=-@PLYMOUTH_CLIENT_DIR@/plymouth show-splash
 Type=forking
+RemainAfterExit=yes
 KillMode=none
 SendSIGKILL=no

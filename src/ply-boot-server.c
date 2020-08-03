@@ -161,7 +161,7 @@ ply_boot_connection_new (ply_boot_server_t *server,
 {
         ply_boot_connection_t *connection;
 
-        connection = calloc (1, sizeof(ply_boot_server_t));
+        connection = calloc (1, sizeof(ply_boot_connection_t));
         connection->fd = fd;
         connection->server = server;
         connection->watch = NULL;

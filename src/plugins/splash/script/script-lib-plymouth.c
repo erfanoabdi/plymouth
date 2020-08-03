@@ -70,8 +70,17 @@ static script_return_t plymouth_get_mode (script_state_t *state,
         case PLY_BOOT_SPLASH_MODE_SHUTDOWN:
                 obj = script_obj_new_string ("shutdown");
                 break;
+        case PLY_BOOT_SPLASH_MODE_REBOOT:
+                obj = script_obj_new_string ("reboot");
+                break;
         case PLY_BOOT_SPLASH_MODE_UPDATES:
                 obj = script_obj_new_string ("updates");
+                break;
+        case PLY_BOOT_SPLASH_MODE_SYSTEM_UPGRADE:
+                obj = script_obj_new_string ("system-upgrade");
+                break;
+        case PLY_BOOT_SPLASH_MODE_FIRMWARE_UPGRADE:
+                obj = script_obj_new_string ("firmware-upgrade");
                 break;
         case PLY_BOOT_SPLASH_MODE_INVALID:
         default:
@@ -209,6 +218,7 @@ void script_lib_plymouth_destroy (script_lib_plymouth_data_t *data)
         script_obj_unref (data->script_display_message_func);
         script_obj_unref (data->script_hide_message_func);
         script_obj_unref (data->script_quit_func);
+        script_obj_unref (data->script_system_update_func);
         free (data);
 }
 

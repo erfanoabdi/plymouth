@@ -184,7 +184,8 @@ view_start_animation (view_t *view)
         ply_text_display_clear_screen (view->display);
         ply_text_display_hide_cursor (view->display);
 
-        if (plugin->mode == PLY_BOOT_SPLASH_MODE_SHUTDOWN) {
+        if (plugin->mode == PLY_BOOT_SPLASH_MODE_SHUTDOWN ||
+            plugin->mode == PLY_BOOT_SPLASH_MODE_REBOOT) {
                 ply_text_step_bar_hide (view->step_bar);
                 return;
         }
@@ -535,16 +536,16 @@ update_status (ply_boot_splash_plugin_t *plugin,
 static void
 on_boot_progress (ply_boot_splash_plugin_t *plugin,
                   double                    duration,
-                  double                    percent_done)
+                  double                    fraction_done)
 {
         ply_list_node_t *node;
         double total_duration;
 
-        total_duration = duration / percent_done;
+        total_duration = duration / fraction_done;
 
         /* Fun made-up smoothing function to make the growth asymptotic:
          * fraction(time,estimate)=1-2^(-(time^1.45)/estimate) */
-        percent_done = 1.0 - pow (2.0, -pow (duration, 1.45) / total_duration) * (1.0 - percent_done);
+        fraction_done = 1.0 - pow (2.0, -pow (duration, 1.45) / total_duration) * (1.0 - fraction_done);
 
         node = ply_list_get_first_node (plugin->views);
 
@@ -555,7 +556,7 @@ on_boot_progress (ply_boot_splash_plugin_t *plugin,
                 view = ply_list_node_get_data (node);
                 next_node = ply_list_get_next_node (plugin->views, node);
 
-                ply_text_step_bar_set_percent_done (view->step_bar, percent_done);
+                ply_text_step_bar_set_fraction_done (view->step_bar, fraction_done);
 
                 if (plugin->is_animating)
                         ply_text_step_bar_draw (view->step_bar);
