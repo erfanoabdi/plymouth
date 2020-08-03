@@ -1,3 +1,4 @@
+etc/logrotate.d
 etc/plymouth
 lib/systemd
 usr/bin
