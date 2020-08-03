@@ -1,3 +1,25 @@
+plymouth (0.9.5-1) experimental; urgency=medium
+
+  * New upstream version 0.9.5
+  * Refresh the patches or delete the ones applied upstream
+    d/p/0003-default-theme.patch, d/p/0005-cmdline.patch,
+    d/p/0008-show-delay.patch: Refreshed
+    d/p/0005-Add-RemainAfterExit-yes-to-plymouth-s-systemd-servic.patch,
+    d/p/0006-main-switch-log-file-when-switching-mode.patch,
+    d/p/0007-main-fix-mode-changing-before-splash-is-shown.patch: Deleted
+  * debian/plymouth-themes.install: Remove the throbgress plugin, dropped
+    upstream
+  * debian/rules: Remove --enable-gdm-transition, dropped upstream
+  * debian/plymouth.install: Install logrotate configuration for boot.log
+  * debian/plymouth.install: Install the translation files
+  * debian/plymouth-themes.install: Install the new bgrt theme
+  * debian/rules: Set --with-runtimedir=/run
+  * Bump libplymouth4 soname to libplymouth5
+  * debian/local/plymouth.hook: Install the ImageDir even if it's coming from
+    another theme
+
+ -- Laurent Bigonville <bigon@debian.org>  Mon, 03 Aug 2020 20:07:40 +0200
+
 plymouth (0.9.4-3) unstable; urgency=medium
 
   * Drop debian/patches/0001-awk.patch and add a break against mawk (<< 1.3.4),
