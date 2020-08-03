@@ -67,7 +67,7 @@ and the detailed boot output using the Escape key.
                 <title>See Also</title>
                 <para>
                         <citerefentry><refentrytitle>grub</refentrytitle><manvolnum>8</manvolnum></citerefentry>,
-                        <citerefentry><refentrytitle>plymouth-set-theme</refentrytitle><manvolnum>1</manvolnum></citerefentry>,
+                        <citerefentry><refentrytitle>plymouth-set-default-theme</refentrytitle><manvolnum>1</manvolnum></citerefentry>,
                         <citerefentry><refentrytitle>plymouthd</refentrytitle><manvolnum>8</manvolnum></citerefentry>,
                         <citerefentry><refentrytitle>plymouth</refentrytitle><manvolnum>1</manvolnum></citerefentry>,
                         <ulink url="http://www.freedesktop.org/wiki/Software/Plymouth">http://www.freedesktop.org/wiki/Software/Plymouth</ulink>

@@ -8,3 +8,4 @@ ConditionPathExists=!/etc/initrd-release
 [Service]
 ExecStart=-@PLYMOUTH_CLIENT_DIR@/plymouth update-root-fs --read-write
 Type=oneshot
+RemainAfterExit=yes

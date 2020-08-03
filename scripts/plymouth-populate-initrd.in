@@ -4,6 +4,14 @@
 
 [ -z "$DESTDIR" ] || exit 0
 
+# For running on a (cross-compiled) sysroot, the following
+# settings are needed:
+# PLYMOUTH_SYSROOT - the sysroot directory
+# PLYMOUTH_LDD - an optional ldd command that works on foreign binaries
+# PLYMOUTH_LDD_PATH - optional PATH ldd is run with
+
+[ -z "$PLYMOUTH_LDD" ] && PLYMOUTH_LDD="ldd"
+[ -z "$PLYMOUTH_LDD_PATH" ] && PLYMOUTH_LDD_PATH="$PATH"
 [ -z "$PLYMOUTH_LIBEXECDIR" ] && PLYMOUTH_LIBEXECDIR="@PLYMOUTH_LIBEXECDIR@"
 [ -z "$PLYMOUTH_DATADIR" ] && PLYMOUTH_DATADIR="@PLYMOUTH_DATADIR@"
 [ -z "$PLYMOUTH_PLUGIN_PATH" ] && PLYMOUTH_PLUGIN_PATH="$(plymouth --get-splash-plugin-path)"
@@ -106,12 +114,12 @@ inst_dir() {
     # iterate over parent directories
     for _file in $_dir; do
         [[ -e "${initdir}/$_file" ]] && continue
-        if [[ -L $_file ]]; then
+        if [[ -L $PLYMOUTH_SYSROOT$_file ]]; then
             inst_symlink "$_file"
         else
             # create directory
             mkdir -m 0755 -p "${initdir}/$_file" || return 1
-            [[ -e "$_file" ]] && chmod --reference="$_file" "${initdir}/$_file"
+            [[ -e "$PLYMOUTH_SYSROOT$_file" ]] && chmod --reference="$PLYMOUTH_SYSROOT$_file" "${initdir}/$_file"
             chmod u+w "${initdir}/$_file"
         fi
     done
@@ -122,7 +130,7 @@ inst_dir() {
 # Location of the image dir is assumed to be $initdir
 # We never overwrite the target if it exists.
 inst_simple() {
-    [[ -f "$1" ]] || return 1
+    [[ -f "$PLYMOUTH_SYSROOT$1" ]] || return 1
     strstr "$1" "/" || return 1
 
     local _src=$1 target="${2:-$1}"
@@ -132,11 +140,11 @@ inst_simple() {
         [[ -d "${initdir}/${target%/*}" ]] || inst_dir "${target%/*}"
     fi
     # install checksum files also
-    if [[ -e "${_src%/*}/.${_src##*/}.hmac" ]]; then
+    if [[ -e "$PLYMOUTH_SYSROOT${_src%/*}/.${_src##*/}.hmac" ]]; then
         inst "${_src%/*}/.${_src##*/}.hmac" "${target%/*}/.${target##*/}.hmac"
     fi
     ddebug "Installing $_src"
-    cp --sparse=always -pfL "$_src" "${initdir}/$target"
+    cp --sparse=always -pfL "$PLYMOUTH_SYSROOT$_src" "${initdir}/$target"
 }
 
 # find symlinks linked to given library file
@@ -158,7 +166,7 @@ rev_lib_symlinks() {
 
     until [[ ${fn##*.} == so ]]; do
         fn="${fn%.*}"
-        [[ -L ${fn} && $(readlink -f "${fn}") == ${orig} ]] && links+=" ${fn}"
+        [[ -L $PLYMOUTH_SYSROOT${fn} && $(readlink -f "$PLYMOUTH_SYSROOT${fn}") == ${orig} ]] && links+=" ${fn}"
     done
 
     echo "${links}"
@@ -171,15 +179,19 @@ inst_library() {
     local _src="$1" _dest=${2:-$1} _reallib _symlink
     strstr "$1" "/" || return 1
     [[ -e $initdir/$_dest ]] && return 0
-    if [[ -L $_src ]]; then
+    if [[ -L $PLYMOUTH_SYSROOT$_src ]]; then
         # install checksum files also
-        if [[ -e "${_src%/*}/.${_src##*/}.hmac" ]]; then
+        if [[ -e "$PLYMOUTH_SYSROOT${_src%/*}/.${_src##*/}.hmac" ]]; then
             inst "${_src%/*}/.${_src##*/}.hmac" "${_dest%/*}/.${_dest##*/}.hmac"
         fi
-        _reallib=$(readlink -f "$_src")
+        _reallib=$(readlink -f "$PLYMOUTH_SYSROOT$_src")
+        _reallib=${_reallib#$PLYMOUTH_SYSROOT}
         inst_simple "$_reallib" "$_reallib"
         inst_dir "${_dest%/*}"
-        [[ -d "${_dest%/*}" ]] && _dest=$(readlink -f "${_dest%/*}")/${_dest##*/}
+        if [[ -d "$PLYMOUTH_SYSROOT${_dest%/*}" ]]; then
+            _dest=$(readlink -f "$PLYMOUTH_SYSROOT${_dest%/*}")/${_dest##*/}
+            _dest=${_dest#$PLYMOUTH_SYSROOT}
+        fi
         ln -sfn $(convert_abs_rel "${_dest}" "${_reallib}") "${initdir}/${_dest}"
     else
         inst_simple "$_src" "$_dest"
@@ -197,13 +209,23 @@ inst_library() {
 # find a binary.  If we were not passed the full path directly,
 # search in the usual places to find the binary.
 find_binary() {
-    if [[ -z ${1##/*} ]]; then
-        if [[ -x $1 ]] || { strstr "$1" ".so" && ldd $1 &>/dev/null; };  then
-            echo $1
+    local _delim
+    [[ -z ${1##/*} ]] || _delim="/"
+
+    if [[ "$1" == *.so* ]]; then
+        if { PATH="$PLYMOUTH_LDD_PATH" $PLYMOUTH_LDD "$PLYMOUTH_SYSROOT$_delim$1" &>/dev/null; }; then
+            printf "%s\n" "$1"
+            return 0
+        fi
+    fi
+    if [[ "$1" == */* ]]; then
+        if [[ -L $PLYMOUTH_SYSROOT$_delim$1 ]] || [[ -x $PLYMOUTH_SYSROOT$_delim$1 ]]; then
+            printf "%s\n" "$1"
             return 0
         fi
     fi
 
+    [[ -n "$PLYMOUTH_SYSROOT" ]] && return 1
     type -P $1
 }
 
@@ -218,7 +240,7 @@ inst_binary() {
     local _file _line
     local _so_regex='([^ ]*/lib[^/]*/[^ ]*\.so[^ ]*)'
     # I love bash!
-    LC_ALL=C ldd "$_bin" 2>/dev/null | while read _line; do
+    LC_ALL=C PATH="$PLYMOUTH_LDD_PATH" $PLYMOUTH_LDD "$PLYMOUTH_SYSROOT$_bin" 2>/dev/null | while read _line; do
         [[ $_line = 'not a dynamic executable' ]] && break
 
         if [[ $_line =~ $_so_regex ]]; then
@@ -230,7 +252,7 @@ inst_binary() {
 
         if [[ $_line =~ not\ found ]]; then
             dfatal "Missing a shared library required by $_bin."
-            dfatal "Run \"ldd $_bin\" to find out what it is."
+            dfatal "Run \"$PLYMOUTH_LDD $_bin\" to find out what it is."
             dfatal "$_line"
             dfatal "dracut cannot create an initrd."
             exit 1
@@ -246,7 +268,7 @@ inst_script() {
     _bin=$(find_binary "$1") || return 1
     shift
     local _line _shebang_regex
-    read -r -n 80 _line <"$_bin"
+    read -r -n 80 _line <"$PLYMOUTH_SYSROOT$_bin"
     # If debug is set, clean unprintable chars to prevent messing up the term
     [[ $debug ]] && _line=$(echo -n "$_line" | tr -c -d '[:print:][:space:]')
     _shebang_regex='(#! *)(/[^ ]+).*'
@@ -258,11 +280,12 @@ inst_script() {
 inst_symlink() {
     local _src=$1 _target=${2:-$1} _realsrc
     strstr "$1" "/" || return 1
-    [[ -L $1 ]] || return 1
+    [[ -L $PLYMOUTH_SYSROOT$_src ]] || return 1
     [[ -L $initdir/$_target ]] && return 0
-    _realsrc=$(readlink -f "$_src")
+    _realsrc=$(readlink -f "$PLYMOUTH_SYSROOT$_src")
+    _realsrc=${_realsrc#$PLYMOUTH_SYSROOT}
     if ! [[ -e $initdir/$_realsrc ]]; then
-        if [[ -d $_realsrc ]]; then
+        if [[ -d $PLYMOUTH_SYSROOT$_realsrc ]]; then
             inst_dir "$_realsrc"
         else
             inst "$_realsrc"
@@ -327,7 +350,7 @@ inst_any() {
     [[ $1 = '-d' ]] && to="$2" && shift 2
 
     for f in "$@"; do
-        if [[ -e $f ]]; then
+        if [[ -e $PLYMOUTH_SYSROOT$f ]]; then
             [[ $to ]] && inst "$f" "$to" && return 0
             inst "$f" && return 0
         fi
@@ -337,11 +360,12 @@ inst_any() {
 }
 
 inst_recur() {
-    for x in "${1%/}"/* ; do
-        if [[ -d "$x" ]]; then
+    for x in "$PLYMOUTH_SYSROOT${1%/}"/* ; do
+        x=${x#$PLYMOUTH_SYSROOT}
+        if [[ -d "$PLYMOUTH_SYSROOT$x" ]]; then
             inst_dir "$x"
             inst_recur "$x"
-        elif [[ -f "$x" ]]; then
+        elif [[ -f "$PLYMOUTH_SYSROOT$x" ]]; then
             inst "$x"
         else
             break
@@ -385,6 +409,10 @@ done
 
 [ -z "$INITRDDIR" ] && usage error
 
+ddebug "Running with PLYMOUTH_SYSROOT=$PLYMOUTH_SYSROOT"
+ddebug "Running with PLYMOUTH_LDD=$PLYMOUTH_LDD"
+ddebug "Running with PLYMOUTH_LDD_PATH=$PLYMOUTH_LDD_PATH"
+
 mkdir -p ${INITRDDIR}${PLYMOUTH_DATADIR}/plymouth/themes
 inst ${PLYMOUTH_DAEMON_PATH} $INITRDDIR
 inst ${PLYMOUTH_CLIENT_PATH} $INITRDDIR
@@ -411,27 +439,33 @@ if [ $THEME_OVERRIDE ]; then
     sed -i "s/^ *Theme *=.*/# theme modified by plymouth-populate-initrd\nTheme=$PLYMOUTH_THEME_NAME/" $conf
 fi
 
-PLYMOUTH_MODULE_NAME=$(grep "ModuleName *= *" ${PLYMOUTH_DATADIR}/plymouth/themes/${PLYMOUTH_THEME_NAME}/${PLYMOUTH_THEME_NAME}.plymouth | sed 's/ModuleName *= *//')
+PLYMOUTH_MODULE_NAME=$(grep "ModuleName *= *" ${PLYMOUTH_SYSROOT}${PLYMOUTH_DATADIR}/plymouth/themes/${PLYMOUTH_THEME_NAME}/${PLYMOUTH_THEME_NAME}.plymouth | sed 's/ModuleName *= *//')
+PLYMOUTH_THEME_DIR="${PLYMOUTH_DATADIR}/plymouth/themes/${PLYMOUTH_THEME_NAME}"
+PLYMOUTH_IMAGE_DIR=$(grep "ImageDir *= *" ${PLYMOUTH_SYSROOT}${PLYMOUTH_THEME_DIR}/${PLYMOUTH_THEME_NAME}.plymouth | sed 's/ImageDir *= *//')
 
-if [ ! -f ${PLYMOUTH_PLUGIN_PATH}/${PLYMOUTH_MODULE_NAME}.so ]; then
+if [ ! -f ${PLYMOUTH_SYSROOT}${PLYMOUTH_PLUGIN_PATH}/${PLYMOUTH_MODULE_NAME}.so ]; then
     echo "The default plymouth plugin (${PLYMOUTH_MODULE_NAME}) doesn't exist" >&2
     exit 1
 fi
 
 inst ${PLYMOUTH_PLUGIN_PATH}/${PLYMOUTH_MODULE_NAME}.so $INITRDDIR
 
-[ -f "${PLYMOUTH_PLUGIN_PATH}/renderers/drm.so" ] && inst ${PLYMOUTH_PLUGIN_PATH}/renderers/drm.so $INITRDDIR
+[ -f "${PLYMOUTH_SYSROOT}${PLYMOUTH_PLUGIN_PATH}/renderers/drm.so" ] && inst ${PLYMOUTH_PLUGIN_PATH}/renderers/drm.so $INITRDDIR
 inst ${PLYMOUTH_PLUGIN_PATH}/renderers/frame-buffer.so $INITRDDIR
 
-if [ -d ${PLYMOUTH_DATADIR}/plymouth/themes/${PLYMOUTH_THEME_NAME} ]; then
-     inst_recur "${PLYMOUTH_DATADIR}/plymouth/themes/${PLYMOUTH_THEME_NAME}"
+if [ -d "${PLYMOUTH_SYSROOT}${PLYMOUTH_THEME_DIR}" ]; then
+     inst_recur "${PLYMOUTH_THEME_DIR}"
 fi
 
-if [ -L ${PLYMOUTH_DATADIR}/plymouth/themes/default.plymouth ]; then
-    cp -a ${PLYMOUTH_DATADIR}/plymouth/themes/default.plymouth $INITRDDIR${PLYMOUTH_DATADIR}/plymouth/themes
+if [ "${PLYMOUTH_IMAGE_DIR}" != "${PLYMOUTH_THEME_DIR}" -a -d "${PLYMOUTH_SYSROOT}${PLYMOUTH_IMAGE_DIR}" ]; then
+     inst_recur "${PLYMOUTH_IMAGE_DIR}"
 fi
 
-if [ -n "$SYSTEMD_UNIT_DIR" -a -d "$SYSTEMD_UNIT_DIR" ]; then
+if [ -L ${PLYMOUTH_SYSROOT}${PLYMOUTH_DATADIR}/plymouth/themes/default.plymouth ]; then
+    cp -a ${PLYMOUTH_SYSROOT}${PLYMOUTH_DATADIR}/plymouth/themes/default.plymouth $INITRDDIR${PLYMOUTH_DATADIR}/plymouth/themes
+fi
+
+if [ -n "$SYSTEMD_UNIT_DIR" -a -d "${PLYMOUTH_SYSROOT}$SYSTEMD_UNIT_DIR" ]; then
     inst $SYSTEMD_UNIT_DIR/systemd-ask-password-plymouth.path $INITRDDIR
     inst $SYSTEMD_UNIT_DIR/systemd-ask-password-plymouth.service $INITRDDIR
 

@@ -11,5 +11,6 @@ ConditionVirtualization=!container
 ExecStart=/usr/sbin/plymouthd --mode=boot --pid-file=/var/run/plymouth/pid --attach-to-session
 ExecStartPost=-/usr/bin/plymouth show-splash
 Type=forking
+RemainAfterExit=yes
 KillMode=none
 SendSIGKILL=no

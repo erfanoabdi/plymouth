@@ -59,6 +59,12 @@ int  ply_pixel_buffer_get_device_scale (ply_pixel_buffer_t *buffer);
 void ply_pixel_buffer_set_device_scale (ply_pixel_buffer_t *buffer,
                                         int                 scale);
 
+ply_pixel_buffer_rotation_t
+ply_pixel_buffer_get_device_rotation (ply_pixel_buffer_t *buffer);
+/* Note calling this removes all pushed clip-areas */
+void ply_pixel_buffer_set_device_rotation (ply_pixel_buffer_t *buffer,
+                                           ply_pixel_buffer_rotation_t rotation);
+
 unsigned long ply_pixel_buffer_get_width (ply_pixel_buffer_t *buffer);
 unsigned long ply_pixel_buffer_get_height (ply_pixel_buffer_t *buffer);
 
@@ -152,6 +158,12 @@ ply_pixel_buffer_t *ply_pixel_buffer_rotate (ply_pixel_buffer_t *old_buffer,
 ply_pixel_buffer_t *ply_pixel_buffer_tile (ply_pixel_buffer_t *old_buffer,
                                            long                width,
                                            long                height);
+
+/* Return the upright version of a buffer which is non upright.
+ * This is the *only* ply_pixel_buffer function which works correctly with a
+ * non upright buffer as source.
+ */
+ply_pixel_buffer_t *ply_pixel_buffer_rotate_upright (ply_pixel_buffer_t *old_buffer);
 
 #endif
 

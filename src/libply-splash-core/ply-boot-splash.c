@@ -476,6 +476,11 @@ ply_boot_splash_show (ply_boot_splash_t     *splash,
         } else if (splash->mode != PLY_BOOT_SPLASH_MODE_INVALID) {
                 splash->plugin_interface->hide_splash_screen (splash->plugin,
                                                               splash->loop);
+                if (splash->plugin_interface->on_boot_progress != NULL) {
+                        ply_event_loop_stop_watching_for_timeout (splash->loop,
+                                                                  (ply_event_loop_timeout_handler_t)
+                                                                  ply_boot_splash_update_progress, splash);
+                }
         }
 
         ply_trace ("showing splash screen");
@@ -671,9 +676,12 @@ ply_boot_splash_become_idle (ply_boot_splash_t                *splash,
 {
         assert (splash->idle_trigger == NULL);
 
-        if (splash->progress != NULL) {
+        if (splash->plugin_interface->on_boot_progress != NULL &&
+            splash->progress != NULL) {
                 ply_progress_set_percentage (splash->progress, 1.0);
-                ply_boot_splash_update_progress (splash);
+                splash->plugin_interface->on_boot_progress (splash->plugin,
+                                                            ply_progress_get_time (splash->progress),
+                                                            1.0);
         }
 
         ply_trace ("telling splash to become idle");

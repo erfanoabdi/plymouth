@@ -718,6 +718,24 @@ close_input_source (ply_renderer_backend_t      *backend,
         input_source->backend = NULL;
 }
 
+static bool
+get_capslock_state (ply_renderer_backend_t *backend)
+{
+        if (!backend->terminal)
+                return false;
+
+        return ply_terminal_get_capslock_state (backend->terminal);
+}
+
+static const char *
+get_keymap (ply_renderer_backend_t *backend)
+{
+        if (!backend->terminal)
+                return NULL;
+
+        return ply_terminal_get_keymap (backend->terminal);
+}
+
 ply_renderer_plugin_interface_t *
 ply_renderer_backend_get_interface (void)
 {
@@ -739,9 +757,12 @@ ply_renderer_backend_get_interface (void)
                 .open_input_source            = open_input_source,
                 .set_handler_for_input_source = set_handler_for_input_source,
                 .close_input_source           = close_input_source,
-                .get_device_name              = get_device_name
+                .get_device_name              = get_device_name,
+                .get_capslock_state           = get_capslock_state,
+                .get_keymap                   = get_keymap,
         };
 
         return &plugin_interface;
 }
-/* vim: set ts=4 sw=4 et ai ci cino={.5s,^-2,+.5s,t0,g0,e-2,n-2,p2s,(0,=.5s,:.5s */
+
+/* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

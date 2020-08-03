@@ -64,9 +64,9 @@ bool ply_progress_animation_is_hidden (ply_progress_animation_t *progress_animat
 long ply_progress_animation_get_width (ply_progress_animation_t *progress_animation);
 long ply_progress_animation_get_height (ply_progress_animation_t *progress_animation);
 
-void ply_progress_animation_set_percent_done (ply_progress_animation_t *progress_animation,
-                                              double                    percent_done);
-double ply_progress_animation_get_percent_done (ply_progress_animation_t *progress_animation);
+void ply_progress_animation_set_fraction_done (ply_progress_animation_t *progress_animation,
+                                               double                    fraction_done);
+double ply_progress_animation_get_fraction_done (ply_progress_animation_t *progress_animation);
 
 #endif
 

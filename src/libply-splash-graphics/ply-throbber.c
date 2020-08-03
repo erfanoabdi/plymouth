@@ -78,7 +78,7 @@ struct _ply_throbber
         uint32_t             is_stopped : 1;
 };
 
-static void ply_throbber_stop_now (ply_throbber_t *throbber);
+static void ply_throbber_stop_now (ply_throbber_t *throbber, bool redraw);
 
 ply_throbber_t *
 ply_throbber_new (const char *image_dir,
@@ -126,7 +126,7 @@ ply_throbber_free (ply_throbber_t *throbber)
                 return;
 
         if (!throbber->is_stopped)
-                ply_throbber_stop_now (throbber);
+                ply_throbber_stop_now (throbber, false);
 
         ply_throbber_remove_frames (throbber);
         ply_array_free (throbber->frames);
@@ -324,15 +324,18 @@ ply_throbber_start (ply_throbber_t      *throbber,
 }
 
 static void
-ply_throbber_stop_now (ply_throbber_t *throbber)
+ply_throbber_stop_now (ply_throbber_t *throbber, bool redraw)
 {
         throbber->is_stopped = true;
 
-        ply_pixel_display_draw_area (throbber->display,
-                                     throbber->x,
-                                     throbber->y,
-                                     throbber->frame_area.width,
-                                     throbber->frame_area.height);
+        if (redraw) {
+                ply_pixel_display_draw_area (throbber->display,
+                                             throbber->x,
+                                             throbber->y,
+                                             throbber->frame_area.width,
+                                             throbber->frame_area.height);
+        }
+
         if (throbber->loop != NULL) {
                 ply_event_loop_stop_watching_for_timeout (throbber->loop,
                                                           (ply_event_loop_timeout_handler_t)
@@ -356,7 +359,7 @@ ply_throbber_stop (ply_throbber_t *throbber,
         }
 
         if (stop_trigger == NULL) {
-                ply_throbber_stop_now (throbber);
+                ply_throbber_stop_now (throbber, true);
                 return;
         }
 

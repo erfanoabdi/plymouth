@@ -67,7 +67,7 @@ struct _ply_text_progress_bar
         int                 number_of_rows;
         int                 number_of_columns;
 
-        double              percent_done;
+        double              fraction_done;
         uint32_t            is_hidden : 1;
 };
 
@@ -186,9 +186,9 @@ ply_text_progress_bar_draw (ply_text_progress_bar_t *progress_bar)
                                               progress_bar->column,
                                               progress_bar->row);
 
-        brown_fraction = -(progress_bar->percent_done * progress_bar->percent_done) + 2 * progress_bar->percent_done;
-        blue_fraction = progress_bar->percent_done;
-        white_fraction = progress_bar->percent_done * progress_bar->percent_done;
+        brown_fraction = -(progress_bar->fraction_done * progress_bar->fraction_done) + 2 * progress_bar->fraction_done;
+        blue_fraction = progress_bar->fraction_done;
+        white_fraction = progress_bar->fraction_done * progress_bar->fraction_done;
 
         for (i = 0; i < width; i++) {
                 double f;
@@ -262,16 +262,16 @@ ply_text_progress_bar_hide (ply_text_progress_bar_t *progress_bar)
 }
 
 void
-ply_text_progress_bar_set_percent_done (ply_text_progress_bar_t *progress_bar,
-                                        double                   percent_done)
+ply_text_progress_bar_set_fraction_done (ply_text_progress_bar_t *progress_bar,
+                                         double                   fraction_done)
 {
-        progress_bar->percent_done = percent_done;
+        progress_bar->fraction_done = fraction_done;
 }
 
 double
-ply_text_progress_bar_get_percent_done (ply_text_progress_bar_t *progress_bar)
+ply_text_progress_bar_get_fraction_done (ply_text_progress_bar_t *progress_bar)
 {
-        return progress_bar->percent_done;
+        return progress_bar->fraction_done;
 }
 
 int

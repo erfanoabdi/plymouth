@@ -315,7 +315,7 @@ ply_pixel_buffer_fill_area_with_pixel_value (ply_pixel_buffer_t *buffer,
         /* If we're filling the entire buffer with a fully opaque color,
          * then make note of it
          */
-        if (fill_area == &buffer->area &&
+        if (memcmp(fill_area, &buffer->area, sizeof(ply_rectangle_t)) == 0 &&
             (pixel_value >> 24) == 0xff) {
                 buffer->is_opaque = true;
         }
@@ -667,7 +667,13 @@ ply_pixels_interpolate (uint32_t *bytes,
                         ix = x + offset_x;
                         iy = y + offset_y;
 
-                        if (ix < 0 || ix >= width || iy < 0 || iy >= height)
+                        if (ix >= width)
+                                ix = width - 1;
+
+                        if (iy >= height)
+                                iy = height - 1;
+
+                        if (ix < 0 || iy < 0)
                                 pixels[offset_y][offset_x] = 0x00000000;
                         else
                                 pixels[offset_y][offset_x] = bytes[ix + iy * width];
@@ -868,8 +874,8 @@ ply_pixel_buffer_fill_with_buffer_at_opacity_with_clip (ply_pixel_buffer_t *canv
                 if (cropped_area.width == 0 || cropped_area.height == 0)
                         return;
 
-                x = cropped_area.x - x_offset;
-                y = cropped_area.y - y_offset;
+                x = cropped_area.x - x_offset * canvas->device_scale;
+                y = cropped_area.y - y_offset * canvas->device_scale;
 
                 ply_pixel_buffer_copy_area (canvas, source, x, y, &cropped_area);
 
@@ -1079,4 +1085,59 @@ ply_pixel_buffer_set_device_scale (ply_pixel_buffer_t *buffer,
         buffer->logical_area.height = buffer->area.height / scale;
 }
 
-/* vim: set ts=4 sw=4 et ai ci cino={.5s,^-2,+.5s,t0,g0,e-2,n-2,p2s,(0,=.5s,:.5s */
+ply_pixel_buffer_rotation_t
+ply_pixel_buffer_get_device_rotation (ply_pixel_buffer_t *buffer)
+{
+        return buffer->device_rotation;
+}
+
+void
+ply_pixel_buffer_set_device_rotation (ply_pixel_buffer_t *buffer,
+                                      ply_pixel_buffer_rotation_t device_rotation)
+{
+        if (buffer->device_rotation == device_rotation)
+                return;
+
+        buffer->device_rotation = device_rotation;
+
+        if (device_rotation == PLY_PIXEL_BUFFER_ROTATE_CLOCKWISE ||
+            device_rotation == PLY_PIXEL_BUFFER_ROTATE_COUNTER_CLOCKWISE) {
+                unsigned long tmp = buffer->area.width;
+                buffer->area.width = buffer->area.height;
+                buffer->area.height = tmp;
+
+                ply_pixel_buffer_set_device_scale (buffer, buffer->device_scale);
+        }
+
+        while (ply_list_get_length (buffer->clip_areas) > 0) {
+                ply_pixel_buffer_pop_clip_area (buffer);
+        }
+        ply_pixel_buffer_push_clip_area (buffer, &buffer->area);
+}
+
+ply_pixel_buffer_t *
+ply_pixel_buffer_rotate_upright (ply_pixel_buffer_t *old_buffer)
+{
+        ply_pixel_buffer_t *buffer;
+        int x,y, width, height;
+        uint32_t pixel;
+
+        width = old_buffer->area.width;
+        height = old_buffer->area.height;
+
+        buffer = ply_pixel_buffer_new (width, height);
+
+        for (y = 0; y < height; y++) {
+                for (x = 0; x < width; x++) {
+                        pixel = ply_pixel_buffer_get_pixel (old_buffer, x, y);
+                        ply_pixel_buffer_set_pixel (buffer, x, y, pixel);
+                }
+        }
+
+        ply_pixel_buffer_set_device_scale (buffer, old_buffer->device_scale);
+        ply_pixel_buffer_set_opaque (buffer, old_buffer->is_opaque);
+
+        return buffer;
+}
+
+/* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

@@ -782,38 +782,46 @@ static void
 on_change_mode_request (state_t    *state,
                         const char *command)
 {
-        bool boot_up;
-        bool shutdown;
-        bool updates;
+        bool boot_up = false;
+        bool shutdown = false;
+        bool reboot = false;
+        bool updates = false;
+        bool system_upgrade = false;
+        bool firmware_upgrade = false;
+        const char *mode = NULL;
 
-        boot_up = false;
-        shutdown = false;
-        updates = false;
         ply_command_parser_get_command_options (state->command_parser,
                                                 command,
                                                 "boot-up", &boot_up,
                                                 "shutdown", &shutdown,
+                                                "reboot", &reboot,
                                                 "updates", &updates,
+                                                "system-upgrade", &system_upgrade,
+                                                "firmware-upgrade", &firmware_upgrade,
                                                 NULL);
 
-        if (boot_up) {
-                ply_boot_client_change_mode (state->client, "boot-up",
+        if (boot_up)
+                mode = "boot-up";
+        else if (shutdown)
+                mode = "shutdown";
+        else if (reboot)
+                mode = "reboot";
+        else if (updates)
+                mode = "updates";
+        else if (system_upgrade)
+                mode = "system-upgrade";
+        else if (firmware_upgrade)
+                mode = "firmware-upgrade";
+
+        if (mode) {
+                ply_boot_client_change_mode (state->client, mode,
                                              (ply_boot_client_response_handler_t)
                                              on_success,
                                              (ply_boot_client_response_handler_t)
                                              on_failure, state);
-        } else if (shutdown) {
-                ply_boot_client_change_mode (state->client, "shutdown",
-                                             (ply_boot_client_response_handler_t)
-                                             on_success,
-                                             (ply_boot_client_response_handler_t)
-                                             on_failure, state);
-        } else if (updates) {
-                ply_boot_client_change_mode (state->client, "updates",
-                                             (ply_boot_client_response_handler_t)
-                                             on_success,
-                                             (ply_boot_client_response_handler_t)
-                                             on_failure, state);
+        } else {
+                ply_error ("Error no mode specified for 'change-mode' command");
+                ply_event_loop_exit (state->loop, 1);
         }
 }
 
@@ -891,7 +899,13 @@ main (int    argc,
                                         PLY_COMMAND_OPTION_TYPE_FLAG,
                                         "shutdown", "Shutting the system down",
                                         PLY_COMMAND_OPTION_TYPE_FLAG,
+                                        "reboot", "Rebooting the system",
+                                        PLY_COMMAND_OPTION_TYPE_FLAG,
                                         "updates", "Applying updates",
+                                        PLY_COMMAND_OPTION_TYPE_FLAG,
+                                        "system-upgrade", "Upgrading the OS to a new version",
+                                        PLY_COMMAND_OPTION_TYPE_FLAG,
+                                        "firmware-upgrade", "Upgrading firmware to a new version",
                                         PLY_COMMAND_OPTION_TYPE_FLAG,
                                         NULL);
 

@@ -55,6 +55,8 @@ ply_renderer_t *ply_renderer_new (ply_renderer_type_t renderer_type,
 void ply_renderer_free (ply_renderer_t *renderer);
 bool ply_renderer_open (ply_renderer_t *renderer);
 void ply_renderer_close (ply_renderer_t *renderer);
+/* Returns true when the heads have changed as a result of the change event */
+bool ply_renderer_handle_change_event (ply_renderer_t *renderer);
 void ply_renderer_activate (ply_renderer_t *renderer);
 void ply_renderer_deactivate (ply_renderer_t *renderer);
 bool ply_renderer_is_active (ply_renderer_t *renderer);
@@ -76,6 +78,15 @@ void ply_renderer_set_handler_for_input_source (ply_renderer_t                  
 
 void ply_renderer_close_input_source (ply_renderer_t              *renderer,
                                       ply_renderer_input_source_t *input_source);
+
+bool ply_renderer_get_panel_properties (ply_renderer_t              *renderer,
+                                        int                         *width,
+                                        int                         *height,
+                                        ply_pixel_buffer_rotation_t *rotation,
+                                        int                         *scale);
+
+bool ply_renderer_get_capslock_state (ply_renderer_t *renderer);
+const char *ply_renderer_get_keymap (ply_renderer_t *renderer);
 #endif
 
 #endif /* PLY_RENDERER_H */

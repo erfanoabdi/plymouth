@@ -38,8 +38,12 @@ typedef enum
 {
         PLY_BOOT_SPLASH_MODE_BOOT_UP,
         PLY_BOOT_SPLASH_MODE_SHUTDOWN,
+        PLY_BOOT_SPLASH_MODE_REBOOT,
         PLY_BOOT_SPLASH_MODE_UPDATES,
-        PLY_BOOT_SPLASH_MODE_INVALID
+        PLY_BOOT_SPLASH_MODE_SYSTEM_UPGRADE,
+        PLY_BOOT_SPLASH_MODE_FIRMWARE_UPGRADE,
+        PLY_BOOT_SPLASH_MODE_INVALID,
+        PLY_BOOT_SPLASH_MODE_COUNT = PLY_BOOT_SPLASH_MODE_FIRMWARE_UPGRADE + 1,
 } ply_boot_splash_mode_t;
 
 typedef struct _ply_boot_splash_plugin ply_boot_splash_plugin_t;
@@ -74,7 +78,7 @@ typedef struct
                                size_t                    size);
         void (*on_boot_progress)(ply_boot_splash_plugin_t *plugin,
                                  double                    duration,
-                                 double                    percent_done);
+                                 double                    fraction_done);
         void (*on_root_mounted)(ply_boot_splash_plugin_t *plugin);
         void (*hide_splash_screen)(ply_boot_splash_plugin_t *plugin,
                                    ply_event_loop_t         *loop);

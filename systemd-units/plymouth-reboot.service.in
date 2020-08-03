@@ -7,6 +7,7 @@ ConditionKernelCommandLine=!plymouth.enable=0
 ConditionVirtualization=!container
 
 [Service]
-ExecStart=@PLYMOUTH_DAEMON_DIR@/plymouthd --mode=shutdown --attach-to-session
+ExecStart=@PLYMOUTH_DAEMON_DIR@/plymouthd --mode=reboot --attach-to-session
 ExecStartPost=-@PLYMOUTH_CLIENT_DIR@/plymouth show-splash
 Type=forking
+RemainAfterExit=yes

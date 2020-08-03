@@ -587,4 +587,20 @@ ply_keyboard_remove_enter_handler (ply_keyboard_t              *keyboard,
         }
 }
 
-/* vim: set ts=4 sw=4 et ai ci cino={.5s,^-2,+.5s,t0,g0,e-2,n-2,p2s,(0,=.5s,:.5s */
+ply_renderer_t *
+ply_keyboard_get_renderer (ply_keyboard_t *keyboard)
+{
+        assert (keyboard != NULL);
+
+        switch (keyboard->provider_type) {
+        case PLY_KEYBOARD_PROVIDER_TYPE_RENDERER:
+                return keyboard->provider.if_renderer->renderer;
+
+        case PLY_KEYBOARD_PROVIDER_TYPE_TERMINAL:
+                return NULL;
+        }
+
+        return NULL;
+}
+
+/* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

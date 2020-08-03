@@ -25,6 +25,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <sys/types.h>
+#include <time.h>
 #include <unistd.h>
 
 typedef struct _ply_logger ply_logger_t;
@@ -88,11 +89,21 @@ bool ply_logger_is_tracing_enabled (ply_logger_t *logger);
                 _old_errno = errno;                                                        \
                 if (ply_logger_is_tracing_enabled (logger))                                \
                 {                                                                        \
+                        struct timespec timespec = { 0, 0 };                                   \
+                        char buf[128];                                                         \
+                        clock_gettime (CLOCK_MONOTONIC, &timespec);                            \
                         ply_logger_flush (logger);                                             \
+                        snprintf (buf, sizeof(buf),                                            \
+                                  "%02d:%02d:%02d.%03d %s:%d:%s",                              \
+                                  (int)(timespec.tv_sec / 3600),                               \
+                                  (int)((timespec.tv_sec / 60) % 60),                          \
+                                  (int)(timespec.tv_sec % 60),                                 \
+                                  (int)(timespec.tv_nsec / 1000000),                           \
+                                  __FILE__, __LINE__, __func__);                               \
                         errno = _old_errno;                                                    \
                         ply_logger_inject (logger,                                             \
-                                           "[%s:%d] %45.45s:" format "\n",                   \
-                                           __FILE__, __LINE__, __func__, ## args);              \
+                                           "%-75.75s: " format "\n",                           \
+                                           buf, ## args);                                      \
                         ply_logger_flush (logger);                                             \
                         errno = _old_errno;                                                    \
                 }                                                                        \

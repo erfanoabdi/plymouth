@@ -169,4 +169,22 @@ ply_array_steal_uint32_elements (ply_array_t *array)
         return data;
 }
 
+bool
+ply_array_contains_uint32_element (ply_array_t *array, const uint32_t element)
+{
+        uint32_t const *elements;
+        int i, size;
+
+        assert (array->element_type == PLY_ARRAY_ELEMENT_TYPE_UINT32);
+
+        elements = (uint32_t const *) ply_buffer_get_bytes (array->buffer);
+        size = (ply_buffer_get_size (array->buffer) / sizeof(const uint32_t)) - 1;
+
+        for (i = 0; i < size; i++)
+                if (elements[i] == element)
+                        return true;
+
+        return false;
+}
+
 /* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

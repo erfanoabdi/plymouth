@@ -9,8 +9,11 @@ lib_LTLIBRARIES = libply-splash-graphics.la
 libply_splash_graphicsdir = $(includedir)/plymouth-1/ply-splash-graphics
 libply_splash_graphics_HEADERS = \
                                  ply-animation.h                              \
+                                 ply-capslock-icon.h                          \
                                  ply-entry.h                                  \
                                  ply-image.h                                  \
+                                 ply-keymap-icon.h                            \
+                                 ply-keymap-metadata.h                        \
                                  ply-label.h                                  \
                                  ply-label-plugin.h                           \
                                  ply-progress-animation.h                     \
@@ -30,8 +33,10 @@ libply_splash_graphics_la_LDFLAGS = -export-symbols-regex '^[^_].*' \
 libply_splash_graphics_la_SOURCES = \
                                     $(libply_splash_graphics_HEADERS)         \
                                     ply-animation.c                           \
+                                    ply-capslock-icon.c                       \
                                     ply-entry.c                               \
                                     ply-image.c                               \
+                                    ply-keymap-icon.c                         \
                                     ply-label.c                               \
                                     ply-progress-animation.c                  \
                                     ply-progress-bar.c                        \

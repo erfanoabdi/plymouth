@@ -19,6 +19,7 @@ libply_HEADERS = \
 		    ply-list.h                                                \
 		    ply-hashtable.h                                           \
 		    ply-logger.h                                              \
+		    ply-i18n.h                                                \
 		    ply-key-file.h                                            \
 		    ply-progress.h                                            \
 		    ply-rectangle.h                                           \

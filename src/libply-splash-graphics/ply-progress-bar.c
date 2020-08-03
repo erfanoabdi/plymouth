@@ -1,6 +1,6 @@
 /* progress_bar.c - boot progress_bar
  *
- * Copyright (C) 2008 Red Hat, Inc.
+ * Copyright (C) 2008, 2019 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,6 +19,7 @@
  *
  * Written by: Ray Strode <rstrode@redhat.com>
  *             Will Woods <wwoods@redhat.com>
+ *             Hans de Goede <hdegoede@redhat.com>
  */
 #include "config.h"
 
@@ -50,20 +51,14 @@
 #include "ply-image.h"
 #include "ply-utils.h"
 
-#ifndef FRAMES_PER_SECOND
-#define FRAMES_PER_SECOND 30
-#endif
-
-#ifndef BAR_HEIGHT
-#define BAR_HEIGHT 16
-#endif
-
 struct _ply_progress_bar
 {
         ply_pixel_display_t *display;
         ply_rectangle_t      area;
 
-        double               percent_done;
+        uint32_t             fg_color;
+        uint32_t             bg_color;
+        double               fraction_done;
 
         uint32_t             is_hidden : 1;
 };
@@ -76,11 +71,9 @@ ply_progress_bar_new (void)
         progress_bar = calloc (1, sizeof(ply_progress_bar_t));
 
         progress_bar->is_hidden = true;
-        progress_bar->percent_done = 0.0;
-        progress_bar->area.x = 0;
-        progress_bar->area.y = 0;
-        progress_bar->area.width = 0;
-        progress_bar->area.height = BAR_HEIGHT;
+        progress_bar->fg_color = 0xffffffff; /* Solid white */
+        progress_bar->bg_color = 0x01000000; /* Transparent */
+        progress_bar->fraction_done = 0.0;
 
         return progress_bar;
 }
@@ -93,21 +86,6 @@ ply_progress_bar_free (ply_progress_bar_t *progress_bar)
         free (progress_bar);
 }
 
-static void
-ply_progress_bar_update_area (ply_progress_bar_t *progress_bar,
-                              long                x,
-                              long                y)
-{
-        unsigned long display_width;
-
-        progress_bar->area.x = x;
-        progress_bar->area.y = y;
-        progress_bar->area.height = BAR_HEIGHT;
-
-        display_width = ply_pixel_display_get_width (progress_bar->display);
-        progress_bar->area.width = (long) (display_width * progress_bar->percent_done);
-}
-
 void
 ply_progress_bar_draw_area (ply_progress_bar_t *progress_bar,
                             ply_pixel_buffer_t *buffer,
@@ -116,20 +94,23 @@ ply_progress_bar_draw_area (ply_progress_bar_t *progress_bar,
                             unsigned long       width,
                             unsigned long       height)
 {
-        ply_rectangle_t paint_area;
+        ply_rectangle_t fill_area;
 
         if (progress_bar->is_hidden)
                 return;
 
-        paint_area.x = x;
-        paint_area.y = y;
-        paint_area.width = width;
-        paint_area.height = height;
+        /* Note we ignore the passed in area / rectangle to update,
+         * since ply_pixel_display_draw_area() already pushes it to
+         * the buffer's clip_area list.
+         */
 
-        ply_rectangle_intersect (&progress_bar->area, &paint_area, &paint_area);
-        ply_pixel_buffer_fill_with_hex_color (buffer,
-                                              &paint_area,
-                                              0xffffff); /* white */
+        fill_area = progress_bar->area;
+        fill_area.width = progress_bar->area.width * progress_bar->fraction_done;
+        ply_pixel_buffer_fill_with_hex_color (buffer, &fill_area, progress_bar->fg_color);
+
+        fill_area.x = fill_area.x + fill_area.width;
+        fill_area.width = progress_bar->area.width - fill_area.width;
+        ply_pixel_buffer_fill_with_hex_color (buffer, &fill_area, progress_bar->bg_color);
 }
 
 void
@@ -138,7 +119,6 @@ ply_progress_bar_draw (ply_progress_bar_t *progress_bar)
         if (progress_bar->is_hidden)
                 return;
 
-        ply_progress_bar_update_area (progress_bar, progress_bar->area.x, progress_bar->area.y);
         ply_pixel_display_draw_area (progress_bar->display,
                                      progress_bar->area.x,
                                      progress_bar->area.y,
@@ -150,13 +130,17 @@ void
 ply_progress_bar_show (ply_progress_bar_t  *progress_bar,
                        ply_pixel_display_t *display,
                        long                 x,
-                       long                 y)
+                       long                 y,
+                       unsigned long        width,
+                       unsigned long        height)
 {
         assert (progress_bar != NULL);
 
         progress_bar->display = display;
-
-        ply_progress_bar_update_area (progress_bar, x, y);
+        progress_bar->area.x = x;
+        progress_bar->area.y = y;
+        progress_bar->area.height = height;
+        progress_bar->area.width = width;
 
         progress_bar->is_hidden = false;
         ply_progress_bar_draw (progress_bar);
@@ -195,16 +179,27 @@ ply_progress_bar_get_height (ply_progress_bar_t *progress_bar)
 }
 
 void
-ply_progress_bar_set_percent_done (ply_progress_bar_t *progress_bar,
-                                   double              percent_done)
+ply_progress_bar_set_fraction_done (ply_progress_bar_t *progress_bar,
+                                    double              fraction_done)
 {
-        progress_bar->percent_done = percent_done;
+        progress_bar->fraction_done = fraction_done;
+        ply_progress_bar_draw (progress_bar);
 }
 
 double
-ply_progress_bar_get_percent_done (ply_progress_bar_t *progress_bar)
+ply_progress_bar_get_fraction_done (ply_progress_bar_t *progress_bar)
 {
-        return progress_bar->percent_done;
+        return progress_bar->fraction_done;
+}
+
+void
+ply_progress_bar_set_colors (ply_progress_bar_t *progress_bar,
+                             uint32_t            fg_color,
+                             uint32_t            bg_color)
+{
+        progress_bar->fg_color = fg_color;
+        progress_bar->bg_color = bg_color;
+        ply_progress_bar_draw (progress_bar);
 }
 
 /* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

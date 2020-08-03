@@ -40,7 +40,9 @@ void ply_progress_bar_free (ply_progress_bar_t *bar);
 void ply_progress_bar_show (ply_progress_bar_t  *bar,
                             ply_pixel_display_t *display,
                             long                 x,
-                            long                 y);
+                            long                 y,
+                            unsigned long        width,
+                            unsigned long        height);
 void ply_progress_bar_hide (ply_progress_bar_t *bar);
 void ply_progress_bar_draw (ply_progress_bar_t *bar);
 void ply_progress_bar_draw_area (ply_progress_bar_t *bar,
@@ -54,9 +56,13 @@ bool ply_progress_bar_is_hidden (ply_progress_bar_t *bar);
 long ply_progress_bar_get_width (ply_progress_bar_t *bar);
 long ply_progress_bar_get_height (ply_progress_bar_t *bar);
 
-void ply_progress_bar_set_percent_done (ply_progress_bar_t *bar,
-                                        double              percent_done);
-double ply_progress_bar_get_percent_done (ply_progress_bar_t *bar);
+void ply_progress_bar_set_fraction_done (ply_progress_bar_t *bar,
+                                         double              fraction_done);
+double ply_progress_bar_get_fraction_done (ply_progress_bar_t *bar);
+
+void ply_progress_bar_set_colors (ply_progress_bar_t *bar,
+                                  uint32_t            fg_color,
+                                  uint32_t            bg_color);
 #endif
 
 #endif /* PLY_PROGRESS_BAR_H */

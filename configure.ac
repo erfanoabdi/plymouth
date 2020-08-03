@@ -1,4 +1,4 @@
-AC_INIT([plymouth],[0.9.4],[https://bugs.freedesktop.org/enter_bug.cgi?product=plymouth])
+AC_INIT([plymouth],[0.9.5],[https://gitlab.freedesktop.org/plymouth/plymouth/issues])
 AC_CONFIG_SRCDIR(src/main.c)
 AC_CONFIG_HEADER(config.h)
 AC_CONFIG_AUX_DIR(build-tools)
@@ -11,15 +11,18 @@ AM_PROG_CC_C_O
 AC_HEADER_STDC
 AC_C_CONST
 
-AM_INIT_AUTOMAKE([dist-xz no-dist-gzip])
+AM_INIT_AUTOMAKE([dist-xz no-dist-gzip subdir-objects])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 AM_MAINTAINER_MODE([enable])
+
+AM_GNU_GETTEXT_VERSION([0.19.8])
+AM_GNU_GETTEXT([external])
 
 PKG_PROG_PKG_CONFIG
 LT_INIT([dlopen disable-static pic-only])
 
 ## increment if the interface has additions, changes, removals.
-LT_CURRENT=4
+LT_CURRENT=5
 
 ## increment any time the source changes; set to
 ##  0 if you increment CURRENT
@@ -103,12 +106,6 @@ if test x$enable_tracing = xyes; then
   AC_DEFINE(PLY_ENABLE_TRACING, 1, [Build in verbose debug tracing spew])
 fi
 
-AC_ARG_ENABLE(gdm-transition, AS_HELP_STRING([--enable-gdm-transition],[enable smooth transition to gdm]),enable_gdm_transition=$enableval,enable_gdm_transition=no)
-
-if test x$enable_gdm_transition = xyes; then
-  AC_DEFINE(PLY_ENABLE_DEPRECATED_GDM_TRANSITION, 1, [Enable deprecated smooth transition to GDM])
-fi
-
 AC_ARG_ENABLE(upstart-monitoring, AS_HELP_STRING([--enable-upstart-monitoring],[listen for messages on the Upstart D-Bus interface]),enable_upstart_monitoring=$enableval,enable_upstart_monitoring=no)
 if test x$enable_upstart_monitoring = xyes; then
   PKG_CHECK_MODULES(DBUS, [dbus-1])
@@ -140,17 +137,25 @@ if test x$enable_systemd_integration = xyes; then
   AC_SUBST(SYSTEMD_UNIT_DIR)
 fi
 
+AC_ARG_WITH([runtimedir],
+            AC_HELP_STRING([--with-runtimedir=DIR], [runtime data dir [LOCALSTATEDIR/run]]),
+            [plymouthruntimedir=${withval}/plymouth], [plymouthruntimedir=""])
+
 AC_ARG_WITH(system-root-install, AS_HELP_STRING([--with-system-root-install],[Install client in /bin and daemon in /sbin]),with_system_root_install=${withval},with_system_root_install=no)
 AM_CONDITIONAL(WITH_SYSTEM_ROOT_INSTALL,  [test "$with_system_root_install" = yes])
 
 if test x$with_system_root_install = xyes; then
   plymouthclientdir=/bin
   plymouthdaemondir=/sbin
-  plymouthruntimedir=/run/plymouth
+  if (test -z "${plymouthruntimedir}"); then
+    plymouthruntimedir=/run/plymouth
+  fi
 else
   plymouthclientdir=$bindir
   plymouthdaemondir=$sbindir
-  plymouthruntimedir=$localstatedir/run/plymouth
+  if (test -z "${plymouthruntimedir}"); then
+    plymouthruntimedir=$localstatedir/run/plymouth
+  fi
 fi
 AC_SUBST(plymouthclientdir)
 AC_SUBST(plymouthdaemondir)
@@ -286,7 +291,7 @@ AS_AC_EXPAND(PLYMOUTH_LIBDIR, $libdir)
 AS_AC_EXPAND(PLYMOUTH_LIBEXECDIR, $libexecdir)
 AS_AC_EXPAND(PLYMOUTH_DATADIR, $datadir)
 
-AC_CONFIG_FILES([Makefile
+AC_CONFIG_FILES([Makefile po/Makefile.in
            src/libply/Makefile
            src/libply-splash-core/Makefile
            src/libply-splash-graphics/Makefile
@@ -298,7 +303,6 @@ AC_CONFIG_FILES([Makefile
            src/plugins/renderers/drm/Makefile
            src/plugins/renderers/x11/Makefile
            src/plugins/splash/Makefile
-           src/plugins/splash/throbgress/Makefile
            src/plugins/splash/fade-throbber/Makefile
            src/plugins/splash/tribar/Makefile
            src/plugins/splash/text/Makefile
@@ -322,6 +326,7 @@ AC_CONFIG_FILES([Makefile
            themes/glow/Makefile
            themes/spinner/Makefile
            themes/script/Makefile
+           themes/bgrt/Makefile
            images/Makefile
 	   scripts/plymouth-generate-initrd
 	   scripts/plymouth-populate-initrd

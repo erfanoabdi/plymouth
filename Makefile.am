@@ -1,4 +1,4 @@
-SUBDIRS = src themes images scripts systemd-units
+SUBDIRS = src themes images scripts systemd-units po
 
 if BUILD_DOCUMENTATION
 SUBDIRS += docs
@@ -6,7 +6,7 @@ endif
 
 DISTCHECK_CONFIGURE_FLAGS = --disable-tests --disable-systemd-integration
 
-EXTRA_DIST = ChangeLog                                                         \
+EXTRA_DIST = build-tools/config.rpath ChangeLog                                \
              README
 
 MAINTAINERCLEANFILES = aclocal.m4                                              \
@@ -15,3 +15,5 @@ MAINTAINERCLEANFILES = aclocal.m4                                              \
                        config.sub                                              \
                        configure                                               \
                        Makefile.in
+
+ACLOCAL_AMFLAGS = -I m4

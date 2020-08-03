@@ -2,11 +2,12 @@ themedir = $(datadir)/plymouth/themes/spinner
 nodist_theme_DATA = spinner.plymouth
 
 dist_theme_DATA =                                                     \
-                    background-tile.png                               \
-                    box.png                                           \
                     bullet.png                                        \
                     entry.png                                         \
                     lock.png                                          \
+                    capslock.png                                      \
+                    keyboard.png                                      \
+                    keymap-render.png                                 \
                     animation-0001.png                                \
                     animation-0002.png                                \
                     animation-0003.png                                \
@@ -54,13 +55,34 @@ dist_theme_DATA =                                                     \
                     throbber-0009.png                                 \
                     throbber-0010.png                                 \
                     throbber-0011.png                                 \
-                    throbber-0012.png
+                    throbber-0012.png                                 \
+                    throbber-0013.png                                 \
+                    throbber-0014.png                                 \
+                    throbber-0015.png                                 \
+                    throbber-0016.png                                 \
+                    throbber-0017.png                                 \
+                    throbber-0018.png                                 \
+                    throbber-0019.png                                 \
+                    throbber-0020.png                                 \
+                    throbber-0021.png                                 \
+                    throbber-0022.png                                 \
+                    throbber-0023.png                                 \
+                    throbber-0024.png                                 \
+                    throbber-0025.png                                 \
+                    throbber-0026.png                                 \
+                    throbber-0027.png                                 \
+                    throbber-0028.png                                 \
+                    throbber-0029.png                                 \
+                    throbber-0030.png
 
 MAINTAINERCLEANFILES = Makefile.in spinner.plymouth
 CLEANFILES = spinner.plymouth
 
-spinner.plymouth: $(srcdir)/spinner.plymouth.in
+spinner.plymouth: $(srcdir)/spinner.plymouth.desktop
+	$(AM_V_GEN) \
 	sed -e 's,[@]PLYMOUTH_THEME_PATH[@],$(PLYMOUTH_THEME_PATH),g' \
-	       $(srcdir)/spinner.plymouth.in > spinner.plymouth
+	$(srcdir)/spinner.plymouth.desktop | \
+	    $(MSGFMT) --desktop --template /dev/stdin -d $(top_srcdir)/po -o $@
 
-EXTRA_DIST = spinner.plymouth.in
+
+EXTRA_DIST = spinner.plymouth.desktop

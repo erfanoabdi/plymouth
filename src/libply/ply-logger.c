@@ -34,6 +34,7 @@
 #include <sys/file.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "ply-utils.h"
@@ -312,6 +313,9 @@ bool
 ply_logger_open_file (ply_logger_t *logger,
                       const char   *filename)
 {
+        char header[80];
+        struct tm* tm;
+        time_t t;
         int fd;
 
         assert (logger != NULL);
@@ -327,6 +331,15 @@ ply_logger_open_file (ply_logger_t *logger,
         free (logger->filename);
 
         logger->filename = strdup (filename);
+
+        time (&t);
+        tm = localtime (&t);
+        if (tm) {
+                /* This uses uname -v date format */
+                strftime (header, sizeof(header),
+                         "------------ %a %b %d %T %Z %Y ------------\n", tm);
+                ply_logger_write (logger, header, strlen(header), true);
+        }
 
         return true;
 }

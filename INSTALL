@@ -23,7 +23,6 @@ So the basic idea is you need to:
          --with-background-start-color-stop=0x0073B3           \
          --with-background-end-color-stop=0x00457E             \
          --with-background-color=0x3391cd                      \
-         --enable-gdm-transition                               \
          --with-system-root-install                            \
          --with-rhgb-compat-link
 

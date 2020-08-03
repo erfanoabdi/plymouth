@@ -36,12 +36,29 @@ typedef void (ply_key_file_foreach_func_t) (const char *group_name,
 ply_key_file_t *ply_key_file_new (const char *filename);
 void ply_key_file_free (ply_key_file_t *key_file);
 bool ply_key_file_load (ply_key_file_t *key_file);
+/* For loading key=value pair files, which do not have ini style groups.
+ * When a file is loaded this way, NULL must be passed as group_name
+ * for subsequent ply_key_file_get_* calls.
+ */
+bool ply_key_file_load_groupless_file (ply_key_file_t *key_file);
 bool ply_key_file_has_key (ply_key_file_t *key_file,
                            const char     *group_name,
                            const char     *key);
 char *ply_key_file_get_value (ply_key_file_t *key_file,
                               const char     *group_name,
                               const char     *key);
+/* Note this returns false for non existing keys */
+bool ply_key_file_get_bool (ply_key_file_t *key_file,
+                            const char     *group_name,
+                            const char     *key);
+double ply_key_file_get_double (ply_key_file_t *key_file,
+                                const char     *group_name,
+                                const char     *key,
+                                double          default_value);
+double ply_key_file_get_long (ply_key_file_t *key_file,
+                              const char     *group,
+                              const char     *key,
+                              long            default_value);
 void ply_key_file_foreach_entry (ply_key_file_t             *key_file,
                                  ply_key_file_foreach_func_t func,
                                  void                       *user_data);

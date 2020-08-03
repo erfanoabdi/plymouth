@@ -43,6 +43,7 @@ typedef struct
         bool (*open_device)(ply_renderer_backend_t *backend);
         void (*close_device)(ply_renderer_backend_t *backend);
         bool (*query_device)(ply_renderer_backend_t *backend);
+        bool (*handle_change_event)(ply_renderer_backend_t *backend);
         bool (*map_to_device)(ply_renderer_backend_t *backend);
         void (*unmap_from_device)(ply_renderer_backend_t *backend);
         void (*activate)(ply_renderer_backend_t *backend);
@@ -68,6 +69,13 @@ typedef struct
                                    ply_renderer_input_source_t *input_source);
 
         const char * (*get_device_name)(ply_renderer_backend_t *backend);
+        bool (*get_panel_properties)(ply_renderer_backend_t      *backend,
+                                     int                         *width,
+                                     int                         *height,
+                                     ply_pixel_buffer_rotation_t *rotation,
+                                     int                         *scale);
+        bool (*get_capslock_state)(ply_renderer_backend_t *backend);
+        const char * (*get_keymap)(ply_renderer_backend_t *backend);
 } ply_renderer_plugin_interface_t;
 
 #endif /* PLY_RENDERER_PLUGIN_H */

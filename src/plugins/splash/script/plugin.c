@@ -237,12 +237,12 @@ on_timeout (ply_boot_splash_plugin_t *plugin)
 static void
 on_boot_progress (ply_boot_splash_plugin_t *plugin,
                   double                    duration,
-                  double                    percent_done)
+                  double                    fraction_done)
 {
         script_lib_plymouth_on_boot_progress (plugin->script_state,
                                               plugin->script_plymouth_lib,
                                               duration,
-                                              percent_done);
+                                              fraction_done);
 }
 
 static bool
@@ -426,6 +426,15 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
 }
 
 static void
+system_update (ply_boot_splash_plugin_t *plugin,
+               int                       progress)
+{
+        script_lib_plymouth_on_system_update( plugin->script_state,
+                                              plugin->script_plymouth_lib,
+                                              progress);
+}
+
+static void
 update_status (ply_boot_splash_plugin_t *plugin,
                const char               *status)
 {
@@ -534,6 +543,7 @@ ply_boot_splash_plugin_get_interface (void)
                 .add_pixel_display    = add_pixel_display,
                 .remove_pixel_display = remove_pixel_display,
                 .show_splash_screen   = show_splash_screen,
+                .system_update        = system_update,
                 .update_status        = update_status,
                 .on_boot_progress     = on_boot_progress,
                 .hide_splash_screen   = hide_splash_screen,
