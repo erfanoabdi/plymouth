@@ -25,6 +25,7 @@ if [ -n "${THEME}" ]
 then
 	THEME_NAME="${THEME}"
 	THEME="${THEMES}/${THEME}/${THEME}.plymouth"
+	IMAGE_DIR=$(grep "ImageDir *= *" ${THEME} | sed 's/ImageDir *= *//')
 else
 	exit 0
 fi
@@ -53,6 +54,11 @@ fi
 copy_exec "${MODULE}"
 mkdir -p "${DESTDIR}/${THEMES}"
 cp -r "${THEMES}/${THEME_NAME}" "${DESTDIR}/${THEMES}"
+
+if [ -n "${IMAGE_DIR}" ] && [ "${THEMES}/${THEME_NAME}" != "${IMAGE_DIR}" ]
+then
+	cp -r "${IMAGE_DIR}" "${DESTDIR}/${THEMES}"
+fi
 
 # copy binaries and base plugins
 copy_exec /usr/bin/plymouth
