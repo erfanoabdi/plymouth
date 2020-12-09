@@ -1,3 +1,18 @@
+plymouth (0.9.5-2) unstable; urgency=medium
+
+  * debian/local/plymouth.hook: Copy logo-text-version-64.png in the initramfs
+  * Use /etc/default/keyboard if /etc/vconsole.conf is not available. This
+    should fix CAPS lock indicator in some cases. Try to copy both files in
+    the initramfs as well.  See: #968287
+  * debian/local/plymouth.hook: Remove compatibility with wheezy and previous
+    versions. Also, do not copy libpango explicitly but rely on copy_exec to
+    copy it when needed, the label plugin is linked against it.
+  * Copy the Cantarell font to the initramfs as it's used by spinner and bgrt
+    themes
+  * debian/libplymouth5.symbols: Add Build-Depends-Package field
+
+ -- Laurent Bigonville <bigon@debian.org>  Wed, 09 Dec 2020 15:58:50 +0100
+
 plymouth (0.9.5-1) experimental; urgency=medium
 
   * New upstream version 0.9.5
