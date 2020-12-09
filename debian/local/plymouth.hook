@@ -103,33 +103,11 @@ case "${THEME_NAME}" in
 		# fonts-dejavu
 		if [ -e /usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf ]
 		then
-			# jessie
 			mkdir -p "${DESTDIR}/usr/share/fonts/truetype/dejavu"
 			cp -a /usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf "${DESTDIR}/usr/share/fonts/truetype/dejavu"
 			cp -a /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf  "${DESTDIR}/usr/share/fonts/truetype/dejavu"
-		else
-			# wheezy
-			mkdir -p "${DESTDIR}/usr/share/fonts/truetype/ttf-dejavu"
-			cp -a /usr/share/fonts/truetype/ttf-dejavu/DejaVuSerif.ttf "${DESTDIR}/usr/share/fonts/truetype/ttf-dejavu"
-			cp -a /usr/share/fonts/truetype/ttf-dejavu/DejaVuSans.ttf  "${DESTDIR}/usr/share/fonts/truetype/ttf-dejavu"
 		fi
 		fc-cache -s -y "${DESTDIR}" > /dev/null 2>&1
-
-		# pango
-		if ls /usr/lib/@DEB_HOST_MULTIARCH@/pango/1* > /dev/null 2>&1
-		then
-			# wheezy
-			PANGO_VERSION="$(ls /usr/lib/@DEB_HOST_MULTIARCH@/pango)"
-
-			mkdir -p "${DESTDIR}/usr/lib/@DEB_HOST_MULTIARCH@/pango/${PANGO_VERSION}/module-files.d"
-			mkdir -p "${DESTDIR}/usr/lib/@DEB_HOST_MULTIARCH@/pango/${PANGO_VERSION}/modules"
-			cp /usr/lib/@DEB_HOST_MULTIARCH@/pango/${PANGO_VERSION}/module-files.d/libpango1.0-0.modules ${DESTDIR}/usr/lib/@DEB_HOST_MULTIARCH@/pango/${PANGO_VERSION}/module-files.d/
-			copy_exec /usr/lib/@DEB_HOST_MULTIARCH@/pango/${PANGO_VERSION}/modules/pango-basic-fc.so
-		else
-			# jessie
-			copy_exec /usr/lib/@DEB_HOST_MULTIARCH@/libpango-1.0.so.0
-		fi
-
 
 		# copy /etc/default/keyboard and /etc/vconsole.conf (needed for keymap detection)
 		if [ -e /etc/default/keyboard ]
