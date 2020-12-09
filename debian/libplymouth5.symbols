@@ -1,4 +1,5 @@
 libply-boot-client.so.5 libplymouth5 #MINVER#
+* Build-Depends-Package: libplymouth-dev
  ply_boot_client_ask_daemon_for_cached_passwords@Base 0.9.5
  ply_boot_client_ask_daemon_for_password@Base 0.9.5
  ply_boot_client_ask_daemon_has_active_vt@Base 0.9.5
@@ -28,6 +29,7 @@ libply-boot-client.so.5 libplymouth5 #MINVER#
  ply_boot_client_tell_daemon_to_show_splash@Base 0.9.5
  ply_boot_client_update_daemon@Base 0.9.5
 libply-splash-core.so.5 libplymouth5 #MINVER#
+* Build-Depends-Package: libplymouth-dev
  ply_boot_splash_add_pixel_display@Base 0.9.5
  ply_boot_splash_add_text_display@Base 0.9.5
  ply_boot_splash_attach_progress@Base 0.9.5
@@ -220,6 +222,7 @@ libply-splash-core.so.5 libplymouth5 #MINVER#
  ply_text_step_bar_set_fraction_done@Base 0.9.5
  ply_text_step_bar_show@Base 0.9.5
 libply-splash-graphics.so.5 libplymouth5 #MINVER#
+* Build-Depends-Package: libplymouth-dev
  ply_animation_draw_area@Base 0.9.5
  ply_animation_free@Base 0.9.5
  ply_animation_get_height@Base 0.9.5
@@ -322,6 +325,7 @@ libply-splash-graphics.so.5 libplymouth5 #MINVER#
  ply_throbber_stop@Base 0.9.5
  png_header@Base 0.9.5
 libply.so.5 libplymouth5 #MINVER#
+* Build-Depends-Package: libplymouth-dev
  ply_array_add_pointer_element@Base 0.9.5
  ply_array_add_uint32_element@Base 0.9.5
  ply_array_contains_uint32_element@Base 0.9.5
