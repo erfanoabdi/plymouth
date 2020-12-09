@@ -121,16 +121,11 @@ case "${THEME_NAME}" in
 		esac
 		fc-cache -s -y "${DESTDIR}" > /dev/null 2>&1
 
-		# copy /etc/default/keyboard and /etc/vconsole.conf (needed for keymap detection)
+		# copy /etc/default/keyboard (needed for keymap detection)
 		if [ -e /etc/default/keyboard ]
 		then
 			mkdir -p "${DESTDIR}/etc/default"
 			cp /etc/default/keyboard "${DESTDIR}/etc/default"
-		fi
-		if [ -e /etc/vconsole.conf ]
-		then
-			mkdir -p "${DESTDIR}/etc"
-			cp /etc/vconsole.conf "${DESTDIR}/etc"
 		fi
 
 		# for two-step
