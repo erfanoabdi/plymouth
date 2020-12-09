@@ -110,7 +110,7 @@ Architecture: linux-any
 Depends: fontconfig,
          fontconfig-config,
          fonts-cantarell,
-         fonts-dejavu-core | ttf-dejavu-core,
+         fonts-dejavu-core,
          plymouth (= ${binary:Version}),
          plymouth-label (= ${binary:Version}),
          ${misc:Depends},
