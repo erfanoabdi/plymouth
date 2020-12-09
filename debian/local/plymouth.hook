@@ -130,6 +130,19 @@ case "${THEME_NAME}" in
 			copy_exec /usr/lib/@DEB_HOST_MULTIARCH@/libpango-1.0.so.0
 		fi
 
+
+		# copy /etc/default/keyboard and /etc/vconsole.conf (needed for keymap detection)
+		if [ -e /etc/default/keyboard ]
+		then
+			mkdir -p "${DESTDIR}/etc/default"
+			cp /etc/default/keyboard "${DESTDIR}/etc/default"
+		fi
+		if [ -e /etc/vconsole.conf ]
+		then
+			mkdir -p "${DESTDIR}/etc"
+			cp /etc/vconsole.conf "${DESTDIR}/etc"
+		fi
+
 		# for two-step
 		case "$(sed -n 's/^ModuleName=\(.*\)/\1/p' ${THEME})" in
 			two-step)

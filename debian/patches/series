@@ -2,3 +2,4 @@
 0005-cmdline.patch
 0008-show-delay.patch
 drop-systemd-vconsole-setup-service.patch
+fallback-etc-default-keyboard.patch
