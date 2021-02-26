@@ -7,7 +7,7 @@ Description: Ship configuration file with default theme set (Closes: #594999).
  # Administrator customizations go in this file
  #[Daemon]
 -#Theme=fade-in
-+#Theme=futureprototype
++#Theme=homeworld
 --- a/src/plymouthd.defaults
 +++ b/src/plymouthd.defaults
 @@ -1,6 +1,6 @@
@@ -15,6 +15,6 @@ Description: Ship configuration file with default theme set (Closes: #594999).
  # upgrades.
  [Daemon]
 -Theme=spinner
-+Theme=futureprototype
++Theme=homeworld
  ShowDelay=0
  DeviceTimeout=8
