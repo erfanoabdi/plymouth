@@ -1,3 +1,15 @@
+plymouth (0.9.5-3) unstable; urgency=medium
+
+  [ Laurent Bigonville ]
+  * debian/control: Remove dependency the ttf-dejavu-core alternative
+  * Don't use /etc/vconsole.conf after all as it's not used anywhere in debian
+  * d/p/0003-default-theme.patch: Switch to homeworld for bullseye
+
+  [ Simon McVittie ]
+  * Unfuzz 0008-show-delay.patch to apply cleanly
+
+ -- Laurent Bigonville <bigon@debian.org>  Tue, 02 Mar 2021 13:18:12 +0100
+
 plymouth (0.9.5-2) unstable; urgency=medium
 
   * debian/local/plymouth.hook: Copy logo-text-version-64.png in the initramfs
