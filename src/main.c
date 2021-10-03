@@ -898,8 +898,8 @@ plymouth_should_show_default_splash (state_t *state)
                 return true;
         }
 
-        ply_trace ("no default splash because kernel command line lacks \"splash\" or \"rhgb\"");
-        return false;
+        ply_trace ("using default splash because kernel command line lacks \"splash\" or \"rhgb\"");
+        return true;
 }
 
 static void
