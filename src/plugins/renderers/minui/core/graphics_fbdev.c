@@ -32,6 +32,8 @@
 #include "minui.h"
 #include "graphics.h"
 
+#define RECOVERY_BGRA 1
+
 static gr_surface fbdev_init(minui_backend *, bool);
 static gr_surface fbdev_flip(minui_backend *);
 static void fbdev_blank(minui_backend *, bool);
