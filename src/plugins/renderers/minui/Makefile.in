@@ -88,7 +88,7 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-subdir = src/plugins/renderers/frame-buffer
+subdir = src/plugins/renderers/minui
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/acinclude.m4 \
 	$(top_srcdir)/configure.ac
@@ -129,19 +129,21 @@ am__uninstall_files_from_dir = { \
 am__installdirs = "$(DESTDIR)$(plugindir)"
 LTLIBRARIES = $(plugin_LTLIBRARIES)
 am__DEPENDENCIES_1 =
-frame_buffer_la_DEPENDENCIES = $(am__DEPENDENCIES_1) \
-	../../../libply/libply.la \
+minui_la_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1) ../../../libply/libply.la \
 	../../../libply-splash-core/libply-splash-core.la
-am_frame_buffer_la_OBJECTS = frame_buffer_la-plugin.lo
-frame_buffer_la_OBJECTS = $(am_frame_buffer_la_OBJECTS)
+am__dirstamp = $(am__leading_dot)dirstamp
+am_minui_la_OBJECTS = minui_la-plugin.lo core/minui_la-graphics.lo \
+	core/minui_la-graphics_fbdev.lo core/minui_la-events.lo \
+	core/minui_la-resources.lo core/minui_la-graphics_drm.lo
+minui_la_OBJECTS = $(am_minui_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 am__v_lt_1 = 
-frame_buffer_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
-	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
-	$(frame_buffer_la_CFLAGS) $(CFLAGS) $(frame_buffer_la_LDFLAGS) \
-	$(LDFLAGS) -o $@
+minui_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(minui_la_CFLAGS) \
+	$(CFLAGS) $(minui_la_LDFLAGS) $(LDFLAGS) -o $@
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -157,7 +159,12 @@ am__v_at_1 =
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/build-tools/depcomp
 am__maybe_remake_depfiles = depfiles
-am__depfiles_remade = ./$(DEPDIR)/frame_buffer_la-plugin.Plo
+am__depfiles_remade = ./$(DEPDIR)/minui_la-plugin.Plo \
+	core/$(DEPDIR)/minui_la-events.Plo \
+	core/$(DEPDIR)/minui_la-graphics.Plo \
+	core/$(DEPDIR)/minui_la-graphics_drm.Plo \
+	core/$(DEPDIR)/minui_la-graphics_fbdev.Plo \
+	core/$(DEPDIR)/minui_la-resources.Plo
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -177,8 +184,8 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = $(frame_buffer_la_SOURCES)
-DIST_SOURCES = $(frame_buffer_la_SOURCES)
+SOURCES = $(minui_la_SOURCES)
+DIST_SOURCES = $(minui_la_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -391,17 +398,24 @@ AM_CPPFLAGS = -I$(top_srcdir)                                                 \
            -I$(srcdir)/../../..                                               \
            -I$(srcdir)/../..                                                  \
            -I$(srcdir)/..                                                     \
-           -I$(srcdir)
+           -I$(srcdir)                                                        \
+           -I$(srcdir)/core
 
 plugindir = $(libdir)/plymouth/renderers
-plugin_LTLIBRARIES = frame-buffer.la
-frame_buffer_la_CFLAGS = $(PLYMOUTH_CFLAGS)
-frame_buffer_la_LDFLAGS = -module -avoid-version -export-dynamic
-frame_buffer_la_LIBADD = $(PLYMOUTH_LIBS)                                     \
-                         ../../../libply/libply.la                            \
-                         ../../../libply-splash-core/libply-splash-core.la
+plugin_LTLIBRARIES = minui.la
+minui_la_CFLAGS = $(PLYMOUTH_CFLAGS) $(DRM_CFLAGS) $(IMAGE_CFLAGS)
+minui_la_LDFLAGS = -module -avoid-version -export-dynamic
+minui_la_LIBADD = $(PLYMOUTH_LIBS) $(DRM_LIBS) $(IMAGE_LIBS)           \
+                  ../../../libply/libply.la                            \
+                  ../../../libply-splash-core/libply-splash-core.la
 
-frame_buffer_la_SOURCES = $(srcdir)/plugin.c
+minui_la_SOURCES = $(srcdir)/plugin.c                                  \
+                   $(srcdir)/core/graphics.c                           \
+                   $(srcdir)/core/graphics_fbdev.c                     \
+                   $(srcdir)/core/events.c                             \
+                   $(srcdir)/core/resources.c                          \
+                   $(srcdir)/core/graphics_drm.c
+
 MAINTAINERCLEANFILES = Makefile.in
 all: all-am
 
@@ -416,9 +430,9 @@ $(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am  $(am__confi
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu src/plugins/renderers/frame-buffer/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu src/plugins/renderers/minui/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --gnu src/plugins/renderers/frame-buffer/Makefile
+	  $(AUTOMAKE) --gnu src/plugins/renderers/minui/Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
 	  *config.status*) \
@@ -471,17 +485,40 @@ clean-pluginLTLIBRARIES:
 	  echo rm -f $${locs}; \
 	  rm -f $${locs}; \
 	}
+core/$(am__dirstamp):
+	@$(MKDIR_P) core
+	@: > core/$(am__dirstamp)
+core/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) core/$(DEPDIR)
+	@: > core/$(DEPDIR)/$(am__dirstamp)
+core/minui_la-graphics.lo: core/$(am__dirstamp) \
+	core/$(DEPDIR)/$(am__dirstamp)
+core/minui_la-graphics_fbdev.lo: core/$(am__dirstamp) \
+	core/$(DEPDIR)/$(am__dirstamp)
+core/minui_la-events.lo: core/$(am__dirstamp) \
+	core/$(DEPDIR)/$(am__dirstamp)
+core/minui_la-resources.lo: core/$(am__dirstamp) \
+	core/$(DEPDIR)/$(am__dirstamp)
+core/minui_la-graphics_drm.lo: core/$(am__dirstamp) \
+	core/$(DEPDIR)/$(am__dirstamp)
 
-frame-buffer.la: $(frame_buffer_la_OBJECTS) $(frame_buffer_la_DEPENDENCIES) $(EXTRA_frame_buffer_la_DEPENDENCIES) 
-	$(AM_V_CCLD)$(frame_buffer_la_LINK) -rpath $(plugindir) $(frame_buffer_la_OBJECTS) $(frame_buffer_la_LIBADD) $(LIBS)
+minui.la: $(minui_la_OBJECTS) $(minui_la_DEPENDENCIES) $(EXTRA_minui_la_DEPENDENCIES) 
+	$(AM_V_CCLD)$(minui_la_LINK) -rpath $(plugindir) $(minui_la_OBJECTS) $(minui_la_LIBADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
+	-rm -f core/*.$(OBJEXT)
+	-rm -f core/*.lo
 
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/frame_buffer_la-plugin.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/minui_la-plugin.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@core/$(DEPDIR)/minui_la-events.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@core/$(DEPDIR)/minui_la-graphics.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@core/$(DEPDIR)/minui_la-graphics_drm.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@core/$(DEPDIR)/minui_la-graphics_fbdev.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@core/$(DEPDIR)/minui_la-resources.Plo@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
 	@$(MKDIR_P) $(@D)
@@ -513,18 +550,54 @@ am--depfiles: $(am__depfiles_remade)
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LTCOMPILE) -c -o $@ $<
 
-frame_buffer_la-plugin.lo: plugin.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(frame_buffer_la_CFLAGS) $(CFLAGS) -MT frame_buffer_la-plugin.lo -MD -MP -MF $(DEPDIR)/frame_buffer_la-plugin.Tpo -c -o frame_buffer_la-plugin.lo `test -f 'plugin.c' || echo '$(srcdir)/'`plugin.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/frame_buffer_la-plugin.Tpo $(DEPDIR)/frame_buffer_la-plugin.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='plugin.c' object='frame_buffer_la-plugin.lo' libtool=yes @AMDEPBACKSLASH@
+minui_la-plugin.lo: plugin.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(minui_la_CFLAGS) $(CFLAGS) -MT minui_la-plugin.lo -MD -MP -MF $(DEPDIR)/minui_la-plugin.Tpo -c -o minui_la-plugin.lo `test -f 'plugin.c' || echo '$(srcdir)/'`plugin.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/minui_la-plugin.Tpo $(DEPDIR)/minui_la-plugin.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='plugin.c' object='minui_la-plugin.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(frame_buffer_la_CFLAGS) $(CFLAGS) -c -o frame_buffer_la-plugin.lo `test -f 'plugin.c' || echo '$(srcdir)/'`plugin.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(minui_la_CFLAGS) $(CFLAGS) -c -o minui_la-plugin.lo `test -f 'plugin.c' || echo '$(srcdir)/'`plugin.c
+
+core/minui_la-graphics.lo: core/graphics.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(minui_la_CFLAGS) $(CFLAGS) -MT core/minui_la-graphics.lo -MD -MP -MF core/$(DEPDIR)/minui_la-graphics.Tpo -c -o core/minui_la-graphics.lo `test -f 'core/graphics.c' || echo '$(srcdir)/'`core/graphics.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) core/$(DEPDIR)/minui_la-graphics.Tpo core/$(DEPDIR)/minui_la-graphics.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='core/graphics.c' object='core/minui_la-graphics.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(minui_la_CFLAGS) $(CFLAGS) -c -o core/minui_la-graphics.lo `test -f 'core/graphics.c' || echo '$(srcdir)/'`core/graphics.c
+
+core/minui_la-graphics_fbdev.lo: core/graphics_fbdev.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(minui_la_CFLAGS) $(CFLAGS) -MT core/minui_la-graphics_fbdev.lo -MD -MP -MF core/$(DEPDIR)/minui_la-graphics_fbdev.Tpo -c -o core/minui_la-graphics_fbdev.lo `test -f 'core/graphics_fbdev.c' || echo '$(srcdir)/'`core/graphics_fbdev.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) core/$(DEPDIR)/minui_la-graphics_fbdev.Tpo core/$(DEPDIR)/minui_la-graphics_fbdev.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='core/graphics_fbdev.c' object='core/minui_la-graphics_fbdev.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(minui_la_CFLAGS) $(CFLAGS) -c -o core/minui_la-graphics_fbdev.lo `test -f 'core/graphics_fbdev.c' || echo '$(srcdir)/'`core/graphics_fbdev.c
+
+core/minui_la-events.lo: core/events.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(minui_la_CFLAGS) $(CFLAGS) -MT core/minui_la-events.lo -MD -MP -MF core/$(DEPDIR)/minui_la-events.Tpo -c -o core/minui_la-events.lo `test -f 'core/events.c' || echo '$(srcdir)/'`core/events.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) core/$(DEPDIR)/minui_la-events.Tpo core/$(DEPDIR)/minui_la-events.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='core/events.c' object='core/minui_la-events.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(minui_la_CFLAGS) $(CFLAGS) -c -o core/minui_la-events.lo `test -f 'core/events.c' || echo '$(srcdir)/'`core/events.c
+
+core/minui_la-resources.lo: core/resources.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(minui_la_CFLAGS) $(CFLAGS) -MT core/minui_la-resources.lo -MD -MP -MF core/$(DEPDIR)/minui_la-resources.Tpo -c -o core/minui_la-resources.lo `test -f 'core/resources.c' || echo '$(srcdir)/'`core/resources.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) core/$(DEPDIR)/minui_la-resources.Tpo core/$(DEPDIR)/minui_la-resources.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='core/resources.c' object='core/minui_la-resources.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(minui_la_CFLAGS) $(CFLAGS) -c -o core/minui_la-resources.lo `test -f 'core/resources.c' || echo '$(srcdir)/'`core/resources.c
+
+core/minui_la-graphics_drm.lo: core/graphics_drm.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(minui_la_CFLAGS) $(CFLAGS) -MT core/minui_la-graphics_drm.lo -MD -MP -MF core/$(DEPDIR)/minui_la-graphics_drm.Tpo -c -o core/minui_la-graphics_drm.lo `test -f 'core/graphics_drm.c' || echo '$(srcdir)/'`core/graphics_drm.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) core/$(DEPDIR)/minui_la-graphics_drm.Tpo core/$(DEPDIR)/minui_la-graphics_drm.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='core/graphics_drm.c' object='core/minui_la-graphics_drm.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(minui_la_CFLAGS) $(CFLAGS) -c -o core/minui_la-graphics_drm.lo `test -f 'core/graphics_drm.c' || echo '$(srcdir)/'`core/graphics_drm.c
 
 mostlyclean-libtool:
 	-rm -f *.lo
 
 clean-libtool:
 	-rm -rf .libs _libs
+	-rm -rf core/.libs core/_libs
 
 ID: $(am__tagged_files)
 	$(am__define_uniq_tagged_files); mkid -fID $$unique
@@ -644,6 +717,8 @@ clean-generic:
 distclean-generic:
 	-test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)
 	-test . = "$(srcdir)" || test -z "$(CONFIG_CLEAN_VPATH_FILES)" || rm -f $(CONFIG_CLEAN_VPATH_FILES)
+	-rm -f core/$(DEPDIR)/$(am__dirstamp)
+	-rm -f core/$(am__dirstamp)
 
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
@@ -655,7 +730,12 @@ clean-am: clean-generic clean-libtool clean-pluginLTLIBRARIES \
 	mostlyclean-am
 
 distclean: distclean-am
-		-rm -f ./$(DEPDIR)/frame_buffer_la-plugin.Plo
+		-rm -f ./$(DEPDIR)/minui_la-plugin.Plo
+	-rm -f core/$(DEPDIR)/minui_la-events.Plo
+	-rm -f core/$(DEPDIR)/minui_la-graphics.Plo
+	-rm -f core/$(DEPDIR)/minui_la-graphics_drm.Plo
+	-rm -f core/$(DEPDIR)/minui_la-graphics_fbdev.Plo
+	-rm -f core/$(DEPDIR)/minui_la-resources.Plo
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -701,7 +781,12 @@ install-ps-am:
 installcheck-am:
 
 maintainer-clean: maintainer-clean-am
-		-rm -f ./$(DEPDIR)/frame_buffer_la-plugin.Plo
+		-rm -f ./$(DEPDIR)/minui_la-plugin.Plo
+	-rm -f core/$(DEPDIR)/minui_la-events.Plo
+	-rm -f core/$(DEPDIR)/minui_la-graphics.Plo
+	-rm -f core/$(DEPDIR)/minui_la-graphics_drm.Plo
+	-rm -f core/$(DEPDIR)/minui_la-graphics_fbdev.Plo
+	-rm -f core/$(DEPDIR)/minui_la-resources.Plo
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
