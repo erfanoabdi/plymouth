@@ -302,6 +302,7 @@ AC_CONFIG_FILES([Makefile po/Makefile.in
            src/plugins/renderers/frame-buffer/Makefile
            src/plugins/renderers/drm/Makefile
            src/plugins/renderers/x11/Makefile
+           src/plugins/renderers/minui/Makefile
            src/plugins/splash/Makefile
            src/plugins/splash/fade-throbber/Makefile
            src/plugins/splash/tribar/Makefile

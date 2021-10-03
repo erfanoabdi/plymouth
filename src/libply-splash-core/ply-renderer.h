@@ -41,7 +41,8 @@ typedef enum
         PLY_RENDERER_TYPE_AUTO,
         PLY_RENDERER_TYPE_DRM,
         PLY_RENDERER_TYPE_FRAME_BUFFER,
-        PLY_RENDERER_TYPE_X11
+        PLY_RENDERER_TYPE_X11,
+        PLY_RENDERER_TYPE_MINUI
 } ply_renderer_type_t;
 
 typedef void (*ply_renderer_input_source_handler_t) (void                        *user_data,

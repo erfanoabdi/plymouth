@@ -158,6 +158,7 @@ fi
 # copy renderers
 copy_exec /usr/lib/@DEB_HOST_MULTIARCH@/plymouth/renderers/frame-buffer.so
 copy_exec /usr/lib/@DEB_HOST_MULTIARCH@/plymouth/renderers/drm.so
+copy_exec /usr/lib/@DEB_HOST_MULTIARCH@/plymouth/renderers/minui.so
 
 # copy config files
 mkdir -p "${DESTDIR}/etc/plymouth"
